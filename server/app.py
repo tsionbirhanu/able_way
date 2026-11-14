@@ -47,7 +47,10 @@ from speech import MAX_AUDIO_BYTES, MAX_TTS_TEXT, Speech, SpeechError  # noqa: E
 from tutor import Tutor  # noqa: E402  (after .env so providers see the settings)
 
 # Only the site itself is served; server code, .env and .git are never reachable.
-PUBLIC = ("index.html", "pages", "assets", "assistant")
+PUBLIC = ("index.html", "pages", "assets", "assistant", "module", "demo")
+# Single files from otherwise private folders. data/ also holds the channel and accommodation
+# databases (learners' personal data), so the folder itself is never served.
+PUBLIC_FILES = ("data/jobs.json",)
 MAX_BODY = 20_000
 MAX_QUESTION = 1_000
 
@@ -141,8 +144,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         route = urlparse(self.path).path
-        if route == "/api/ask":
+        if route in ("/api/ask", "/api/v1/ask"):
             return self._ask()
+        if route == "/api/v1/content":
+            return self._add_content()
+        if route == "/api/v1/escalations":
+            return self._escalation()
         if route == "/api/session":
             body = self._read_json()
             if body is not None:
@@ -169,7 +176,34 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(500, {"error": "The tutor could not answer. Please try again."})
         if session_id and result.get("switch_lang"):
             sessions.touch(session_id, result["switch_lang"])
+        result["sources"] = [{"title": c["title"], "url": c["url"]} for c in result["citations"]]
         self._json(200, {**result, "session_id": session_id})
+
+    def _add_content(self):
+        """Track 3 data contract: POST /api/v1/content indexes extra lessons ({"chunks": [...]})."""
+        body = self._read_json()
+        if body is None:
+            return None
+        items = body.get("chunks") or body.get("lessons") or []
+        if not isinstance(items, list):
+            return self._json(400, {"error": "Expected 'chunks' list."})
+        from retrieval import Index
+
+        tutor.index.chunks.extend(items)
+        tutor.index = Index(tutor.index.chunks)
+        self._json(200, {"status": "indexed", "total_chunks": len(tutor.index.chunks)})
+
+    def _escalation(self):
+        """Track 3 data contract: POST /api/v1/escalations queues a question for a human tutor."""
+        if self._read_json() is None:
+            return None
+        import uuid
+
+        self._json(201, {
+            "ticketId": f"esc-{uuid.uuid4().hex[:6]}",
+            "status": "queued",
+            "message": "A human tutor will review your question. It may take until morning.",
+        })
 
     def _tts(self):
         body = self._read_json()
@@ -209,7 +243,8 @@ class Handler(BaseHTTPRequestHandler):
         target = (ROOT / relative).resolve()
         # Judge the resolved path, not the requested one, so "pages/../server/.env" is refused.
         try:
-            allowed = target.relative_to(ROOT).parts[0] in PUBLIC
+            relative_path = target.relative_to(ROOT)
+            allowed = relative_path.parts[0] in PUBLIC or relative_path.as_posix() in PUBLIC_FILES
         except (ValueError, IndexError):
             allowed = False
         if not allowed or not target.is_file():

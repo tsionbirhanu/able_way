@@ -1,0 +1,222 @@
+[
+  {
+    "id": "job-va-001-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "Executive Virtual Assistant (Savanna Bridge Consulting)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: Executive Virtual Assistant\nCompany: Savanna Bridge Consulting\nLocation: Addis Ababa, Ethiopia\nRemote: Yes\nRequired Skills: calendar management, email, travel booking, English\nDeadline: 2026-12-05\nDescription: Support two directors with calendar management, inbox triage and travel booking. 30 hours a week, flexible schedule.\nApplication Link: https://jobs.example.com/va-001"
+  },
+  {
+    "id": "job-va-001-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "Executive Virtual Assistant (Savanna Bridge Consulting)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: Executive Virtual Assistant\nድርጅት: Savanna Bridge Consulting\nቦታ: Addis Ababa, Ethiopia\nየርቀት ሥራ: አዎ\nየሚያስፈልጉ ክህሎቶች: calendar management, email, travel booking, English\nየማመልከቻ ጊዜ ገደብ: 2026-12-05\nዝርዝር መግለጫ: ለሁለት ዳይሬክተሮች የቀን መቁጠሪያ አስተዳደር፣ የኢሜይል አደረጃጀትና የጉዞ ቦታ ማስያዝ ድጋፍ መስጠት። በሳምንት 30 ሰዓት፣ ተለዋዋጭ የስራ ሰዓት።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-001"
+  },
+  {
+    "id": "job-va-002-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "Customer Support Virtual Assistant (Amharic and English) (Abay Online Market)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: Customer Support Virtual Assistant (Amharic and English)\nCompany: Abay Online Market\nLocation: Remote, Ethiopia\nRemote: Yes\nRequired Skills: customer support, Amharic, English, live chat\nDeadline: 2026-11-30\nDescription: Answer customer questions by chat and email in Amharic and English for an online shop. Text-based work, no phone calls required.\nApplication Link: https://jobs.example.com/va-002"
+  },
+  {
+    "id": "job-va-002-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "Customer Support Virtual Assistant (Amharic and English) (Abay Online Market)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: Customer Support Virtual Assistant (Amharic and English)\nድርጅት: Abay Online Market\nቦታ: Remote, Ethiopia\nየርቀት ሥራ: አዎ\nየሚያስፈልጉ ክህሎቶች: customer support, Amharic, English, live chat\nየማመልከቻ ጊዜ ገደብ: 2026-11-30\nዝርዝር መግለጫ: ለኦንላይን ሱቅ የደንበኞችን ጥያቄ በአማርኛና በእንግሊዝኛ በቻትና በኢሜይል መመለስ። ስራው በጽሑፍ ነው፤ የስልክ ጥሪ አያስፈልግም።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-002"
+  },
+  {
+    "id": "job-va-003-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "Social Media Virtual Assistant (Kilimani Creative Studio)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: Social Media Virtual Assistant\nCompany: Kilimani Creative Studio\nLocation: Nairobi, Kenya\nRemote: Yes\nRequired Skills: social media, Canva, scheduling, copywriting\nDeadline: 2026-12-10\nDescription: Schedule posts, reply to comments and prepare simple Canva graphics for three small business clients. Part time.\nApplication Link: https://jobs.example.com/va-003"
+  },
+  {
+    "id": "job-va-003-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "Social Media Virtual Assistant (Kilimani Creative Studio)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: Social Media Virtual Assistant\nድርጅት: Kilimani Creative Studio\nቦታ: Nairobi, Kenya\nየርቀት ሥራ: አዎ\nየሚያስፈልጉ ክህሎቶች: social media, Canva, scheduling, copywriting\nየማመልከቻ ጊዜ ገደብ: 2026-12-10\nዝርዝር መግለጫ: ለሦስት አነስተኛ የንግድ ደንበኞች ልጥፎችን ማቀድ፣ ለአስተያየቶች መልስ መስጠትና ቀላል የCanva ግራፊክስ ማዘጋጀት። የትርፍ ሰዓት ስራ።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-003"
+  },
+  {
+    "id": "job-va-004-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "Data Entry and Research Assistant (Lalibela Insights)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: Data Entry and Research Assistant\nCompany: Lalibela Insights\nLocation: Addis Ababa, Ethiopia\nRemote: No\nRequired Skills: data entry, Excel, web research, accuracy\nDeadline: 2026-12-01\nDescription: Enter survey data into spreadsheets and research company contacts online. Office based in Bole, accessible building with a lift.\nApplication Link: https://jobs.example.com/va-004"
+  },
+  {
+    "id": "job-va-004-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "Data Entry and Research Assistant (Lalibela Insights)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: Data Entry and Research Assistant\nድርጅት: Lalibela Insights\nቦታ: Addis Ababa, Ethiopia\nየርቀት ሥራ: አይደለም\nየሚያስፈልጉ ክህሎቶች: data entry, Excel, web research, accuracy\nየማመልከቻ ጊዜ ገደብ: 2026-12-01\nዝርዝር መግለጫ: የዳሰሳ ጥናት መረጃዎችን ወደ ስፕሬድሺት ማስገባትና የድርጅቶችን አድራሻ በኢንተርኔት መፈለግ። ቢሮው ቦሌ ነው፤ ሕንፃው ሊፍት ያለውና ተደራሽ ነው።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-004"
+  },
+  {
+    "id": "job-va-005-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "Bookkeeping Virtual Assistant (Meskel Accounting Services)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: Bookkeeping Virtual Assistant\nCompany: Meskel Accounting Services\nLocation: Remote, East Africa\nRemote: Yes\nRequired Skills: bookkeeping, invoicing, QuickBooks, Excel\nDeadline: 2026-12-15\nDescription: Prepare invoices, record payments and reconcile monthly statements for small business clients using QuickBooks.\nApplication Link: https://jobs.example.com/va-005"
+  },
+  {
+    "id": "job-va-005-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "Bookkeeping Virtual Assistant (Meskel Accounting Services)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: Bookkeeping Virtual Assistant\nድርጅት: Meskel Accounting Services\nቦታ: Remote, East Africa\nየርቀት ሥራ: አዎ\nየሚያስፈልጉ ክህሎቶች: bookkeeping, invoicing, QuickBooks, Excel\nየማመልከቻ ጊዜ ገደብ: 2026-12-15\nዝርዝር መግለጫ: QuickBooksን በመጠቀም ለአነስተኛ የንግድ ደንበኞች ደረሰኝ ማዘጋጀት፣ ክፍያዎችን መመዝገብና ወርሃዊ መግለጫዎችን ማስታረቅ።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-005"
+  },
+  {
+    "id": "job-va-006-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "Calendar and Inbox Manager (Lagos Growth Partners)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: Calendar and Inbox Manager\nCompany: Lagos Growth Partners\nLocation: Lagos, Nigeria\nRemote: Yes\nRequired Skills: calendar management, Gmail, Google Workspace, time zones\nDeadline: 2026-12-08\nDescription: Manage a busy founder's calendar across time zones, keep the inbox at zero and prepare a short daily summary.\nApplication Link: https://jobs.example.com/va-006"
+  },
+  {
+    "id": "job-va-006-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "Calendar and Inbox Manager (Lagos Growth Partners)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: Calendar and Inbox Manager\nድርጅት: Lagos Growth Partners\nቦታ: Lagos, Nigeria\nየርቀት ሥራ: አዎ\nየሚያስፈልጉ ክህሎቶች: calendar management, Gmail, Google Workspace, time zones\nየማመልከቻ ጊዜ ገደብ: 2026-12-08\nዝርዝር መግለጫ: ስራ የበዛበትን መሥራች የቀን መቁጠሪያ በተለያዩ የሰዓት ሰቆች ማስተዳደር፣ የኢሜይል ሳጥኑን ማደራጀትና አጭር ዕለታዊ ማጠቃለያ ማዘጋጀት።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-006"
+  },
+  {
+    "id": "job-va-007-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "Transcription and Captioning Assistant (ClearVoice Media)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: Transcription and Captioning Assistant\nCompany: ClearVoice Media\nLocation: Remote, worldwide\nRemote: Yes\nRequired Skills: transcription, captioning, typing, English\nDeadline: 2026-12-20\nDescription: Correct automatic transcripts and add captions to training videos. Paid per video hour, work at your own pace.\nApplication Link: https://jobs.example.com/va-007"
+  },
+  {
+    "id": "job-va-007-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "Transcription and Captioning Assistant (ClearVoice Media)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: Transcription and Captioning Assistant\nድርጅት: ClearVoice Media\nቦታ: Remote, worldwide\nየርቀት ሥራ: አዎ\nየሚያስፈልጉ ክህሎቶች: transcription, captioning, typing, English\nየማመልከቻ ጊዜ ገደብ: 2026-12-20\nዝርዝር መግለጫ: በራስ-ሰር የተዘጋጁ የጽሑፍ ግልባጮችን ማረምና ለስልጠና ቪዲዮዎች መግለጫ ጽሑፍ መጨመር። ክፍያው በቪዲዮ ሰዓት ነው፤ በራስዎ ፍጥነት መስራት ይችላሉ።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-007"
+  },
+  {
+    "id": "job-va-008-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "E-commerce Store Assistant (Zuri Handmade)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: E-commerce Store Assistant\nCompany: Zuri Handmade\nLocation: Kigali, Rwanda\nRemote: Yes\nRequired Skills: Shopify, product listings, order tracking, customer support\nDeadline: 2026-12-03\nDescription: Update product listings, track orders and answer buyer emails for a handmade goods shop on Shopify.\nApplication Link: https://jobs.example.com/va-008"
+  },
+  {
+    "id": "job-va-008-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "E-commerce Store Assistant (Zuri Handmade)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: E-commerce Store Assistant\nድርጅት: Zuri Handmade\nቦታ: Kigali, Rwanda\nየርቀት ሥራ: አዎ\nየሚያስፈልጉ ክህሎቶች: Shopify, product listings, order tracking, customer support\nየማመልከቻ ጊዜ ገደብ: 2026-12-03\nዝርዝር መግለጫ: በShopify ላይ ላለ የእጅ ስራ ሱቅ የምርት ዝርዝሮችን ማዘመን፣ ትዕዛዞችን መከታተልና ለገዢዎች ኢሜይል መልስ መስጠት።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-008"
+  },
+  {
+    "id": "job-va-009-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "Junior Project Coordination Assistant (Entoto Tech Hub)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: Junior Project Coordination Assistant\nCompany: Entoto Tech Hub\nLocation: Addis Ababa, Ethiopia\nRemote: No\nRequired Skills: Trello, meeting notes, follow-up, communication\nDeadline: 2026-12-12\nDescription: Keep Trello boards up to date, write meeting notes and follow up on action items for a software team. Hybrid, three days in the office.\nApplication Link: https://jobs.example.com/va-009"
+  },
+  {
+    "id": "job-va-009-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "Junior Project Coordination Assistant (Entoto Tech Hub)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: Junior Project Coordination Assistant\nድርጅት: Entoto Tech Hub\nቦታ: Addis Ababa, Ethiopia\nየርቀት ሥራ: አይደለም\nየሚያስፈልጉ ክህሎቶች: Trello, meeting notes, follow-up, communication\nየማመልከቻ ጊዜ ገደብ: 2026-12-12\nዝርዝር መግለጫ: ለሶፍትዌር ቡድን የTrello ቦርዶችን ማዘመን፣ የስብሰባ ማስታወሻ መጻፍና የተግባር ነጥቦችን መከታተል። ድብልቅ የስራ ሁኔታ፣ በሳምንት ሦስት ቀን በቢሮ።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-009"
+  },
+  {
+    "id": "job-va-010-en",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "en",
+    "course": "Career Gateway: Accessible Jobs",
+    "title": "Real Estate Virtual Assistant (Cape Horizon Properties)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "Job Title: Real Estate Virtual Assistant\nCompany: Cape Horizon Properties\nLocation: Cape Town, South Africa\nRemote: Yes\nRequired Skills: CRM, lead follow-up, calendar management, email\nDeadline: 2027-01-10\nDescription: Update the CRM, follow up on new leads by email and book property viewings in the agents' calendars.\nApplication Link: https://jobs.example.com/va-010"
+  },
+  {
+    "id": "job-va-010-am",
+    "corpus": "jobs",
+    "kind": "job",
+    "lang": "am",
+    "course": "የሥራ ዕድሎች (Career Gateway)",
+    "title": "Real Estate Virtual Assistant (Cape Horizon Properties)",
+    "page": "jobs.html",
+    "url": "pages/jobs.html",
+    "text": "የሥራ መደብ: Real Estate Virtual Assistant\nድርጅት: Cape Horizon Properties\nቦታ: Cape Town, South Africa\nየርቀት ሥራ: አዎ\nየሚያስፈልጉ ክህሎቶች: CRM, lead follow-up, calendar management, email\nየማመልከቻ ጊዜ ገደብ: 2027-01-10\nዝርዝር መግለጫ: CRMን ማዘመን፣ አዳዲስ ደንበኞችን በኢሜይል መከታተልና ለወኪሎች የቤት ጉብኝት ቀጠሮ በቀን መቁጠሪያ መያዝ።\nየማመልከቻ ማስፈንጠሪያ: https://jobs.example.com/va-010"
+  }
+]

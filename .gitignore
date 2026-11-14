@@ -7,3 +7,6 @@ _tooling
 server/.venv/
 server/.env
 __pycache__/
+.env
+*.db
+data/*.db

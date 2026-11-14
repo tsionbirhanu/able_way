@@ -281,10 +281,19 @@ class HttpApi(unittest.TestCase):
         self.assertFalse(health["speech"]["stt"])
 
     def test_server_files_stay_private(self):
-        for path in ("/server/.env", "/pages/../server/.env", "/data/tts_cache/x.wav"):
+        for path in ("/server/.env", "/pages/../server/.env", "/data/tts_cache/x.wav", "/data/channels.db", "/data/accommodations.db"):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 urllib.request.urlopen(self.base + path)
             self.assertEqual(caught.exception.code, 404)
+        with urllib.request.urlopen(self.base + "/data/jobs.json") as r:  # the one public file in data/
+            self.assertEqual(r.status, 200)
+
+    def test_track3_contract_routes(self):
+        status, _, body = self.post("/api/v1/ask", {"question": "Is the VA profession shrinking?", "lang": "en"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body)["sources"][0]["url"], "pages/concept-with-navigation.html")
+        status, _, body = self.post("/api/v1/escalations", {"question": "help"})
+        self.assertEqual((status, json.loads(body)["status"]), (201, "queued"))
 
 
 if __name__ == "__main__":

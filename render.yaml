@@ -1,0 +1,50 @@
+services:
+  # ── Service 1: Tutor RAG API + Savanna Static Pages ───────────────────────
+  - type: web
+    name: ableway-tutor
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: ABLEWAY_HOST=0.0.0.0 ABLEWAY_PORT=$PORT python server/app.py
+    envVars:
+      - key: ABLEWAY_HOST
+        value: 0.0.0.0
+      - key: ABLEWAY_PROVIDERS
+        value: gemini,offline
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
+      - key: GEMINI_THINKING
+        value: minimal
+      - key: GEMINI_API_KEY
+        sync: false          # you will paste this in the Render dashboard
+      - key: CHANNELS_DB_PATH
+        value: data/channels.db
+      - key: ACCOMMODATIONS_DB_PATH
+        value: data/accommodations.db
+
+  # ── Service 2: Channels (SMS, Telegram, Handoff, Jobs) ────────────────────
+  - type: web
+    name: ableway-channels
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: TUTOR_PASSWORD
+        value: admin
+      - key: ALERTS_INTERVAL_MINUTES
+        value: "3"
+      - key: CORE_ASK_IMPORT
+        value: server.core_bridge:ask
+      - key: CHANNELS_DB_PATH
+        value: data/channels.db
+      - key: ACCOMMODATIONS_DB_PATH
+        value: data/accommodations.db
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false          # paste in Render dashboard if you have a bot
+      - key: PUBLIC_BASE_URL
+        sync: false          # paste the ableway-channels render URL after first deploy
