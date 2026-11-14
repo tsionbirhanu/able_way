@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t(lang, "handoff_start_title") }}</title>
+{% include "_p34_style.html" %}
+</head>
+<body>
+<main>
+<h1>{{ t(lang, "handoff_start_title") }}</h1>
+<p>{{ t(lang, "chat_intro") }}</p>
+<form method="post" action="/handoff/start">
+  <label for="lang">{{ t(lang, "language") }}</label>
+  <select id="lang" name="lang">
+    {% for code, name in LANGS.items() %}<option value="{{ code }}" lang="{{ code }}"{% if code == lang %} selected{% endif %}>{{ name }}</option>{% endfor %}
+  </select>
+  <div><button type="submit">{{ t(lang, "handoff_start_button") }}</button></div>
+</form>
+</main>
+</body>
+</html>

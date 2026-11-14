@@ -95,7 +95,7 @@ STRINGS = {
             "/subscribe <word> - get job alerts (for example /subscribe calendar)\n"
             "/unsubscribe - stop job alerts\n"
             "/accommodation - ask for support in an interview\n"
-            "/human - talk to a person\n"
+            "/human - talk to a person (/end to finish)\n"
             "/cancel - stop what you are doing"
         ),
         "am": (
@@ -105,7 +105,7 @@ STRINGS = {
             "/subscribe <ቃል> - የስራ ማሳወቂያ ያግኙ (ለምሳሌ /subscribe calendar)\n"
             "/unsubscribe - የስራ ማሳወቂያ ያቁሙ\n"
             "/accommodation - ለቃለ መጠይቅ ድጋፍ ይጠይቁ\n"
-            "/human - ከሰው ጋር ይነጋገሩ\n"
+            "/human - ከሰው ጋር ይነጋገሩ (ለመጨረስ /end)\n"
             "/cancel - እየሰሩ ያሉትን ያቁሙ"
         ),
     },

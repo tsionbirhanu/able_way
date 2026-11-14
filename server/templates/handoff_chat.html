@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t(lang, "chat_title") }}</title>
+{% include "_p34_style.html" %}
+{% include "_p34_chat_style.html" %}
+</head>
+<body>
+<a class="skip" href="#message">{{ t(lang, "skip_to_content") }}</a>
+<main id="main">
+<h1>{{ t(lang, "chat_title") }}</h1>
+{% if not ticket %}
+<p class="box error" role="alert">{{ t(lang, "chat_not_found") }}</p>
+<p><a href="/handoff/start?lang={{ lang }}">{{ t(lang, "handoff_start_button") }}</a></p>
+{% else %}
+<div id="share-banner" class="banner" role="status" hidden>
+  <span>{{ t(lang, "share_banner") }}</span>
+  <button type="button" id="share-stop">{{ t(lang, "share_stop") }}</button>
+</div>
+<p>{{ t(lang, "chat_intro") }}</p>
+<p id="status" role="status" class="note">{{ t(lang, "chat_connecting") }}</p>
+<h2 id="log-h">{{ t(lang, "chat_messages") }}</h2>
+<div id="log" class="log" role="log" aria-live="polite" aria-labelledby="log-h" tabindex="0"></div>
+<form id="chat-form">
+  <label for="message">{{ t(lang, "chat_message_label") }}</label>
+  <div class="row">
+    <input type="text" id="message" maxlength="2000" autocomplete="off" dir="auto" required>
+    <button type="submit">{{ t(lang, "send") }}</button>
+  </div>
+</form>
+<section aria-labelledby="share-h" id="share-section" hidden>
+  <h2 id="share-h">{{ t(lang, "share_start") }}</h2>
+  <p class="note" id="share-help">{{ t(lang, "share_explain") }}</p>
+  <button type="button" id="share-start" class="secondary" aria-describedby="share-help">{{ t(lang, "share_start") }}</button>
+  <p id="share-status" role="status" class="note"></p>
+</section>
+<noscript><p class="box error">{{ t(lang, "chat_needs_js") }} <a href="/lite?lang={{ lang }}">/lite</a></p></noscript>
+<script type="application/json" id="handoff-config">{{ js_config | tojson }}</script>
+<script src="/handoff/static/handoff_chat.js"></script>
+{% endif %}
+</main>
+</body>
+</html>

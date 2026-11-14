@@ -244,3 +244,44 @@ from . import accommodation as _accommodation  # noqa: E402
 
 COMMANDS["/accommodation"] = _accommodation.telegram_start
 FLOWS["accommodation"] = _accommodation.telegram_step
+
+
+# ------------------------------------------------------------------ /human: chat with a tutor
+async def _cmd_human(chat_id, arg, lang):
+    from server.handoff import tickets
+
+    if not tickets.find_open_external("telegram", chat_id):
+        tickets.create_ticket(channel="telegram", lang=lang, topic=arg, external_address=chat_id)
+    return [t(lang, "tg_human_started")]
+
+
+async def _cmd_end(chat_id, arg, lang):
+    from server.handoff import hub, tickets
+
+    ticket_id = tickets.find_open_external("telegram", chat_id)
+    if not ticket_id:
+        return [t(lang, "tg_nothing_to_cancel")]
+    await hub.close(ticket_id, notify_external=False)
+    return [t(lang, "tg_human_ended")]
+
+
+async def _relay_to_tutor(chat_id, text, lang):
+    """While a ticket is open, the learner's messages go to the tutor, not to the assistant."""
+    from server.handoff import hub, tickets
+
+    ticket_id = tickets.find_open_external("telegram", chat_id)
+    if not ticket_id:
+        return None
+    await hub.post_message(ticket_id, "learner", text)
+    return []
+
+
+def _register_handoff():
+    from server.handoff import hub
+
+    hub.external_senders["telegram"] = send_message
+
+
+COMMANDS.update({"/human": _cmd_human, "/end": _cmd_end})
+_interceptors.append(_relay_to_tutor)
+_register_handoff()

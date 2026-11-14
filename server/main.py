@@ -13,3 +13,4 @@ from server.channels.sms import router as sms_router; app.include_router(sms_rou
 from server.channels.telegram_bot import router as telegram_router; app.include_router(telegram_router)
 from server.jobs.router import router as jobs_router; app.include_router(jobs_router)
 from server.channels.accommodation import router as accommodation_router; app.include_router(accommodation_router)
+from server.handoff.router import router as handoff_router; app.include_router(handoff_router)
