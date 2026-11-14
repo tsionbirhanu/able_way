@@ -2,3 +2,8 @@
 .DS_Store
 _tooling
 *.zip
+
+# Ableway tutor backend
+server/.venv/
+server/.env
+__pycache__/

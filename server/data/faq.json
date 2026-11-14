@@ -1,0 +1,98 @@
+[
+  {
+    "id": "va-future",
+    "questions": {
+      "en": ["Is the future of virtual assistants promising?", "Is the VA profession shrinking?", "Will there still be VA jobs in the future?"],
+      "am": ["የምናባዊ ረዳት ሥራ የወደፊት ተስፋ አለው?", "የቪኤ ሙያ እየቀነሰ ነው?", "ወደፊት የምናባዊ ረዳት ሥራ ይኖራል?"]
+    },
+    "answer": {
+      "en": "Yes. The course says the Virtual Assistant profession is not shrinking, it is evolving. Businesses are becoming more digital, more global and more comfortable with remote work, so the need for skilled support professionals keeps growing.",
+      "am": "አዎ። ኮርሱ እንደሚለው የምናባዊ ረዳት (VA) ሙያ እየቀነሰ አይደለም፤ እየተለወጠ ነው። ድርጅቶች ይበልጥ ዲጂታል፣ ዓለም አቀፍ እና ለርቀት ሥራ ምቹ እየሆኑ ስለሆነ፣ የሰለጠኑ የድጋፍ ባለሙያዎች ፍላጎት እያደገ ነው።"
+    },
+    "simple": {
+      "en": "Yes. VA work is not going away. It is changing. More companies work online, so they need more helpers.",
+      "am": "አዎ። የVA ሥራ አይጠፋም። እየተለወጠ ነው። ብዙ ድርጅቶች በኢንተርኔት ስለሚሠሩ ተጨማሪ ረዳቶች ያስፈልጓቸዋል።"
+    },
+    "source": {"title": "The Future of the VA Industry — Introduction", "url": "pages/concept-with-navigation.html"}
+  },
+  {
+    "id": "va-two-meanings",
+    "questions": {
+      "en": ["What does virtual assistant mean?", "What is a VA?", "Is a virtual assistant a person or software?"],
+      "am": ["ምናባዊ ረዳት ማለት ምን ማለት ነው?", "VA ምንድን ነው?", "ምናባዊ ረዳት ሰው ነው ወይስ ሶፍትዌር?"]
+    },
+    "answer": {
+      "en": "The course points out that \"virtual assistant\" can mean two things. It can mean AI software such as chatbots, voice assistants and digital agents. It can also mean a human remote professional who provides business support online. The future of the industry includes both, and more and more they will work together.",
+      "am": "ኮርሱ እንደሚያብራራው \"ምናባዊ ረዳት\" ሁለት ትርጉም አለው። አንደኛው እንደ ቻትቦት፣ የድምፅ ረዳት እና ዲጂታል ኤጀንት ያሉ የAI ሶፍትዌሮች ናቸው። ሁለተኛው በኢንተርኔት ለድርጅቶች የሥራ ድጋፍ የሚሰጥ የርቀት ባለሙያ ሰው ነው። የኢንዱስትሪው የወደፊት ጊዜ ሁለቱንም ያካትታል፤ እየጨመረም አብረው ይሠራሉ።"
+    },
+    "simple": {
+      "en": "It can mean two things. One is a computer program, like a chatbot. The other is a person who helps a business from far away, using the internet.",
+      "am": "ሁለት ትርጉም አለው። አንዱ እንደ ቻትቦት ያለ የኮምፒውተር ፕሮግራም ነው። ሌላው በኢንተርኔት ከሩቅ ሆኖ ድርጅትን የሚረዳ ሰው ነው።"
+    },
+    "source": {"title": "The Future of the VA Industry — Introduction", "url": "pages/concept-with-navigation.html"}
+  },
+  {
+    "id": "va-shaping",
+    "questions": {
+      "en": ["What is shaping the future of VA work?", "What trends are changing virtual assistant work?"],
+      "am": ["የVA ሥራን የወደፊት ሁኔታ የሚቀርጹት ምንድን ናቸው?", "የምናባዊ ረዳት ሥራን የሚቀይሩ አዝማሚያዎች ምንድን ናቸው?"]
+    },
+    "answer": {
+      "en": "The course lists six things: more remote-first businesses, growing demand for flexibility, more digital operations, rising specialization, AI-powered productivity, and greater value placed on human skills.",
+      "am": "ኮርሱ ስድስት ነገሮችን ይዘረዝራል፦ በርቀት የሚሠሩ ድርጅቶች መብዛት፣ የተለዋዋጭነት ፍላጎት ማደግ፣ የዲጂታል አሠራር መጨመር፣ የልዩ ሙያ ፍላጎት ማደግ፣ በAI የታገዘ ምርታማነት፣ እና ለሰብአዊ ክህሎቶች የሚሰጠው ዋጋ መጨመር።"
+    },
+    "source": {"title": "The Future of the VA Industry — What is Shaping the Future of VA Work?", "url": "pages/concept-with-navigation.html#what-is-shaping-the-future-of-va-work"}
+  },
+  {
+    "id": "va-clients-value",
+    "questions": {
+      "en": ["What will clients value more and more?", "What skills do clients want from a VA?"],
+      "am": ["ደንበኞች ይበልጥ ዋጋ የሚሰጡት ምንድን ነው?", "ደንበኞች ከVA የሚፈልጉት ክህሎት ምንድን ነው?"]
+    },
+    "answer": {
+      "en": "According to the course, clients are likely to value three things more and more: AI fluency, specialized expertise, and excellent human service.",
+      "am": "ኮርሱ እንደሚለው ደንበኞች ይበልጥ ዋጋ የሚሰጧቸው ሦስት ነገሮች ናቸው፦ AIን በብቃት መጠቀም፣ የልዩ ሙያ እውቀት፣ እና እጅግ ጥሩ ሰብአዊ አገልግሎት።"
+    },
+    "source": {"title": "The Future of the VA Industry — What Clients Are Likely to Value More and More", "url": "pages/concept-with-navigation.html#what-clients-are-likely-to-value-more-and-more"}
+  },
+  {
+    "id": "va1-graduation",
+    "questions": {
+      "en": ["What score do I need to earn my badge?", "What is the graduation threshold?", "How do I unlock the next course?"],
+      "am": ["ባጅ ለማግኘት ስንት ውጤት ያስፈልገኛል?", "ለምረቃ የሚያስፈልገው ውጤት ስንት ነው?", "ቀጣዩን ኮርስ እንዴት መክፈት እችላለሁ?"]
+    },
+    "answer": {
+      "en": "Your dashboard says: score 70% or higher to earn your badge and unlock the next course.",
+      "am": "ዳሽቦርድዎ እንደሚለው፦ ባጅዎን ለማግኘት እና ቀጣዩን ኮርስ ለመክፈት 70% ወይም ከዚያ በላይ ውጤት ያስፈልግዎታል።"
+    },
+    "source": {"title": "Learner dashboard (self-paced): progress, pacing and events", "url": "pages/homepage-v1-self-paced.html"}
+  },
+  {
+    "id": "wr100-late-policy",
+    "questions": {
+      "en": ["What is the late policy for WR 100?", "How many days do I have to submit an assignment?", "What happens if I miss the deadline?"],
+      "am": ["የWR 100 የመዘግየት ፖሊሲ ምንድን ነው?", "ሥራዬን ለማስረከብ ስንት ቀን አለኝ?", "የጊዜ ገደቡ ካለፈብኝ ምን ይሆናል?"]
+    },
+    "answer": {
+      "en": "WR 100 is a 7-day course: you get one first attempt within 7 days. You are responsible for your own deadlines. For auto-graded and manually reviewed assignments, if you score below 85% you may get one resubmission in a 5-day window. Evaluation quizzes have a first deadline only.",
+      "am": "WR 100 የ7 ቀን ኮርስ ነው፦ የመጀመሪያ ሙከራዎን በ7 ቀን ውስጥ ማስረከብ አለብዎት። የጊዜ ገደብዎን መጠበቅ የእርስዎ ኃላፊነት ነው። በራስ-ሰር ወይም በሰው ለሚታረሙ ሥራዎች ከ85% በታች ካገኙ በ5 ቀን ውስጥ አንድ ጊዜ ድጋሚ ማስረከብ ይችላሉ። የግምገማ ፈተናዎች (evaluation quizzes) የመጀመሪያ የጊዜ ገደብ ብቻ አላቸው።"
+    },
+    "simple": {
+      "en": "You have 7 days for your first try. If you get less than 85%, you can try one more time within 5 days. Quizzes have only one deadline.",
+      "am": "ለመጀመሪያ ሙከራ 7 ቀን አለዎት። ከ85% በታች ካገኙ በ5 ቀን ውስጥ አንድ ጊዜ እንደገና መሞከር ይችላሉ። ፈተናዎች አንድ የጊዜ ገደብ ብቻ አላቸው።"
+    },
+    "source": {"title": "Course Overview: Late Policy for WR 100", "url": "pages/homepage-v1-paced.html"}
+  },
+  {
+    "id": "wr100-resubmission",
+    "questions": {
+      "en": ["Can I resubmit an assignment?", "How does resubmission work?", "Is there a penalty for resubmitting?"],
+      "am": ["ሥራዬን ድጋሚ ማስረከብ እችላለሁ?", "ድጋሚ ማስረከብ እንዴት ይሠራል?", "ድጋሚ ሳስረክብ ቅጣት አለ?"]
+    },
+    "answer": {
+      "en": "Resubmission applies only to auto-graded and manually reviewed assignments. If you earn below 85% on your first submission, you may submit one more time within 5 days, and a 15% grade reduction applies. If you score 85% or higher on the first submission you have passed and the resubmission window does not open.",
+      "am": "ድጋሚ ማስረከብ የሚፈቀደው በራስ-ሰር ወይም በሰው ለሚታረሙ ሥራዎች ብቻ ነው። በመጀመሪያ ሙከራዎ ከ85% በታች ካገኙ በ5 ቀን ውስጥ አንድ ጊዜ ድጋሚ ማስረከብ ይችላሉ፤ ውጤቱ ላይ የ15% ቅናሽ ይደረጋል። በመጀመሪያ ሙከራ 85% ወይም ከዚያ በላይ ካገኙ አልፈዋል፤ የድጋሚ ማስረከቢያ ጊዜ አይከፈትም።"
+    },
+    "source": {"title": "Course Overview: Resubmission (Second Deadline)", "url": "pages/homepage-v1-paced.html"}
+  }
+]

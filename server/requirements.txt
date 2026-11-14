@@ -1,0 +1,2 @@
+# Only needed for the cloud provider (Claude). Everything else is standard library.
+anthropic>=2.8
