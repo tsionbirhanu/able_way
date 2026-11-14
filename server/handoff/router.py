@@ -167,7 +167,8 @@ async def api_tickets(request: Request):
 
 
 # ------------------------------------------------------------------ static files of this feature
-_STATIC = {"handoff.js", "handoff_chat.js", "handoff_console.js", "handoff_screenshare.js"}
+_STATIC = {"handoff.js", "handoff_chat.js", "handoff_console.js", "handoff_screenshare.js",
+           "handoff_console_screen.js"}
 
 
 @router.get("/static/{name}", include_in_schema=False)
