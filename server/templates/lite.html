@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t(lang, "lite_title") }}</title>
+{% include "_p34_style.html" %}
+</head>
+<body>
+<a class="skip" href="#main">{{ t(lang, "skip_to_content") }}</a>
+<main id="main">
+<h1>{{ t(lang, "lite_title") }}</h1>
+<p>{{ t(lang, "lite_intro") }}</p>
+{% if error %}<p class="box error" role="alert">{{ t(lang, error) }}</p>{% endif %}
+{% if result %}
+<section class="box" aria-labelledby="answer-h">
+  <p class="note">{{ t(lang, "lite_you_asked") }}: <span dir="auto">{{ question }}</span></p>
+  <h2 id="answer-h">{{ t(lang, "lite_answer") }}</h2>
+  {% if result.matched %}
+  <p lang="{{ lang }}" dir="auto">{{ result.answer }}</p>
+  {% if result.citations %}
+  <h3>{{ t(lang, "sources") }}</h3>
+  <ul>
+    {% for c in result.citations %}<li dir="auto">{{ c.page }}{% if c.heading %} — {{ c.heading }}{% endif %}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% else %}
+  <p lang="{{ lang }}" dir="auto">{{ t(lang, "dont_know") }}</p>
+  <p><a href="/handoff/start?lang={{ lang }}">{{ t(lang, "lite_talk_to_person") }}</a></p>
+  {% endif %}
+</section>
+{% endif %}
+<form method="post" action="/lite">
+  <label for="question">{{ t(lang, "lite_question") }}</label>
+  <textarea id="question" name="question" rows="3" maxlength="1000" required dir="auto"></textarea>
+  <label for="lang">{{ t(lang, "language") }}</label>
+  <select id="lang" name="lang">
+    {% for code, name in LANGS.items() %}<option value="{{ code }}" lang="{{ code }}"{% if code == lang %} selected{% endif %}>{{ name }}</option>{% endfor %}
+  </select>
+  <div><button type="submit">{{ t(lang, "lite_ask") }}</button></div>
+</form>
+<p class="note"><a href="/accommodation?lang={{ lang }}">{{ t(lang, "lite_accommodation_link") }}</a></p>
+</main>
+</body>
+</html>
