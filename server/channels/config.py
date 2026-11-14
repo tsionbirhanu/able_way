@@ -61,3 +61,10 @@ def tutor_password() -> str:
         _generated_password = secrets.token_urlsafe(9)
         log.warning("TUTOR_PASSWORD is not set. Temporary tutor password: %s", _generated_password)
     return _generated_password
+
+if not log.handlers:  # make our own INFO lines visible under uvicorn without touching its config
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(levelname)s:     [%(name)s] %(message)s"))
+    log.addHandler(_h)
+    log.setLevel(logging.INFO)
+    log.propagate = False
