@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teacher view - what learners ask</title>
+{% include "_p34_style.html" %}
+<style>body{max-width:60rem}caption{text-align:start;font-weight:700;padding:.4rem 0}td.n,th.n{text-align:end;width:5rem}.pair{display:grid;grid-template-columns:1fr 1fr;gap:1rem}@media (max-width:40rem){.pair{grid-template-columns:1fr}}</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<main id="main">
+<h1>What learners ask</h1>
+<p class="note">Anonymous: only the question text, language, channel and date are stored. No names, phone numbers, chat ids or IP addresses. Total questions: <strong>{{ s.total }}</strong>.</p>
+
+<h2 id="top-h">Most asked questions</h2>
+{% if s.top %}
+<table aria-labelledby="top-h">
+  <thead><tr><th scope="col">Question</th><th scope="col" class="n">Times asked</th><th scope="col" class="n">Got "I don't know"</th><th scope="col">Last asked</th></tr></thead>
+  <tbody>
+  {% for r in s.top %}<tr><td dir="auto">{{ r.example }}</td><td class="n">{{ r.n }}</td><td class="n">{{ r.unknown }}</td><td>{{ r.last_asked }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% else %}<p>No questions yet.</p>{% endif %}
+
+<div class="pair">
+<section aria-labelledby="lang-h">
+<h2 id="lang-h">By language</h2>
+<table aria-labelledby="lang-h">
+  <thead><tr><th scope="col">Language</th><th scope="col" class="n">Questions</th></tr></thead>
+  <tbody>{% for r in s.by_lang %}<tr><td>{{ LANGS.get(r.lang, r.lang) }} ({{ r.lang }})</td><td class="n">{{ r.n }}</td></tr>{% else %}<tr><td colspan="2">No data</td></tr>{% endfor %}</tbody>
+</table>
+</section>
+<section aria-labelledby="channel-h">
+<h2 id="channel-h">By channel</h2>
+<table aria-labelledby="channel-h">
+  <thead><tr><th scope="col">Channel</th><th scope="col" class="n">Questions</th></tr></thead>
+  <tbody>{% for r in s.by_channel %}<tr><td>{{ r.channel }}</td><td class="n">{{ r.n }}</td></tr>{% else %}<tr><td colspan="2">No data</td></tr>{% endfor %}</tbody>
+</table>
+</section>
+</div>
+
+<h2 id="unknown-h">Questions that got "I don't know"</h2>
+<p class="note">These are gaps in the course content or in the assistant.</p>
+{% if s.unknown %}
+<table aria-labelledby="unknown-h">
+  <thead><tr><th scope="col">Question</th><th scope="col">Language</th><th scope="col" class="n">Times</th><th scope="col">Last asked</th></tr></thead>
+  <tbody>
+  {% for r in s.unknown %}<tr><td dir="auto"{% if r.lang == "am" %} lang="am"{% endif %}>{{ r.example }}</td><td>{{ r.lang }}</td><td class="n">{{ r.n }}</td><td>{{ r.last_asked }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% else %}<p>None so far.</p>{% endif %}
+</main>
+</body>
+</html>
