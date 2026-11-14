@@ -212,3 +212,28 @@ router = APIRouter(prefix="/telegram", tags=["telegram"], lifespan=_lifespan)
 async def status():
     """For the demo: is the bot configured and polling?"""
     return {"configured": bool(telegram_token()), "running": is_running(), "username": _state["username"]}
+
+
+# ------------------------------------------------------------------ jobs commands
+async def _cmd_jobs(chat_id, arg, lang):
+    from server.jobs.store import format_job, load_jobs, matches
+
+    jobs = [j for j in load_jobs() if matches(j, arg)][:5]
+    if not jobs:
+        return [t(lang, "jobs_none")]
+    return [t(lang, "jobs_header")] + [format_job(j, lang) for j in jobs]
+
+
+async def _cmd_subscribe(chat_id, arg, lang):
+    from server.jobs import alerts
+
+    return [alerts.confirmation(alerts.subscribe("telegram", chat_id, arg, lang), lang)]
+
+
+async def _cmd_unsubscribe(chat_id, arg, lang):
+    from server.jobs import alerts
+
+    return [t(lang, "unsubscribed" if alerts.unsubscribe("telegram", chat_id) else "not_subscribed")]
+
+
+COMMANDS.update({"/jobs": _cmd_jobs, "/subscribe": _cmd_subscribe, "/unsubscribe": _cmd_unsubscribe})

@@ -105,3 +105,28 @@ async def simulator(request: Request):
 @router.get("/simulator.js", include_in_schema=False)
 async def simulator_js():
     return FileResponse(STATIC_DIR / "sms_simulator.js", media_type="text/javascript")
+
+
+# ------------------------------------------------------------------ jobs keywords
+def _sms_jobs(sender, arg, lang):
+    from server.jobs.store import jobs_list_sms
+
+    return jobs_list_sms(lang)
+
+
+def _sms_sub(sender, arg, lang):
+    from server.jobs import alerts
+
+    if not arg:
+        return t(lang, "sms_sub_usage")
+    return alerts.confirmation(alerts.subscribe("sms", sender, arg, lang), lang)
+
+
+def _sms_unsub(sender, arg, lang):
+    from server.jobs import alerts
+
+    return t(lang, "unsubscribed" if alerts.unsubscribe("sms", sender) else "not_subscribed")
+
+
+COMMANDS.update({"JOBS": _sms_jobs, "SUB": _sms_sub, "SUBSCRIBE": _sms_sub, "UNSUB": _sms_unsub,
+                 "UNSUBSCRIBE": _sms_unsub})
