@@ -1,2 +1,1 @@
-# Only needed for the cloud provider (Claude). Everything else is standard library.
-anthropic>=2.8
+# Provider calls use the Python standard library; Gemini needs a server-side API key.

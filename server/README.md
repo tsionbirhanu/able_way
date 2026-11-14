@@ -1,4 +1,4 @@
-# Ableway tutor: backend and web widget
+# Ableway tutor: backend, web widget and shared channel core
 
 A course tutor for the Savanna pages that answers in Amharic and English, only from the course
 content, with a link to the page each answer came from.
@@ -19,19 +19,18 @@ The tutor tries the providers in order and uses the first one that works.
 
 | Provider | What it needs | How to turn it on |
 |---|---|---|
-| `cloud` (Claude) | Internet, an Anthropic API key | `pip install -r server/requirements.txt`, then copy `server/.env.example` to `server/.env` and put the key in it |
+| `gemini` (Google Gemini) | Internet, a Gemini API key | Copy `server/.env.example` to `server/.env` and set `GEMINI_API_KEY` |
 | `local` (Ollama) | [Ollama](https://ollama.com) running on this computer | `ollama pull gemma3:4b` |
 | `offline` | Nothing | Always on, always last |
 
-`GET /api/health` shows which providers are ready and why the others were skipped.
+`GET /api/health` shows which providers are ready and why the others were skipped. The Gemini API key stays on the server and is never sent to the browser. Google AI Studio offers free-tier use subject to the selected model's current quota, availability and terms; check its dashboard before a demo.
 
 Settings (in `server/.env` or the environment):
 
 | Name | Default | Meaning |
 |---|---|---|
-| `ABLEWAY_PROVIDERS` | `cloud,local,offline` | Order to try. `offline` alone forces offline mode. |
-| `ABLEWAY_CLAUDE_MODEL` | `claude-opus-5-5` | Claude model. |
-| `ABLEWAY_CLAUDE_EFFORT` | `low` | How hard Claude thinks; `medium` is slower and more careful. |
+| `ABLEWAY_PROVIDERS` | `gemini,local,offline` | Order to try. `offline` alone forces offline mode. |
+| `ABLEWAY_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model name. |
 | `ABLEWAY_OLLAMA_MODEL` | `gemma3:4b` | Local model name. |
 | `ABLEWAY_OLLAMA_URL` | `http://127.0.0.1:11434` | Where Ollama listens. |
 | `ABLEWAY_PORT` / `ABLEWAY_HOST` | `8000` / `127.0.0.1` | Where this server listens. |
@@ -65,8 +64,7 @@ Response:
 `[1]` in the answer refers to citation `n: 1`. `grounded` is `false` when the tutor could not find
 the answer in the course content; a channel can use that to offer "talk to a person".
 
-Telegram, SMS and other channels should call this endpoint (or `Tutor().ask(...)` from Python)
-so that every channel gives the same answers.
+Telegram, SMS and `/lite` use `server/channels/core_client.py`, which now calls this same tutor by default. Set `CORE_ASK_IMPORT` or `CORE_ASK_URL` only when replacing the shared tutor with another core.
 
 ## Files
 

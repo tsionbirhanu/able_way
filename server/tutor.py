@@ -11,8 +11,12 @@ import re
 import sys
 from pathlib import Path
 
-from providers import Provider, ProviderError, build_chain
-from retrieval import Index, expand_amharic, is_amharic, load_chunks, load_glossary, tokenize
+try:  # supports both `python server/app.py` and `import server.tutor`
+    from .providers import Provider, ProviderError, build_chain
+    from .retrieval import Index, expand_amharic, is_amharic, load_chunks, load_glossary, tokenize
+except ImportError:  # pragma: no cover - exercised by the standalone app entry point
+    from providers import Provider, ProviderError, build_chain
+    from retrieval import Index, expand_amharic, is_amharic, load_chunks, load_glossary, tokenize
 
 DATA = Path(__file__).resolve().parent / "data"
 NOT_FOUND = "[[NOT_FOUND]]"

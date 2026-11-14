@@ -4,21 +4,20 @@ import os
 import secrets
 from pathlib import Path
 
-try:  # .env is optional
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except Exception:  # pragma: no cover
-    pass
-
-log = logging.getLogger("channels")
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SERVER_DIR = REPO_ROOT / "server"
 TEMPLATES_DIR = SERVER_DIR / "templates"
 STATIC_DIR = SERVER_DIR / "static"
 JOBS_FILE = REPO_ROOT / "data" / "jobs.json"
 
+try:  # .env is optional; load the project's server config regardless of launch directory
+    from dotenv import load_dotenv
+
+    load_dotenv(dotenv_path=SERVER_DIR / ".env")
+except Exception:  # pragma: no cover
+    pass
+
+log = logging.getLogger("channels")
 
 def _path(env: str, default: str) -> Path:
     p = Path(os.environ.get(env) or default)

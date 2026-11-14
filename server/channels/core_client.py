@@ -20,6 +20,7 @@ import re
 log = logging.getLogger("channels.core_client")
 
 UNMATCHED = {"answer": "", "citations": [], "matched": False}
+_tutor = None
 
 
 def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
@@ -34,7 +35,7 @@ def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
         elif url:
             raw = _ask_http(url, question, lang, channel, simple)
         else:
-            raw = _ask_stub(question, lang, channel, simple)
+            raw = _ask_tutor(question, lang, simple)
         return _normalise(raw)
     except Exception as exc:  # never crash a channel because the core is down
         # Log the error type only, not the question text.
@@ -43,7 +44,24 @@ def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
 
 
 def using_stub() -> bool:
-    return not (os.environ.get("CORE_ASK_IMPORT") or os.environ.get("CORE_ASK_URL"))
+    return False
+
+
+def _ask_tutor(question, lang, simple):
+    """Use the same retrieval and configured AI provider as the web assistant."""
+    global _tutor
+    if _tutor is None:
+        from server.tutor import Tutor
+        _tutor = Tutor()
+    result = _tutor.ask(question, lang=lang, simple=simple)
+    return {
+        "answer": result["answer"],
+        "matched": result.get("grounded", False),
+        "citations": [
+            {"page": c.get("url", ""), "heading": c.get("title", "")}
+            for c in result.get("citations", [])
+        ],
+    }
 
 
 def _normalise(raw) -> dict:

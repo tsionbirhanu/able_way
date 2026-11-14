@@ -3,7 +3,7 @@
 Run with:  uvicorn server.main:app --reload
 Keep this file append-only: one include_router line per router.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI  # type: ignore[reportMissingImports]
 
 app = FastAPI(title="ALX multilingual assistant")
 
