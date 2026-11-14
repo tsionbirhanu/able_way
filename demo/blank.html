@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ableway Assistant - Standalone Host Proof (No Savanna / No Bootstrap)</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 32px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    h1 {
+      margin-top: 0;
+      color: #002b56;
+      font-size: 1.8rem;
+    }
+    .badge {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+    }
+    .code-card {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: Consolas, Monaco, "Andale Mono", monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+      margin: 20px 0;
+    }
+    #event-log {
+      margin-top: 20px;
+      padding: 12px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      min-height: 48px;
+      font-size: 0.88rem;
+      font-family: Consolas, monospace;
+    }
+  </style>
+
+  <!-- 1. Load the module -->
+  <script src="../module/db-assistant.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">Track 3: External Platform Proof</span>
+    <h1>Independent Host Platform (No Bootstrap, No Savanna CSS)</h1>
+    <p>
+      This page demonstrates that <code>&lt;db-assistant&gt;</code> operates as an isolated, standards-compliant
+      web component inside any external LMS or learning portal without style bleeding or external dependencies.
+    </p>
+
+    <h3>1. Module Embedding Snippet</h3>
+    <div class="code-card">
+&lt;!-- Load the standalone script --&gt;
+&lt;script src="https://your-platform/db-assistant.js" defer&gt;&lt;/script&gt;
+
+&lt;!-- Place the component --&gt;
+&lt;db-assistant lang="am" api="http://localhost:8001" content="/data/jobs.json"&gt;&lt;/db-assistant&gt;
+
+&lt;!-- Listen to lifecycle events --&gt;
+&lt;script&gt;
+  document.addEventListener('db-assistant:question', (e) => console.log(e.detail));
+  document.addEventListener('db-assistant:escalated', (e) => console.log(e.detail));
+&lt;/script&gt;
+    </div>
+
+    <h3>2. Host Lifecycle Event Monitor</h3>
+    <p>Live events dispatched by the component will appear below:</p>
+    <div id="event-log">Waiting for component interaction...</div>
+  </div>
+
+  <!-- 2. Place the component -->
+  <db-assistant lang="am" api="http://localhost:8001" content="../demo/data/jobs.json"></db-assistant>
+
+  <!-- 3. Host event listeners -->
+  <script>
+    const log = document.getElementById('event-log');
+    document.addEventListener('db-assistant:question', (e) => {
+      const stamp = new Date().toLocaleTimeString();
+      log.innerHTML = `<strong>[${stamp}] db-assistant:question</strong> &rarr; "${e.detail.text}" (${e.detail.language})`;
+    });
+
+    document.addEventListener('db-assistant:escalated', (e) => {
+      const stamp = new Date().toLocaleTimeString();
+      log.innerHTML = `<strong>[${stamp}] db-assistant:escalated</strong> &rarr; Ticket ID: ${e.detail.ticketId}`;
+    });
+  </script>
+</body>
+</html>

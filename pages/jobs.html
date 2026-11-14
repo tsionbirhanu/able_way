@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Career Gateway: Accessible Remote Opportunities | Savanna</title>
+
+    <link rel="stylesheet" href="../assets/css/typekit-xgz4ilr-css.css" />
+    <link rel="stylesheet" href="../assets/css/application_alx.css" media="all" />
+    <link rel="stylesheet" href="../assets/css/app.css" media="all" />
+    <link rel="stylesheet" href="../assets/css/static-page.css" media="all" />
+
+    <style>
+      .skip-link {
+        position: absolute;
+        top: -40px;
+        left: 10px;
+        background: #002b56;
+        color: #ffffff;
+        padding: 8px 16px;
+        z-index: 100000;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      .skip-link:focus {
+        top: 10px;
+        outline: 3px solid #f5a300;
+      }
+      .jobs-container {
+        max-width: 1080px;
+        margin: 30px auto;
+        padding: 0 20px;
+      }
+      .jobs-header {
+        background: #002b56;
+        color: #ffffff;
+        padding: 32px 24px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+      }
+      .jobs-header h1 {
+        margin: 0 0 8px;
+        font-size: 2rem;
+        color: #ffffff;
+      }
+      .jobs-header p {
+        margin: 0;
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+      .job-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+      }
+      .job-card {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .job-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+      }
+      .job-badge {
+        display: inline-block;
+        background: #e0f2fe;
+        color: #0369a1;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+      }
+      .job-card h2 {
+        font-size: 1.25rem;
+        margin: 0 0 6px;
+        color: #0f2a47;
+      }
+      .company-name {
+        font-weight: 600;
+        color: #4a5868;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+      }
+      .job-desc {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: #1e293b;
+        margin-bottom: 16px;
+        flex-grow: 1;
+      }
+      .skills-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+      .skill-tag {
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 0.78rem;
+        padding: 3px 8px;
+        border-radius: 6px;
+      }
+      .job-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 12px;
+      }
+      .btn-listen {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f1f5f9;
+        color: #0f2a47;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        min-height: 44px;
+      }
+      .btn-listen:hover {
+        background: #e2e8f0;
+      }
+      .btn-listen:focus-visible, .btn-acc:focus-visible {
+        outline: 3px solid #f5a300;
+        outline-offset: 2px;
+      }
+      .btn-acc {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #0284c7;
+        color: #ffffff;
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        min-height: 44px;
+      }
+      .btn-acc:hover {
+        background: #0369a1;
+        color: #ffffff;
+      }
+    </style>
+
+    <!-- Schema.org JobPosting Structured Data (Level 3 Open Standard) -->
+    <script type="application/ld+json">
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "JobPosting",
+        "title": "Executive Virtual Assistant",
+        "description": "Support two directors with calendar management, inbox triage and travel booking. 30 hours a week, flexible schedule.",
+        "datePosted": "2026-11-12",
+        "validThrough": "2026-12-05",
+        "employmentType": "FULL_TIME",
+        "jobLocationType": "TELECOMMUTE",
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": "Savanna Bridge Consulting"
+        },
+        "jobLocation": {
+          "@type": "Place",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Addis Ababa",
+            "addressCountry": "ET"
+          }
+        },
+        "jobBenefits": "Remote work, screen-reader software supported, sign language interpreter for interviews"
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "JobPosting",
+        "title": "Customer Support VA",
+        "description": "Handle customer inquiries via email and chat for a pan-African e-commerce brand. Written communication skills priority.",
+        "datePosted": "2026-11-10",
+        "validThrough": "2026-12-10",
+        "employmentType": "FULL_TIME",
+        "jobLocationType": "TELECOMMUTE",
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": "Bole Commerce Lab"
+        },
+        "jobLocation": {
+          "@type": "Place",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Addis Ababa",
+            "addressCountry": "ET"
+          }
+        },
+        "jobBenefits": "Flexible shift timings, text-based workflow ideal for Deaf applicants"
+      }
+    ]
+    </script>
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <header class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="../index.html">Savanna Career Gateway</a>
+        <nav aria-label="Breadcrumb">
+          <ol class="breadcrumb mb-0" style="background: transparent;">
+            <li class="breadcrumb-item"><a href="../index.html" class="text-white">Home</a></li>
+            <li class="breadcrumb-item"><a href="concept-with-navigation.html" class="text-white">Courses</a></li>
+            <li class="breadcrumb-item active text-white-50" aria-current="page">Jobs</li>
+          </ol>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main-content" class="jobs-container">
+      <section class="jobs-header" aria-labelledby="jobs-heading">
+        <h1 id="jobs-heading">Career Gateway: Accessible Remote Jobs</h1>
+        <p>Curated remote opportunities with verified employer accessibility accommodations and flexible schedules.</p>
+      </section>
+
+      <div class="job-grid" role="region" aria-label="Job Listings">
+        <!-- Job 1 -->
+        <article class="job-card" aria-labelledby="job-1-title">
+          <header>
+            <span class="job-badge">Remote • Addis Ababa</span>
+            <h2 id="job-1-title">Executive Virtual Assistant</h2>
+            <div class="company-name">Savanna Bridge Consulting</div>
+          </header>
+          <div class="job-desc">
+            <p>Support two directors with calendar management, inbox triage and travel booking. 30 hours a week, flexible schedule.</p>
+            <p lang="am" class="text-muted" style="font-size: 0.88rem; line-height: 1.6;">
+              ለሁለት ዳይሬክተሮች የቀን መቁጠሪያ አስተዳደር፣ የኢሜይል አደረጃጀትና የጉዞ ቦታ ማስያዝ ድጋፍ መስጠት። በሳምንት 30 ሰዓት፣ ተለዋዋጭ የስራ ሰዓት።
+            </p>
+          </div>
+          <div class="skills-list" aria-label="Required skills">
+            <span class="skill-tag">Calendar Management</span>
+            <span class="skill-tag">Email Triage</span>
+            <span class="skill-tag">Travel Booking</span>
+            <span class="skill-tag">English</span>
+          </div>
+          <div class="job-actions">
+            <button type="button" class="btn-listen" aria-label="Listen to Executive Virtual Assistant summary" onclick="readSummary(this, 'Executive Virtual Assistant at Savanna Bridge Consulting. Remote job in Addis Ababa. Requires calendar management, email triage and travel booking. Deadline December 5.')">
+              🔊 <span>Listen to summary</span>
+            </button>
+            <a href="http://localhost:8000/accommodation?job=Executive%20Virtual%20Assistant%20-%20Savanna%20Bridge%20Consulting" class="btn-acc" target="_blank" rel="noopener">
+              🤝 Request Accommodation
+            </a>
+          </div>
+        </article>
+
+        <!-- Job 2 -->
+        <article class="job-card" aria-labelledby="job-2-title">
+          <header>
+            <span class="job-badge">Remote • E-Commerce</span>
+            <h2 id="job-2-title">Customer Support VA</h2>
+            <div class="company-name">Bole Commerce Lab</div>
+          </header>
+          <div class="job-desc">
+            <p>Handle customer inquiries via email and Zendesk chat for a pan-African e-commerce brand. Written communication skills priority.</p>
+            <p lang="am" class="text-muted" style="font-size: 0.88rem; line-height: 1.6;">
+              ለአፍሪካ አቀፍ የኢ-ኮሜርስ ድርጅት በኢሜይልና በጽሑፍ ውይይት የደንበኞች ድጋፍ መስጠት። የጽሑፍ ግንኙነት ክህሎት ቅድሚያ ይሰጠዋል።
+            </p>
+          </div>
+          <div class="skills-list" aria-label="Required skills">
+            <span class="skill-tag">Zendesk</span>
+            <span class="skill-tag">Customer Care</span>
+            <span class="skill-tag">Chat Support</span>
+          </div>
+          <div class="job-actions">
+            <button type="button" class="btn-listen" aria-label="Listen to Customer Support VA summary" onclick="readSummary(this, 'Customer Support Virtual Assistant at Bole Commerce Lab. Fully remote chat support role. Excellent for Deaf applicants. Deadline December 10.')">
+              🔊 <span>Listen to summary</span>
+            </button>
+            <a href="http://localhost:8000/accommodation?job=Customer%20Support%20VA%20-%20Bole%20Commerce%20Lab" class="btn-acc" target="_blank" rel="noopener">
+              🤝 Request Accommodation
+            </a>
+          </div>
+        </article>
+
+        <!-- Job 3 -->
+        <article class="job-card" aria-labelledby="job-3-title">
+          <header>
+            <span class="job-badge">Remote • Part-Time</span>
+            <h2 id="job-3-title">Research & Data Entry Assistant</h2>
+            <div class="company-name">Abyssinia Analytics</div>
+          </header>
+          <div class="job-desc">
+            <p>Web research and data cleaning in Google Sheets. Flexible hours, fully asynchronous with weekly check-ins.</p>
+            <p lang="am" class="text-muted" style="font-size: 0.88rem; line-height: 1.6;">
+              በGoogle Sheets ውስጥ የመረጃ አሰባሰብና የማጽዳት ሥራ። ተለዋዋጭና ሙሉ በሙሉ በራስ ጊዜ የሚከናወን ሥራ።
+            </p>
+          </div>
+          <div class="skills-list" aria-label="Required skills">
+            <span class="skill-tag">Google Sheets</span>
+            <span class="skill-tag">Data Cleaning</span>
+            <span class="skill-tag">Web Research</span>
+          </div>
+          <div class="job-actions">
+            <button type="button" class="btn-listen" aria-label="Listen to Research Assistant summary" onclick="readSummary(this, 'Research and Data Entry Assistant at Abyssinia Analytics. Flexible asynchronous hours in Google Sheets. Deadline December 15.')">
+              🔊 <span>Listen to summary</span>
+            </button>
+            <a href="http://localhost:8000/accommodation?job=Research%20Assistant%20-%20Abyssinia%20Analytics" class="btn-acc" target="_blank" rel="noopener">
+              🤝 Request Accommodation
+            </a>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <script>
+      let currentUtter = null;
+      function readSummary(btn, text) {
+        if (!('speechSynthesis' in window)) {
+          alert('Speech synthesis is not supported on this device.');
+          return;
+        }
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          btn.querySelector('span').textContent = 'Listen to summary';
+          return;
+        }
+        currentUtter = new SpeechSynthesisUtterance(text);
+        currentUtter.lang = 'en-US';
+        currentUtter.onend = () => {
+          btn.querySelector('span').textContent = 'Listen to summary';
+        };
+        currentUtter.onerror = () => {
+          btn.querySelector('span').textContent = 'Listen to summary';
+        };
+        btn.querySelector('span').textContent = 'Stop reading';
+        window.speechSynthesis.speak(currentUtter);
+      }
+    </script>
+
+    <!-- Mount the accessible Assistant module on the jobs page -->
+    <script src="../assistant/assistant.js" defer></script>
+  </body>
+</html>

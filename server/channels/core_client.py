@@ -35,7 +35,7 @@ def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
         elif url:
             raw = _ask_http(url, question, lang, channel, simple)
         else:
-            raw = _ask_tutor(question, lang, simple)
+            raw = _ask_stub(question, lang, channel, simple)
         return _normalise(raw)
     except Exception as exc:  # never crash a channel because the core is down
         # Log the error type only, not the question text.
@@ -44,7 +44,7 @@ def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
 
 
 def using_stub() -> bool:
-    return False
+    return not (os.environ.get("CORE_ASK_IMPORT") or os.environ.get("CORE_ASK_URL"))
 
 
 def _ask_tutor(question, lang, simple):

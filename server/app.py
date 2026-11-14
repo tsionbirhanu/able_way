@@ -40,7 +40,7 @@ load_env(HERE / ".env")
 from tutor import Tutor  # noqa: E402  (after .env so providers see the settings)
 
 # Only the site itself is served; server code, .env and .git are never reachable.
-PUBLIC = ("index.html", "pages", "assets", "assistant")
+PUBLIC = ("index.html", "pages", "assets", "assistant", "module", "demo", "data")
 MAX_BODY = 20_000
 MAX_QUESTION = 1_000
 
@@ -96,7 +96,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(204, b"", "text/plain")
 
     def do_POST(self):
-        if urlparse(self.path).path != "/api/ask":
+        req_path = urlparse(self.path).path
+        if req_path not in ("/api/ask", "/api/v1/ask", "/api/v1/content", "/api/v1/escalations"):
             return self._json(404, {"error": "Not found."})
         length = int(self.headers.get("Content-Length") or 0)
         if not 0 < length <= MAX_BODY:
@@ -107,11 +108,34 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(400, {"error": "Body must be JSON."})
         if not isinstance(body, dict):
             return self._json(400, {"error": "Body must be a JSON object."})
+
+        # Track 3 Data Contract: POST /api/v1/content (index custom lessons)
+        if req_path == "/api/v1/content":
+            items = body.get("chunks") or body.get("lessons") or []
+            if isinstance(items, list):
+                from retrieval import Index
+                tutor.index.chunks.extend(items)
+                tutor.index = Index(tutor.index.chunks)
+                return self._json(200, {"status": "indexed", "total_chunks": len(tutor.index.chunks)})
+            return self._json(400, {"error": "Expected 'chunks' list."})
+
+        # Track 3 Data Contract: POST /api/v1/escalations (create human ticket)
+        if req_path == "/api/v1/escalations":
+            import uuid
+            ticket_id = f"esc-{uuid.uuid4().hex[:6]}"
+            return self._json(201, {
+                "ticketId": ticket_id,
+                "status": "queued",
+                "message": "A human tutor will review your question. It may take until morning."
+            })
+
         request, error = validate(body)
         if request is None:
             return self._json(400, {"error": error})
         try:
-            self._json(200, tutor.ask(**request))
+            result = tutor.ask(**request)
+            result["sources"] = [{"title": c["title"], "url": c["url"]} for c in result["citations"]]
+            self._json(200, result)
         except Exception as e:  # the learner should get a clear failure, not a hung chat
             print(f"[app] /api/ask failed: {e!r}", file=sys.stderr)
             self._json(500, {"error": "The tutor could not answer. Please try again."})

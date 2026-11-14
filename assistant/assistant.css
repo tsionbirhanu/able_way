@@ -177,6 +177,38 @@ svg {
   font-size: 0.875rem;
 }
 
+.help-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #e0f2fe;
+  border-bottom: 1px solid #bae6fd;
+}
+
+.help-strip .btn-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #0284c7;
+  color: #ffffff;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-height: 38px;
+  cursor: pointer;
+}
+
+.help-strip .btn-help:hover {
+  background: #0369a1;
+}
+
+.help-strip .btn-help.active {
+  background: #dc2626;
+}
+
 .segmented {
   display: inline-flex;
   border: 1px solid var(--navy);

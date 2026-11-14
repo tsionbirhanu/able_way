@@ -1,0 +1,152 @@
+[
+  {
+    "id": "va-001",
+    "title": "Executive Virtual Assistant",
+    "company": "Savanna Bridge Consulting",
+    "location": "Addis Ababa, Ethiopia",
+    "remote": true,
+    "skills": ["calendar management", "email", "travel booking", "English"],
+    "posted": "2026-11-12",
+    "deadline": "2026-12-05",
+    "link": "https://jobs.example.com/va-001",
+    "description": {
+      "en": "Support two directors with calendar management, inbox triage and travel booking. 30 hours a week, flexible schedule.",
+      "am": "ለሁለት ዳይሬክተሮች የቀን መቁጠሪያ አስተዳደር፣ የኢሜይል አደረጃጀትና የጉዞ ቦታ ማስያዝ ድጋፍ መስጠት። በሳምንት 30 ሰዓት፣ ተለዋዋጭ የስራ ሰዓት።"
+    }
+  },
+  {
+    "id": "va-002",
+    "title": "Customer Support Virtual Assistant (Amharic and English)",
+    "company": "Abay Online Market",
+    "location": "Remote, Ethiopia",
+    "remote": true,
+    "skills": ["customer support", "Amharic", "English", "live chat"],
+    "posted": "2026-11-11",
+    "deadline": "2026-11-30",
+    "link": "https://jobs.example.com/va-002",
+    "description": {
+      "en": "Answer customer questions by chat and email in Amharic and English for an online shop. Text-based work, no phone calls required.",
+      "am": "ለኦንላይን ሱቅ የደንበኞችን ጥያቄ በአማርኛና በእንግሊዝኛ በቻትና በኢሜይል መመለስ። ስራው በጽሑፍ ነው፤ የስልክ ጥሪ አያስፈልግም።"
+    }
+  },
+  {
+    "id": "va-003",
+    "title": "Social Media Virtual Assistant",
+    "company": "Kilimani Creative Studio",
+    "location": "Nairobi, Kenya",
+    "remote": true,
+    "skills": ["social media", "Canva", "scheduling", "copywriting"],
+    "posted": "2026-11-10",
+    "deadline": "2026-12-10",
+    "link": "https://jobs.example.com/va-003",
+    "description": {
+      "en": "Schedule posts, reply to comments and prepare simple Canva graphics for three small business clients. Part time.",
+      "am": "ለሦስት አነስተኛ የንግድ ደንበኞች ልጥፎችን ማቀድ፣ ለአስተያየቶች መልስ መስጠትና ቀላል የCanva ግራፊክስ ማዘጋጀት። የትርፍ ሰዓት ስራ።"
+    }
+  },
+  {
+    "id": "va-004",
+    "title": "Data Entry and Research Assistant",
+    "company": "Lalibela Insights",
+    "location": "Addis Ababa, Ethiopia",
+    "remote": false,
+    "skills": ["data entry", "Excel", "web research", "accuracy"],
+    "posted": "2026-11-09",
+    "deadline": "2026-12-01",
+    "link": "https://jobs.example.com/va-004",
+    "description": {
+      "en": "Enter survey data into spreadsheets and research company contacts online. Office based in Bole, accessible building with a lift.",
+      "am": "የዳሰሳ ጥናት መረጃዎችን ወደ ስፕሬድሺት ማስገባትና የድርጅቶችን አድራሻ በኢንተርኔት መፈለግ። ቢሮው ቦሌ ነው፤ ሕንፃው ሊፍት ያለውና ተደራሽ ነው።"
+    }
+  },
+  {
+    "id": "va-005",
+    "title": "Bookkeeping Virtual Assistant",
+    "company": "Meskel Accounting Services",
+    "location": "Remote, East Africa",
+    "remote": true,
+    "skills": ["bookkeeping", "invoicing", "QuickBooks", "Excel"],
+    "posted": "2026-11-08",
+    "deadline": "2026-12-15",
+    "link": "https://jobs.example.com/va-005",
+    "description": {
+      "en": "Prepare invoices, record payments and reconcile monthly statements for small business clients using QuickBooks.",
+      "am": "QuickBooksን በመጠቀም ለአነስተኛ የንግድ ደንበኞች ደረሰኝ ማዘጋጀት፣ ክፍያዎችን መመዝገብና ወርሃዊ መግለጫዎችን ማስታረቅ።"
+    }
+  },
+  {
+    "id": "va-006",
+    "title": "Calendar and Inbox Manager",
+    "company": "Lagos Growth Partners",
+    "location": "Lagos, Nigeria",
+    "remote": true,
+    "skills": ["calendar management", "Gmail", "Google Workspace", "time zones"],
+    "posted": "2026-11-07",
+    "deadline": "2026-12-08",
+    "link": "https://jobs.example.com/va-006",
+    "description": {
+      "en": "Manage a busy founder's calendar across time zones, keep the inbox at zero and prepare a short daily summary.",
+      "am": "ስራ የበዛበትን መሥራች የቀን መቁጠሪያ በተለያዩ የሰዓት ሰቆች ማስተዳደር፣ የኢሜይል ሳጥኑን ማደራጀትና አጭር ዕለታዊ ማጠቃለያ ማዘጋጀት።"
+    }
+  },
+  {
+    "id": "va-007",
+    "title": "Transcription and Captioning Assistant",
+    "company": "ClearVoice Media",
+    "location": "Remote, worldwide",
+    "remote": true,
+    "skills": ["transcription", "captioning", "typing", "English"],
+    "posted": "2026-11-06",
+    "deadline": "2026-12-20",
+    "link": "https://jobs.example.com/va-007",
+    "description": {
+      "en": "Correct automatic transcripts and add captions to training videos. Paid per video hour, work at your own pace.",
+      "am": "በራስ-ሰር የተዘጋጁ የጽሑፍ ግልባጮችን ማረምና ለስልጠና ቪዲዮዎች መግለጫ ጽሑፍ መጨመር። ክፍያው በቪዲዮ ሰዓት ነው፤ በራስዎ ፍጥነት መስራት ይችላሉ።"
+    }
+  },
+  {
+    "id": "va-008",
+    "title": "E-commerce Store Assistant",
+    "company": "Zuri Handmade",
+    "location": "Kigali, Rwanda",
+    "remote": true,
+    "skills": ["Shopify", "product listings", "order tracking", "customer support"],
+    "posted": "2026-11-05",
+    "deadline": "2026-12-03",
+    "link": "https://jobs.example.com/va-008",
+    "description": {
+      "en": "Update product listings, track orders and answer buyer emails for a handmade goods shop on Shopify.",
+      "am": "በShopify ላይ ላለ የእጅ ስራ ሱቅ የምርት ዝርዝሮችን ማዘመን፣ ትዕዛዞችን መከታተልና ለገዢዎች ኢሜይል መልስ መስጠት።"
+    }
+  },
+  {
+    "id": "va-009",
+    "title": "Junior Project Coordination Assistant",
+    "company": "Entoto Tech Hub",
+    "location": "Addis Ababa, Ethiopia",
+    "remote": false,
+    "skills": ["Trello", "meeting notes", "follow-up", "communication"],
+    "posted": "2026-11-04",
+    "deadline": "2026-12-12",
+    "link": "https://jobs.example.com/va-009",
+    "description": {
+      "en": "Keep Trello boards up to date, write meeting notes and follow up on action items for a software team. Hybrid, three days in the office.",
+      "am": "ለሶፍትዌር ቡድን የTrello ቦርዶችን ማዘመን፣ የስብሰባ ማስታወሻ መጻፍና የተግባር ነጥቦችን መከታተል። ድብልቅ የስራ ሁኔታ፣ በሳምንት ሦስት ቀን በቢሮ።"
+    }
+  },
+  {
+    "id": "va-010",
+    "title": "Real Estate Virtual Assistant",
+    "company": "Cape Horizon Properties",
+    "location": "Cape Town, South Africa",
+    "remote": true,
+    "skills": ["CRM", "lead follow-up", "calendar management", "email"],
+    "posted": "2026-11-03",
+    "deadline": "2027-01-10",
+    "link": "https://jobs.example.com/va-010",
+    "description": {
+      "en": "Update the CRM, follow up on new leads by email and book property viewings in the agents' calendars.",
+      "am": "CRMን ማዘመን፣ አዳዲስ ደንበኞችን በኢሜይል መከታተልና ለወኪሎች የቤት ጉብኝት ቀጠሮ በቀን መቁጠሪያ መያዝ።"
+    }
+  }
+]

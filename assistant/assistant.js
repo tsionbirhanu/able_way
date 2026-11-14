@@ -34,6 +34,11 @@
       language: 'Language',
       simple: 'Simple words',
       clear: 'Clear chat',
+      talkToPerson: 'Talk to a person',
+      screenShare: 'Share screen',
+      screenSharingActive: 'Sharing screen (click to stop)',
+      escalating: 'Connecting to live tutor…',
+      screenShareAndroid: 'Screen sharing is not supported in Chrome on Android. Your current lesson page is shared with the tutor.',
       transcript: 'Conversation with the tutor',
       inputLabel: 'Your question',
       placeholder: 'Type your question…',
@@ -76,6 +81,11 @@
       language: 'ቋንቋ',
       simple: 'ቀላል ቃላት',
       clear: 'ውይይቱን አጽዳ',
+      talkToPerson: 'ረዳት ሰው ያነጋግሩ',
+      screenShare: 'ማያ ገጽ አጋራ',
+      screenSharingActive: 'ማያ ገጽ እየተጋራ ነው (ለማቆም ይጫኑ)',
+      escalating: 'ከሰው ረዳት ጋር በመገናኘት ላይ…',
+      screenShareAndroid: 'በAndroid Chrome ላይ ማያ ገጽ ማጋራት አይሰራም። የያዙት የትምህርት ገጽ ለአስተማሪው ተልኳል።',
       transcript: 'ከረዳት አስተማሪው ጋር ያለ ውይይት',
       inputLabel: 'ጥያቄዎ',
       placeholder: 'ጥያቄዎን ይጻፉ…',
@@ -120,6 +130,8 @@
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
     speaker: '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/>',
     stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+    person: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    share: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
   };
 
   // ------------------------------------------------------------ small helpers
@@ -197,6 +209,13 @@
   );
   const clearButton = el('button', { type: 'button', class: 'link-button', onclick: clearChat });
 
+  let screenStream = null;
+  const talkText = el('span');
+  const talkButton = el('button', { type: 'button', class: 'btn-help', onclick: escalateToHuman }, icon('person'), talkText);
+  const shareText = el('span');
+  const shareButton = el('button', { type: 'button', class: 'btn-help', onclick: toggleScreenShare }, icon('share'), shareText);
+  const helpStrip = el('div', { class: 'help-strip' }, talkButton, shareButton);
+
   const list = el('ol', { class: 'messages' });
   const suggestions = el('div', { class: 'suggestions' });
   const scroller = el('div', { class: 'scroller', tabindex: '0', role: 'group' }, list, suggestions);
@@ -218,6 +237,7 @@
     { class: 'panel', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'ableway-title', hidden: true },
     el('div', { class: 'header' }, el('div', { class: 'header-text' }, title, subtitle), closeButton),
     el('div', { class: 'settings' }, langGroup, simpleSwitch, clearButton),
+    helpStrip,
     scroller,
     announcer,
     status,
@@ -245,6 +265,10 @@
     simpleText.textContent = s.simple;
     simpleSwitch.setAttribute('aria-checked', String(state.simple));
     clearButton.textContent = s.clear;
+    talkText.textContent = s.talkToPerson;
+    talkButton.setAttribute('aria-label', s.talkToPerson);
+    shareText.textContent = screenStream ? s.screenSharingActive : s.screenShare;
+    shareButton.setAttribute('aria-label', screenStream ? s.screenSharingActive : s.screenShare);
     scroller.setAttribute('aria-label', s.transcript);
     inputLabel.textContent = s.inputLabel;
     input.placeholder = s.placeholder;
@@ -416,6 +440,10 @@
     if (!question || state.busy) return;
     stopListening();
     stopSpeaking();
+    // Dispatch host contract event
+    document.dispatchEvent(new CustomEvent('db-assistant:question', {
+      bubbles: true, composed: true, detail: { text: question, language: state.lang }
+    }));
     const history = state.messages.filter((m) => !m.error).slice(-6).map((m) => ({ role: m.role, content: m.text }));
     addMessage({ role: 'user', text: question, lang: state.lang });
     input.value = '';
@@ -476,6 +504,62 @@
       setOpen(false);
     }
   });
+
+  // ------------------------------------------------------------ live escalation & screen sharing
+
+  async function escalateToHuman() {
+    const s = t();
+    setStatus(s.escalating);
+    const lastTopic = state.messages.length ? state.messages[state.messages.length - 1].text : (location.pathname + location.hash);
+    try {
+      const res = await fetch(`http://localhost:8000/handoff/tickets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang: state.lang, topic: lastTopic, channel: 'web' }),
+      });
+      const data = await res.json();
+      setStatus('');
+      document.dispatchEvent(new CustomEvent('db-assistant:escalated', {
+        bubbles: true, composed: true, detail: { ticketId: data.ticket_id }
+      }));
+      if (data.chat_url) {
+        window.open(`http://localhost:8000${data.chat_url}`, '_blank', 'noopener');
+      }
+    } catch {
+      window.open(`http://localhost:8000/handoff/start?lang=${state.lang}`, '_blank', 'noopener');
+    }
+  }
+
+  async function toggleScreenShare() {
+    const s = t();
+    if (screenStream) {
+      screenStream.getTracks().forEach((track) => track.stop());
+      screenStream = null;
+      shareButton.classList.remove('active');
+      shareText.textContent = s.screenShare;
+      setStatus('');
+      return;
+    }
+    // Trap from guide: Chrome on Android does not support getDisplayMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      setStatus(s.screenShareAndroid);
+      return;
+    }
+    try {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      shareButton.classList.add('active');
+      shareText.textContent = s.screenSharingActive;
+      setStatus(s.screenSharingActive);
+      screenStream.getVideoTracks()[0].onended = () => {
+        screenStream = null;
+        shareButton.classList.remove('active');
+        shareText.textContent = t().screenShare;
+        setStatus('');
+      };
+    } catch {
+      setStatus('');
+    }
+  }
 
   // ------------------------------------------------------------ voice in (speech to text)
 
@@ -581,5 +665,16 @@
     panel.hidden = false;
     launcher.hidden = true;
     launcher.setAttribute('aria-expanded', 'true');
+  }
+
+  // Register <db-assistant> custom element for declarative placement
+  if (typeof customElements !== 'undefined' && !customElements.get('db-assistant')) {
+    class DbAssistantElement extends HTMLElement {
+      connectedCallback() {
+        if (this.hasAttribute('lang')) setLang(this.getAttribute('lang'));
+        if (this.hasAttribute('simple')) setSimple(this.getAttribute('simple') === 'true');
+      }
+    }
+    customElements.define('db-assistant', DbAssistantElement);
   }
 })();
