@@ -3,3 +3,6 @@ channels.db
 channels.db-*
 accommodations.db
 accommodations.db-*
+
+# Mimi voice cache: fixed phrases (greeting, confirmations) only
+tts_cache/

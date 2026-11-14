@@ -24,6 +24,12 @@ class ProviderError(Exception):
     """This back end cannot answer right now; the tutor moves on to the next one."""
 
 
+def gemini_keys() -> list[str]:
+    """The configured Gemini API keys, server-side only (shared by the tutor and speech.py)."""
+    configured = os.environ.get("GEMINI_API_KEYS") or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
+    return list(dict.fromkeys(k.strip() for k in configured.replace("\n", ",").split(",") if k.strip()))
+
+
 class Provider:
     name = ""
     label = ""
@@ -46,8 +52,7 @@ class GeminiProvider(Provider):
 
     def __init__(self):
         self.model = os.environ.get("ABLEWAY_GEMINI_MODEL", "gemini-2.5-flash")
-        configured = os.environ.get("GEMINI_API_KEYS") or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
-        self.api_keys = list(dict.fromkeys(k.strip() for k in configured.replace("\n", ",").split(",") if k.strip()))
+        self.api_keys = gemini_keys()
         self._next_key = 0
         self._down_until = 0.0
         self._down_reason = ""

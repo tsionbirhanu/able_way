@@ -24,7 +24,7 @@
   color: var(--ink);
   /* system-ui covers Latin; the named fonts cover Ethiopic script on Android, Windows and macOS. */
   font-family: system-ui, "Segoe UI", "Noto Sans", "Noto Sans Ethiopic", Ebrima, Nyala, Kefa, sans-serif;
-  font-size: 1rem;
+  font-size: 1.125rem;
   line-height: 1.5;
   text-align: start;
 }
@@ -108,9 +108,9 @@ svg {
 .panel {
   display: flex;
   flex-direction: column;
-  width: min(400px, calc(100vw - 32px));
-  height: min(640px, calc(100vh - 32px));
-  height: min(640px, calc(100dvh - 32px));
+  width: min(560px, calc(100vw - 32px));
+  height: min(800px, calc(100vh - 32px));
+  height: min(800px, calc(100dvh - 32px));
   border: 1px solid var(--navy);
   border-radius: 16px;
   background: #fff;
@@ -134,7 +134,7 @@ svg {
 
 .title {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.3;
 }
@@ -307,6 +307,7 @@ svg {
   border: 1px solid transparent;
   border-radius: 14px;
   overflow-wrap: anywhere;
+  font-size: 1.0625rem;
 }
 
 .msg-user .bubble {
@@ -467,9 +468,9 @@ a.cite {
 /* ------------------------------------------------------------ composer */
 
 .status {
-  min-height: 1.4em;
+  min-height: 1.8em;
   padding: 0 14px;
-  font-size: 0.8125rem;
+  font-size: 1rem;
   color: var(--muted);
 }
 
@@ -505,16 +506,6 @@ textarea::placeholder {
   color: var(--navy);
 }
 
-.composer .icon-button:hover {
-  background: var(--bot);
-}
-
-.composer .mic[aria-pressed="true"] {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: #fff;
-}
-
 .composer .send {
   background: var(--navy);
   color: #fff;
@@ -531,6 +522,173 @@ textarea::placeholder {
   cursor: not-allowed;
 }
 
+/* ------------------------------------------------------------ voice: header toggle, state bar */
+
+.lang-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 1px 8px;
+  border: 1px solid #dbe6f2;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.voice-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+.voice-toggle[data-on="true"] {
+  background: #fff;
+  color: var(--navy);
+}
+
+.voice-toggle:hover {
+  background: var(--navy-2);
+  color: #fff;
+}
+
+.toggle-icon {
+  display: inline-flex;
+}
+
+.voicebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 12px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f6f9fc;
+}
+
+.voice-status {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.voice-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--navy);
+  color: var(--navy);
+}
+
+.voice-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* The shape and the words carry the state; colour only reinforces it. */
+.voicebar[data-state="listening"] .voice-icon,
+.voicebar[data-state="language_selection"] .voice-icon {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  animation: listening-pulse 1.4s ease-in-out infinite;
+}
+
+.voicebar[data-state="speaking"] .voice-icon,
+.voicebar[data-state="greeting"] .voice-icon {
+  background: var(--navy);
+  color: var(--green);
+  animation: listening-pulse 1s ease-in-out infinite;
+}
+
+.voicebar[data-state="processing"] .voice-icon {
+  animation: blink 1.2s infinite both;
+}
+
+.voicebar[data-state="error"] {
+  border-color: var(--danger);
+  background: #fdecec;
+}
+
+@keyframes listening-pulse {
+  50% { transform: scale(1.12); }
+}
+
+.voice-action {
+  min-height: 40px;
+  padding: 4px 14px;
+  border: 2px solid var(--navy);
+  border-radius: 999px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.voice-action:hover {
+  background: var(--navy-2);
+}
+
+.voice-action[data-action="unlock"] {
+  background: var(--green);
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
+/* ------------------------------------------------------------ greeting language choice */
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.choice {
+  min-width: 120px;
+  min-height: 48px;
+  padding: 6px 18px;
+  border: 2px solid var(--navy);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--navy);
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.choice:hover {
+  background: var(--navy);
+  color: #fff;
+}
+
+.bubble .translation {
+  margin-top: 6px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.replay {
+  min-height: 32px;
+  font-size: 0.8125rem;
+}
+
 /* ------------------------------------------------------------ adaptations */
 
 @media (max-width: 480px) {
@@ -543,6 +701,10 @@ textarea::placeholder {
     height: 100%;
     border: 0;
     border-radius: 0;
+  }
+
+  .voice-toggle span:last-child {
+    font-size: 0.875rem;
   }
 }
 
@@ -563,13 +725,17 @@ textarea::placeholder {
   .bubble,
   .chip,
   .icon-button,
-  .sources {
+  .sources,
+  .voicebar,
+  .choice,
+  .voice-toggle {
     border: 1px solid CanvasText;
   }
 
   .segmented button[aria-pressed="true"],
   .chip[aria-pressed="true"],
-  .composer .mic[aria-pressed="true"] {
+  .voice-toggle[data-on="true"],
+  .voice-action {
     background: Highlight;
     color: HighlightText;
     forced-color-adjust: none;

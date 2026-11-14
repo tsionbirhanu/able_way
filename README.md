@@ -36,6 +36,18 @@ nothing is minified or gzipped. Captures are additive, so each run ends by dropp
 published page references any more — otherwise the Rive stills from retired week panels would
 pile up run after run.
 
+## Course tutor
+
+Every classroom page has Mimi, a bilingual (Amharic / English) voice-first tutor. When a page opens
+she greets the learner by voice in Amharic and asks which language they want; the learner answers
+by speaking, typing, or pressing **አማርኛ** / **English**. After that the conversation is hands-free:
+Mimi speaks, listens, answers from the course pages with citations, and listens again, with no
+microphone button to press. **Turn off voice** switches to text at any time without losing the
+conversation or the language, and the choice carries over to other lessons in the same tab.
+
+Run `python server/app.py` and open <http://localhost:8000/>. Details, settings and the limits of
+browser speech (most browsers have no Amharic voice) are in `server/README.md`.
+
 ## What still works
 
 These are live in the frozen pages, driven by `assets/js/static-page.js` against content that was
@@ -53,6 +65,5 @@ the accessibility tree and no id appears twice):
 | **Curriculum bar** | all | The bar fixed under the header pads the content by its own height and slides away on scroll down, as `CurrentCurriculumScrollBehavior.tsx` does. |
 | Dropdowns, modals, accordions, collapse, tooltips | all | Bootstrap's own bundle. |
 
-Everything else is inert.
-
+Other captured application controls are inert.
 
