@@ -1,0 +1,5 @@
+# runtime databases (owned by channels/handoff work)
+channels.db
+channels.db-*
+accommodations.db
+accommodations.db-*

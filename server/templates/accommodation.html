@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t(lang, "acc_title") }}</title>
+{% include "_p34_style.html" %}
+</head>
+<body>
+<a class="skip" href="#main">{{ t(lang, "skip_to_content") }}</a>
+<nav aria-label="{{ t(lang, 'language') }}">
+  {% for code, name in LANGS.items() %}<a href="/accommodation?lang={{ code }}" lang="{{ code }}" hreflang="{{ code }}"{% if code == lang %} aria-current="true"{% endif %}>{{ name }}</a>{% if not loop.last %} | {% endif %}{% endfor %}
+</nav>
+<main id="main">
+<h1>{{ t(lang, "acc_title") }}</h1>
+{% if done %}
+<p class="box" role="status">{{ t(lang, "acc_thanks") }}</p>
+<p><a href="/accommodation?lang={{ lang }}">{{ t(lang, "acc_another") }}</a></p>
+{% else %}
+<p>{{ t(lang, "acc_intro") }}</p>
+<p class="note">{{ t(lang, "acc_privacy") }}</p>
+{% if error %}<p class="box error" role="alert">{{ t(lang, error) }}</p>{% endif %}
+<form method="post" action="/accommodation" autocomplete="off">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <label for="job">{{ t(lang, "acc_job") }}</label>
+  <select id="job" name="job">
+    <option value="">{{ t(lang, "acc_job_other") }}</option>
+    {% for j in jobs %}<option value="{{ j }}"{% if values.job == j %} selected{% endif %}>{{ j }}</option>{% endfor %}
+  </select>
+  <label for="job_text">{{ t(lang, "acc_job_text") }}</label>
+  <input type="text" id="job_text" name="job_text" maxlength="300" dir="auto" value="{{ values.job_text or '' }}">
+  <label for="support">{{ t(lang, "acc_support") }}</label>
+  <textarea id="support" name="support" rows="4" maxlength="2000" required dir="auto">{{ values.support or '' }}</textarea>
+  <label for="contact">{{ t(lang, "acc_contact") }}</label>
+  <input type="text" id="contact" name="contact" maxlength="300" required dir="auto" value="{{ values.contact or '' }}">
+  <div><button type="submit">{{ t(lang, "acc_submit") }}</button></div>
+</form>
+{% endif %}
+</main>
+</body>
+</html>

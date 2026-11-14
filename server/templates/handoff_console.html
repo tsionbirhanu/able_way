@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutor console</title>
+{% include "_p34_style.html" %}
+{% include "_p34_chat_style.html" %}
+<style>
+body{max-width:64rem}
+.cols{display:grid;grid-template-columns:18rem 1fr;gap:1rem}
+@media (max-width:48rem){.cols{grid-template-columns:1fr}}
+#tickets{list-style:none;padding:0;margin:0}
+#tickets button{width:100%;text-align:start;background:#fff;color:#111;border-color:#999;margin:0 0 .4rem}
+#tickets button[aria-current=true]{border-color:#0b3d91;background:#dbe7ff}
+#tickets small{display:block;color:#444;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+video{width:100%;max-height:28rem;background:#000;border-radius:4px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Tutor console</h1>
+  <form method="post" action="/handoff/console/logout"><button type="submit" class="secondary">Sign out</button></form>
+</header>
+<main class="cols">
+  <nav aria-labelledby="tickets-h">
+    <h2 id="tickets-h">Open tickets</h2>
+    <p id="tickets-status" role="status" class="note">Loading…</p>
+    <ul id="tickets"></ul>
+  </nav>
+  <section aria-labelledby="chat-h">
+    <h2 id="chat-h" tabindex="-1">Choose a ticket</h2>
+    <div id="chat" hidden>
+      <p id="status" role="status" class="note"></p>
+      <div id="screen" hidden>
+        <h3 id="screen-h">Learner's screen (view only)</h3>
+        <video id="screen-video" autoplay playsinline muted controls aria-labelledby="screen-h"></video>
+      </div>
+      <h3 id="log-h">Messages</h3>
+      <div id="log" class="log" role="log" aria-live="polite" aria-labelledby="log-h" tabindex="0"></div>
+      <form id="chat-form">
+        <label for="message">Reply to the learner</label>
+        <div class="row">
+          <input type="text" id="message" maxlength="2000" autocomplete="off" dir="auto" required>
+          <button type="submit">Send</button>
+        </div>
+      </form>
+      <button type="button" id="close-ticket" class="secondary">Close ticket</button>
+    </div>
+  </section>
+</main>
+<script src="/handoff/static/handoff_console.js"></script>
+<script src="/handoff/static/handoff_console_screen.js"></script>
+</body>
+</html>

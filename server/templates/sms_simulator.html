@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMS simulator</title>
+{% include "_p34_style.html" %}
+<style>
+.phone{max-width:22rem;margin:1rem auto;border:10px solid #222;border-radius:28px;padding:.6rem;background:#f4f4f4}
+.screen{height:24rem;overflow-y:auto;background:#fff;border:1px solid #999;border-radius:6px;padding:.5rem;display:flex;flex-direction:column;gap:.4rem}
+.msg{max-width:85%;padding:.4rem .6rem;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.msg.out{align-self:flex-end;background:#0b3d91;color:#fff}
+.msg.in{align-self:flex-start;background:#e6e6e6}
+.msg.alert{align-self:flex-start;background:#fff3bf;border:1px solid #b08900}
+.msg small{display:block;font-size:.7rem;opacity:.8}
+.row{display:flex;gap:.4rem;align-items:flex-end}.row input{flex:1}
+</style>
+</head>
+<body>
+<main>
+<h1>SMS simulator</h1>
+<p class="note">A pretend phone for the demo. Messages go to <code>POST /sms/inbound</code>; job alerts come from the outbox table. Try <kbd>HELP</kbd>, <kbd>JOBS</kbd>, <kbd>SUB calendar</kbd>, <kbd>LANG AM</kbd>.</p>
+<div class="phone">
+  <label for="from">This phone's number</label>
+  <input type="text" id="from" value="+251911000001" autocomplete="off" inputmode="tel">
+  <h2 id="log-h">Messages</h2>
+  <div class="screen" id="log" role="log" aria-live="polite" aria-labelledby="log-h" tabindex="0"></div>
+  <form id="form">
+    <label for="text">Text message</label>
+    <div class="row">
+      <input type="text" id="text" maxlength="480" autocomplete="off" dir="auto" required>
+      <button type="submit" style="margin-top:0">Send</button>
+    </div>
+  </form>
+  <p class="note" id="status" role="status"></p>
+</div>
+<noscript><p class="box error">The simulator needs JavaScript. The webhook itself does not: <code>curl -X POST /sms/inbound -H 'Content-Type: application/json' -d '{"from":"+251911000001","text":"HELP"}'</code></p></noscript>
+</main>
+<script src="/sms/simulator.js"></script>
+</body>
+</html>
