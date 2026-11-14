@@ -237,3 +237,10 @@ async def _cmd_unsubscribe(chat_id, arg, lang):
 
 
 COMMANDS.update({"/jobs": _cmd_jobs, "/subscribe": _cmd_subscribe, "/unsubscribe": _cmd_unsubscribe})
+
+
+# ------------------------------------------------------------------ accommodation flow (private)
+from . import accommodation as _accommodation  # noqa: E402
+
+COMMANDS["/accommodation"] = _accommodation.telegram_start
+FLOWS["accommodation"] = _accommodation.telegram_step
