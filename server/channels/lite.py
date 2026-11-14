@@ -3,20 +3,13 @@ import asyncio
 
 from fastapi import APIRouter, Form, Request
 
+from server.teacher.question_log import log_question
+
 from . import core_client
 from .strings import norm_lang
 from .web import render
 
 router = APIRouter(prefix="/lite", tags=["lite"])
-
-
-def _log(question, lang, matched):
-    try:
-        from server.teacher.question_log import log_question
-
-        log_question(question, lang, "lite", matched)
-    except ImportError:  # teacher module not merged yet
-        pass
 
 
 @router.get("")
@@ -33,5 +26,5 @@ async def lite_ask(request: Request, question: str = Form(""), lang: str = Form(
     if not question:
         return render(request, "lite.html", lang, question="", result=None, error="empty_question")
     result = await asyncio.to_thread(core_client.ask, question, lang, "lite", True)
-    _log(question, lang, result["matched"])
+    log_question(question, lang, "lite", result["matched"])
     return render(request, "lite.html", lang, question=question, result=result, error=None)
