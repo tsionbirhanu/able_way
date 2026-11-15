@@ -213,3 +213,38 @@ def test_privacy_command_shows_choice_with_buttons(bot):
     telegram_bot, voice, sent = bot
     run(telegram_bot._handle_update(text_message(64, "/privacy")))
     assert [d for _, d in [b for k, b in sent if k == "buttons"][-1]] == ["consent:yes", "consent:no"]
+
+
+# ---------------------------------------------------------------- webhook mode (hosted servers)
+def test_webhook_accepts_only_telegram(client, monkeypatch):  # noqa: F811
+    import time as _time
+
+    from server.channels import telegram_bot
+    from server.channels.config import telegram_webhook_secret
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123:test-token")
+    handled = []
+
+    async def fake_handle(update):
+        handled.append(update)
+
+    monkeypatch.setattr(telegram_bot, "_handle_update", fake_handle)
+    update = {"update_id": 1, "message": {"chat": {"id": 70}, "text": "/help"}}
+    assert client.post("/telegram/webhook", json=update).status_code == 403
+    assert client.post("/telegram/webhook", json=update, headers={"X-Telegram-Bot-Api-Secret-Token": "wrong"}).status_code == 403
+    ok = client.post("/telegram/webhook", json=update, headers={"X-Telegram-Bot-Api-Secret-Token": telegram_webhook_secret()})
+    assert ok.status_code == 200
+    for _ in range(20):
+        if handled:
+            break
+        _time.sleep(0.05)
+    assert handled == [update]
+
+
+def test_mode_defaults_to_polling(monkeypatch):
+    from server.channels.config import telegram_mode
+
+    monkeypatch.delenv("TELEGRAM_MODE", raising=False)
+    assert telegram_mode() == "polling"
+    monkeypatch.setenv("TELEGRAM_MODE", "webhook")
+    assert telegram_mode() == "webhook"

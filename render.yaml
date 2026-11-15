@@ -48,6 +48,17 @@ services:
       - key: ACCOMMODATIONS_DB_PATH
         value: data/accommodations.db
       - key: TELEGRAM_BOT_TOKEN
-        sync: false          # paste in Render dashboard if you have a bot
+        sync: false          # paste in Render dashboard; use a different bot from the one on your laptop
+      # Telegram sends each message to this server, which also wakes it when the free plan put it to
+      # sleep. (Polling, the laptop default, stops while the server sleeps.) Needs PUBLIC_BASE_URL.
+      - key: TELEGRAM_MODE
+        value: webhook
+      # Telegram, SMS and /lite answer with the same AI as the web page.
+      - key: ABLEWAY_PROVIDERS
+        value: gemini,offline
+      - key: ABLEWAY_GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_API_KEY
+        sync: false          # the same key as the tutor service
       - key: PUBLIC_BASE_URL
         sync: false          # this service's own address, e.g. https://ableway-channels.onrender.com

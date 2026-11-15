@@ -161,7 +161,7 @@ def test_telegram_unknown_offers_human_and_remembers_language(client):
 def test_server_starts_without_telegram_token(client):
     with client:  # runs startup and shutdown
         status = client.get("/telegram/status").json()
-    assert status == {"configured": False, "running": False, "username": None}
+    assert status == {"configured": False, "running": False, "username": None, "mode": "polling"}
 
 
 def test_sms_reply_is_plain_text_by_default(client):

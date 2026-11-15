@@ -6,6 +6,7 @@ If TELEGRAM_BOT_TOKEN is missing the bot is skipped with a warning and the serve
 Privacy: message text and chat ids are never written to the logs.
 """
 import asyncio
+import hmac
 import logging
 import re
 import secrets
@@ -13,13 +14,14 @@ from collections import OrderedDict
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from server.teacher.question_log import log_question
 
 from . import core_client, voice
 from .config import log as _base_log
-from .config import telegram_token
+from .config import public_base_url, telegram_mode, telegram_token, telegram_webhook_secret
 from .db import forget, get_consent, get_lang, get_voice, set_consent, set_lang, set_voice
 from .strings import format_citations, norm_lang, t
 
@@ -400,15 +402,45 @@ async def _poll_forever(token: str) -> None:
             await asyncio.sleep(5)
 
 
+async def _use_webhook(token: str) -> None:
+    """Hosted mode: ask Telegram to send every message to this server (TELEGRAM_MODE=webhook)."""
+    client = _state["client"]
+    url = public_base_url() + "/telegram/webhook"
+    if not url.startswith("https://"):
+        log.error("TELEGRAM_MODE=webhook needs PUBLIC_BASE_URL to be this server's https:// address. Bot not started.")
+        return
+    try:
+        me = await client.get(API.format(token=token, method="getMe"))
+        if me.status_code != 200:
+            log.error("Telegram rejected TELEGRAM_BOT_TOKEN (HTTP %s). Bot not started.", me.status_code)
+            return
+        _state["username"] = me.json().get("result", {}).get("username")
+        resp = await client.post(API.format(token=token, method="setWebhook"), json={
+            "url": url, "secret_token": telegram_webhook_secret(),
+            "allowed_updates": ["message", "callback_query"],
+        })
+        if resp.status_code != 200:
+            log.error("Telegram refused the webhook address (HTTP %s).", resp.status_code)
+            return
+    except httpx.HTTPError as exc:
+        log.error("Cannot reach Telegram (%s). Bot not started.", type(exc).__name__)
+        return
+    _state["running"] = True
+    log.info("Telegram bot @%s receives messages by webhook.", _state["username"])
+
+
 async def start() -> None:
     token = telegram_token()
     if not token:
         log.warning("TELEGRAM_BOT_TOKEN is not set: Telegram bot skipped. Everything else still works.")
         return
-    if _state["task"]:
+    if _state["task"] or _state["running"]:
         return
     _state["client"] = httpx.AsyncClient(timeout=40)
-    _state["task"] = asyncio.create_task(_poll_forever(token))
+    if telegram_mode() == "webhook":
+        await _use_webhook(token)
+    else:
+        _state["task"] = asyncio.create_task(_poll_forever(token))
 
 
 async def stop() -> None:
@@ -436,10 +468,29 @@ async def _lifespan(app):
 router = APIRouter(prefix="/telegram", tags=["telegram"], lifespan=_lifespan)
 
 
+@router.post("/webhook", include_in_schema=False)
+async def webhook(request: Request):
+    """Telegram posts each message here (webhook mode). Answered at once; the reply is sent separately."""
+    secret = request.headers.get("x-telegram-bot-api-secret-token", "")
+    expected = telegram_webhook_secret()
+    if not expected or not hmac.compare_digest(secret, expected):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    try:
+        update = await request.json()
+    except ValueError:
+        return JSONResponse({"error": "expected JSON"}, status_code=400)
+    if isinstance(update, dict):
+        task = asyncio.create_task(_handle_update(update))
+        _tasks.add(task)
+        task.add_done_callback(_tasks.discard)
+    return {"ok": True}
+
+
 @router.get("/status")
 async def status():
-    """For the demo: is the bot configured and polling?"""
-    return {"configured": bool(telegram_token()), "running": is_running(), "username": _state["username"]}
+    """For the demo: is the bot configured and running, and how does it get messages?"""
+    return {"configured": bool(telegram_token()), "running": is_running(), "username": _state["username"],
+            "mode": telegram_mode()}
 
 
 # ------------------------------------------------------------------ jobs commands

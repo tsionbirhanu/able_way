@@ -41,6 +41,21 @@ def telegram_token() -> str:
     return (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
 
 
+def telegram_mode() -> str:
+    """'polling' (default: the bot asks Telegram for messages; works on a laptop with no public address)
+    or 'webhook' (Telegram sends each message to PUBLIC_BASE_URL/telegram/webhook; a hosted server that
+    sleeps when idle, such as a free Render service, is woken up by each message)."""
+    return "webhook" if (os.environ.get("TELEGRAM_MODE") or "").strip().lower() == "webhook" else "polling"
+
+
+def telegram_webhook_secret() -> str:
+    """The secret Telegram sends back with every webhook call, so only Telegram can post to it."""
+    import hashlib
+
+    token = telegram_token()
+    return hashlib.sha256(("mimi-webhook:" + token).encode()).hexdigest()[:48] if token else ""
+
+
 def public_base_url() -> str:
     return (os.environ.get("PUBLIC_BASE_URL") or "http://localhost:8000").rstrip("/")
 

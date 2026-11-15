@@ -1,1 +1,0 @@
-# Provider calls use the Python standard library; Gemini needs a server-side API key.
