@@ -1,13 +1,12 @@
 # Mimi: multilingual course tutor and live help (`<db-assistant>`)
 
-**Track 3, Multilingual assistant and live help.** Digital Bridge Accessibility Hackathon 2026.
+** Multilingual assistant and live help. **
 
 - **Team:**
   - Hara Dejene: frontend developer
   - Tsion Birhanu: AI engineer and DevOps
   - Dagmawit Negash: full-stack developer
   - Hermela Kassahun: project manager
-- **Co-designer:** *to fill in: first name, with their permission*
 
 ## What it does
 
@@ -59,7 +58,7 @@ You need **Python 3.11 or newer** ([python.org](https://www.python.org/downloads
 "Add Python to PATH").
 
 ```bash
-git clone https://github.com/tsionbirhanu/able_way.git
+git clone https://github.com/tsionbirhanu/mimi-tutor.git
 cd able_way
 python -m venv .venv
 # Windows:      .venv\Scripts\activate
