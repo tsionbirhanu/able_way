@@ -260,7 +260,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             request = urllib.request.Request(f"{base}/handoff/tickets", data=payload.encode("utf-8"),
                                              headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(request, timeout=10) as response:
+            # A free hosting plan puts the help desk to sleep when idle; waking takes up to about a minute.
+            with urllib.request.urlopen(request, timeout=75) as response:
                 ticket = json.load(response)
         except (urllib.error.URLError, OSError, ValueError):
             return self._json(503, {"error": "The help desk is not reachable right now. Please try again in a minute."})

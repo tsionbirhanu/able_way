@@ -505,12 +505,23 @@
   // Where the right edge of the screen is. A host page that is wider than the phone (it scrolls
   // sideways) would otherwise push Mimi partly off screen: she is placed by the visible area instead.
   const edgeProbe = el('div', { class: 'edge-probe', 'aria-hidden': 'true' });
+  const floorProbe = el('div', { class: 'edge-probe floor', 'aria-hidden': 'true' });
   function fitToScreen() {
     const vv = window.visualViewport;
     if (!vv) return;
     const overflow = Math.max(0, edgeProbe.getBoundingClientRect().right - (vv.offsetLeft + vv.width));
+    // The same below the screen: on a page wider than the phone the browser's "bottom" is lower than
+    // what the learner sees, which put the "Open Mimi" button out of sight.
+    const below = Math.max(0, floorProbe.getBoundingClientRect().bottom - (vv.offsetTop + vv.height));
+    root.style.setProperty('--mimi-bottom', `${Math.round(below)}px`);
     root.style.setProperty('--mimi-right', `${Math.round(overflow)}px`);
     root.style.setProperty('--mimi-vw', `${Math.round(vv.width)}px`);
+    // The open chat fills the visible screen on a phone: decided by what the learner sees, not by
+    // the page's width (Savanna's lesson page is wider than the phone it is shown on).
+    root.style.setProperty('--mimi-vh', `${Math.round(vv.height)}px`);
+    root.style.setProperty('--mimi-left', `${Math.round(vv.offsetLeft)}px`);
+    root.style.setProperty('--mimi-top', `${Math.round(vv.offsetTop)}px`);
+    root.classList.toggle('narrow', vv.width <= 480);
   }
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', fitToScreen);
@@ -518,7 +529,7 @@
   }
   window.addEventListener('resize', fitToScreen);
   window.addEventListener('load', fitToScreen); // the host page may grow wider once its images arrive
-  shadow.append(css, root, ring, edgeProbe);
+  shadow.append(css, root, ring, edgeProbe, floorProbe);
 
   // The host's brand colour (Bootstrap's --bs-primary, or --db-assistant-brand) on Mimi's main
   // buttons, so she looks part of the platform: but only when white text on it is readable (4.5:1).
@@ -2391,7 +2402,8 @@
       .slice(-12)
       .map((m) => ({ role: m.role, text: m.text }));
     try {
-      const data = await postJSON('/api/v1/escalations', { conversation, language: state.lang, cloud: allowCloud() }, 15000);
+      // Up to 90 s: on a free hosting plan the help desk may need a minute to wake up.
+      const data = await postJSON('/api/v1/escalations', { conversation, language: state.lang, cloud: allowCloud() }, 90000);
       if (!data.chatUrl) throw new Error('no chat');
       setStatus('');
       document.dispatchEvent(new CustomEvent('db-assistant:escalated', {

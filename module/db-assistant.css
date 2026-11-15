@@ -30,7 +30,7 @@
   /* --mimi-right: how far the host page sticks out past the right edge of the screen (a page that
      scrolls sideways); set by fitToScreen() so Mimi stays on screen. 0 on a well-behaved page. */
   right: calc(16px + var(--mimi-right, 0px));
-  bottom: 16px;
+  bottom: calc(16px + var(--mimi-bottom, 0px));
   z-index: 2147483000;
   color: var(--ink);
   /* system-ui covers Latin; the named fonts cover Ethiopic script on Android, Windows and macOS. */
@@ -929,7 +929,7 @@ textarea::placeholder {
   padding: 8px 12px;
   border-inline-start: 4px solid var(--danger);
   border-radius: 6px;
-  background: #fdf3f3;
+  background: var(--error-bg);
   color: var(--ink);
   font-size: 0.9375rem;
 }
@@ -1152,7 +1152,7 @@ textarea::placeholder {
 
   .root:not(.open) {
     right: calc(12px + var(--mimi-right, 0px));
-    bottom: 12px;
+    bottom: calc(12px + var(--mimi-bottom, 0px));
   }
 }
 
@@ -1746,23 +1746,23 @@ a.cite {
    edge: divide it back, so she stays exactly in the corner (and on screen on pages wider than it). */
 .root.big {
   right: calc((16px + var(--mimi-right, 0px)) / 1.25);
-  bottom: calc(16px / 1.25);
+  bottom: calc((16px + var(--mimi-bottom, 0px)) / 1.25);
 }
 
 .root.huge {
   right: calc((16px + var(--mimi-right, 0px)) / 1.5);
-  bottom: calc(16px / 1.5);
+  bottom: calc((16px + var(--mimi-bottom, 0px)) / 1.5);
 }
 
 @media (max-width: 480px) {
   .root.big:not(.open) {
     right: calc((12px + var(--mimi-right, 0px)) / 1.25);
-    bottom: calc(12px / 1.25);
+    bottom: calc((12px + var(--mimi-bottom, 0px)) / 1.25);
   }
 
   .root.huge:not(.open) {
     right: calc((12px + var(--mimi-right, 0px)) / 1.5);
-    bottom: calc(12px / 1.5);
+    bottom: calc((12px + var(--mimi-bottom, 0px)) / 1.5);
   }
 
   .root.huge .mini {
@@ -1837,4 +1837,44 @@ a.cite {
 .open-help:focus-visible {
   outline: 3px solid #ffd54f;
   outline-offset: 3px;
+}
+
+/* On a phone the open chat fills exactly the visible screen, at every text size (the zoomed sizes
+   divide back, since zoom scales Mimi's own position and size too). */
+.root.narrow.open {
+  top: var(--mimi-top, 0px);
+  left: var(--mimi-left, 0px);
+  right: auto;
+  bottom: auto;
+  width: var(--mimi-vw, 100vw);
+  height: var(--mimi-vh, 100vh);
+}
+
+.root.narrow.open .panel {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.root.big.narrow.open {
+  top: calc(var(--mimi-top, 0px) / 1.25);
+  left: calc(var(--mimi-left, 0px) / 1.25);
+  width: calc(var(--mimi-vw, 100vw) / 1.25);
+  height: calc(var(--mimi-vh, 100vh) / 1.25);
+}
+
+.root.huge.narrow.open {
+  top: calc(var(--mimi-top, 0px) / 1.5);
+  left: calc(var(--mimi-left, 0px) / 1.5);
+  width: calc(var(--mimi-vw, 100vw) / 1.5);
+  height: calc(var(--mimi-vh, 100vh) / 1.5);
+}
+
+.edge-probe.floor {
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: auto;
 }

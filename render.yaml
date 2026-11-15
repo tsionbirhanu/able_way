@@ -17,6 +17,10 @@ services:
         value: gemini-3.5-flash-lite
       - key: GEMINI_API_KEY
         sync: false          # you will paste this in the Render dashboard
+      # Where "Talk to a person" opens tickets: the ableway-channels service's public address, for example
+      # https://ableway-channels.onrender.com (no slash at the end). Without it the help desk is not found.
+      - key: CHANNELS_URL
+        sync: false
       - key: CHANNELS_DB_PATH
         value: data/channels.db
       - key: ACCOMMODATIONS_DB_PATH
@@ -32,8 +36,9 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server.main:app --host 0.0.0.0 --port $PORT
     envVars:
+      # A random password made by Render (see the service's Environment tab). Never a fixed one in git.
       - key: TUTOR_PASSWORD
-        value: admin
+        generateValue: true
       - key: ALERTS_INTERVAL_MINUTES
         value: "3"
       - key: CORE_ASK_IMPORT
@@ -45,4 +50,4 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false          # paste in Render dashboard if you have a bot
       - key: PUBLIC_BASE_URL
-        sync: false          # paste the ableway-channels render URL after first deploy
+        sync: false          # this service's own address, e.g. https://ableway-channels.onrender.com
