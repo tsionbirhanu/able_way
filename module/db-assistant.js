@@ -97,7 +97,7 @@
   };
 
   // The full introduction (shown) and the short one (spoken).
-  const GREETING_TEXT = (lang) => STRINGS[lang].intro;
+  const GREETING_TEXT = (lang) => STRINGS[lang].introSpoken; // spoken and shown: the same words
   // ---- menu table end
 
   // Every sentence the widget says or shows lives in module/i18n/<lang>.json (see loadLanguages).
@@ -273,6 +273,7 @@
     simpleText,
   );
   const clearButton = el('button', { type: 'button', class: 'link-button', onclick: clearChat });
+  const settings = el('div', { class: 'settings' }, langGroup, simpleSwitch, clearButton);
 
   let screenStream = null;
   const talkText = el('span');
@@ -308,7 +309,7 @@
     'section',
     { class: 'panel', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'ableway-title', hidden: true },
     el('div', { class: 'header' }, el('div', { class: 'header-text' }, title, subtitle, langBadge), voiceToggle, closeButton),
-    el('div', { class: 'settings' }, langGroup, simpleSwitch, clearButton),
+    settings,
     helpStrip,
     scroller,
     announcer,
@@ -394,8 +395,17 @@
 
   // The controls sit wherever the learner is looking: in the chat when it is open, else the card.
   function placeVoiceBar() {
-    if (state.open) panel.insertBefore(controls, form);
-    else mini.insertBefore(controls, miniOptions);
+    // "Larger text" and "Listen automatically" go with the learner too: the co-designer could not
+    // find them once the chat was open, because they stayed on the (hidden) card.
+    if (state.open) {
+      panel.insertBefore(controls, form);
+      settings.insertBefore(bigTextSwitch, clearButton);
+      settings.insertBefore(handsFreeSwitch, clearButton);
+    } else {
+      mini.insertBefore(controls, miniOptions);
+      miniOptions.append(bigTextSwitch);
+      talkRow.append(handsFreeSwitch);
+    }
     mini.hidden = state.open || state.minimized;
     pill.hidden = state.open || !state.minimized;
     root.classList.toggle('big', state.bigText);
@@ -536,6 +546,7 @@
     }
     const actions = el('div', { class: 'actions' });
     if (message.error) actions.append(el('button', { type: 'button', class: 'chip', lang: state.lang, text: s.retry, onclick: retry }));
+    if (message.offerPerson) actions.append(el('button', { type: 'button', class: 'chip', lang: state.lang, text: s.talkToPerson, onclick: () => escalateToHuman() }));
     if (!isUser && !message.error && canSpeak()) {
       const button = el('button', { type: 'button', class: 'chip replay', lang: state.lang, 'aria-pressed': 'false', 'aria-label': s.replayLabel }, icon('speaker'), el('span', { text: s.replay }));
       button.addEventListener('click', () => replay(message, button));
@@ -732,12 +743,22 @@
     function play(url) {
       return new Promise((resolve, reject) => {
         let done = false;
-        const finish = (fn, value) => {
+        let finish = (fn, value) => {
           if (done) return;
           done = true;
           cancelCurrent = null;
-          audio.onended = audio.onerror = null;
+          audio.onended = audio.onerror = audio.onloadedmetadata = null;
           fn(value);
+        };
+        // If the clip never reports its end (seen on some phones), stop waiting a little after its length.
+        let guard = setTimeout(() => finish(resolve, 'done'), 30000);
+        const settleOnce = finish;
+        finish = (fn, value) => { clearTimeout(guard); settleOnce(fn, value); };
+        audio.onloadedmetadata = () => {
+          if (Number.isFinite(audio.duration) && audio.duration > 0) {
+            clearTimeout(guard);
+            guard = setTimeout(() => finish(resolve, 'done'), audio.duration * 1000 + 3000);
+          }
         };
         cancelCurrent = () => {
           audio.pause();
@@ -825,24 +846,57 @@
           synth.cancel();
           settle(resolve, 'stopped');
         };
+        // Browsers sometimes drop an utterance without any event (Chrome right after cancel(), Android
+        // with an online voice), which left Mimi "speaking" in silence and never listening. A watchdog
+        // per sentence: if nothing is playing after a moment, or the sentence runs far past its
+        // length, move on as if it had ended.
+        let watchdog = null;
+        let anyStarted = false;
+        const clearWatch = () => clearInterval(watchdog);
         const next = () => {
+          clearWatch();
           if (my !== token) return settle(resolve, 'stopped');
           if (i >= parts.length) return settle(resolve, 'done');
-          const utterance = new SpeechSynthesisUtterance(parts[i++]);
+          const sentence = parts[i++];
+          const utterance = new SpeechSynthesisUtterance(sentence);
           utterance.voice = voice;
           utterance.lang = voice.lang;
           utterance.rate = 0.95;
           utterance.pitch = 1.05;
-          utterance.onend = next;
+          let ended = false;
+          const end = () => {
+            if (ended) return;
+            ended = true;
+            next();
+          };
+          utterance.onstart = () => { anyStarted = true; };
+          utterance.onend = end;
           utterance.onerror = (event) => {
+            if (ended) return; // the watchdog already moved on (its cancel() fires this)
+            ended = true;
+            clearWatch();
             if (event.error === 'not-allowed') settle(reject, Object.assign(new Error('blocked'), { code: 'blocked' }));
             else if (event.error === 'interrupted' || event.error === 'canceled') settle(resolve, 'stopped');
             else next();
           };
+          const begun = Date.now();
+          const longest = 4000 + sentence.length * 150;
+          watchdog = setInterval(() => {
+            if (ended || my !== token) return clearWatch();
+            const idle = !synth.speaking && !synth.pending;
+            if ((idle && Date.now() - begun > 1500) || Date.now() - begun > longest) {
+              synth.cancel();
+              ended = true;
+              clearWatch();
+              // Nothing has played at all: this voice is not working, so do not wait on every sentence.
+              if (!anyStarted) return settle(resolve, 'done');
+              next();
+            }
+          }, 500);
           synth.speak(utterance);
         };
         synth.cancel();
-        next();
+        setTimeout(next, 60); // speak() straight after cancel() is sometimes dropped
       });
     }
 
@@ -959,6 +1013,13 @@
       rec.onerror = (event) => {
         if (my === generation) lastError = event.error;
       };
+      // A recogniser that never starts (no event at all) used to leave "Listening…" on screen with
+      // nothing listening. Give it a few seconds, then switch to the other way of listening.
+      let started = false;
+      rec.onstart = () => { started = true; };
+      setTimeout(() => {
+        if (my === generation && active && !started) fail('failed');
+      }, 5000);
       rec.onend = () => {
         if (my !== generation || !active) return;
         carried = text();
@@ -1326,7 +1387,7 @@
       listen();
     },
     onError(code) {
-      if (code === 'unsupported' || code === 'network') failedEngines.add(`browser-${state.lang}`);
+      if (code === 'unsupported' || code === 'network' || code === 'failed') failedEngines.add(`browser-${state.lang}`);
       if (code !== 'denied' && code !== 'no-mic' && engineFor(state.lang)) return listen(); // try the other engine
       ctl.canListen = false;
       const s = t();
@@ -1342,7 +1403,10 @@
 
   function listen() {
     if (!listeningState()) return;
-    if (!state.voiceOn || !ctl.canListen || document.hidden || state.busy || Speaker.busy()) return;
+    if (!state.voiceOn || !ctl.canListen || document.hidden || state.busy) return;
+    // The screen says "listening" from here on, so the microphone must really open. A speech that
+    // never reported its end must not keep it shut.
+    if (Speaker.busy()) Speaker.stop();
     const kind = engineFor(state.lang);
     if (!kind) {
       ctl.canListen = false;
@@ -1478,23 +1542,19 @@
   // one sentence in English, so a learner who does not understand Amharic still knows what to press.
   // Spoken: a short introduction (about five seconds, so it does not talk over a screen reader for
   // long), then one sentence in the other language. Shown in the chat: the full introduction.
-  const otherLang = (lang) => (lang === 'am' ? 'en' : 'am');
+  // Co-designer test: hearing one text and reading another was confusing, and so was a greeting that
+  // switched voice and language halfway. Mimi now says the greeting in one language, and the chat
+  // shows exactly the words she says (which already tell the learner how to change language).
   async function sayGreeting() {
     const lang = state.lang;
-    const other = otherLang(lang);
-    const hint = STRINGS[other].otherLanguageHint;
-    const shown = `${GREETING_TEXT(lang)}\n${hint}`;
-    const result = await say(STRINGS[lang].introSpoken, lang, { cache: true, speakState: GREETING_STATE, captionText: shown });
-    if (result === 'superseded' || result === 'blocked' || result === 'stopped') return result;
-    return say(hint, other, { cache: true, speakState: GREETING_STATE, captionText: shown });
+    return say(GREETING_TEXT(lang), lang, { cache: true, speakState: GREETING_STATE });
   }
 
   async function greet() {
     if (!state.greeted) {
       state.greeted = true;
       session.set('greeted', true);
-      const hint = STRINGS[otherLang(state.lang)].otherLanguageHint;
-      addMessage({ role: 'assistant', kind: 'greeting', text: GREETING_TEXT(state.lang), lang: state.lang, translation: hint, citations: [] });
+      addMessage({ role: 'assistant', kind: 'greeting', text: GREETING_TEXT(state.lang), lang: state.lang, citations: [] });
     }
     if (!state.voiceOn || !canSpeak()) return afterSpeech();
     const result = await sayGreeting();
@@ -1692,6 +1752,8 @@
         role: 'assistant', text: data.answer, lang: data.lang, citations: data.citations || [], provider: data.provider,
         switchLang: data.switch_lang || null, kind: intent === 'lesson_intro' ? 'intro' : data.switch_lang ? 'confirm' : undefined,
         lessonKey: intent === 'lesson_intro' ? lessonKey() : undefined,
+        // Not found in the course: offer a person straight away, in words and as a button.
+        offerPerson: data.grounded === false && !data.switch_lang && intent !== 'lesson_intro',
       };
     } catch {
       ctl.errors++;
@@ -1736,6 +1798,10 @@
       state.lang = reply.switchLang; // the server already moved the session to this language
       session.set('lang', reply.switchLang);
       applyLanguage();
+    }
+    if (reply.offerPerson) {
+      const person = MENU.find((m) => m.action === 'person');
+      reply.text = `${reply.text}\n\n${fmt(STRINGS[reply.lang || state.lang].offerPerson, { n: person ? person.n : '' })}`;
     }
     addMessage(reply);
     if (!state.voiceOn) caption('mimi', reply.text, reply.lang || state.lang);

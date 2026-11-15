@@ -183,7 +183,7 @@ def similarity(a: str, b: str) -> float:
 class Tutor:
     FAQ_THRESHOLD = 0.42  # below this likeness a FAQ entry is not treated as the same question
     OFFLINE_MIN_SCORE = 2.5  # BM25 score below which offline quoting would be a guess
-    MIN_COVERAGE = 0.3  # share of the question's words that must appear in the matched course text
+    MIN_COVERAGE = 0.51  # more than half of the question's words must appear in the matched course text
 
     def __init__(self, chain: list[Provider] | None = None):
         self.index = Index(load_chunks())
@@ -417,7 +417,7 @@ class Tutor:
         hits = self._search(query, k=2)
         # Job listings found for a job question are an answer even when they score low: the
         # question was already recognised as being about jobs (see _search).
-        job_answer = bool(hits) and hits[0].get("corpus") == "jobs"
+        job_answer = bool(hits) and hits[0].get("corpus") == "jobs" and bool(self.JOB_WORDS.search(query))
         if not hits or (not job_answer and (hits[0]["score"] < self.OFFLINE_MIN_SCORE or coverage(self.index, query, hits) < self.MIN_COVERAGE)):
             return {"answer": text["not_found"], "grounded": False, "citations": []}
         quote = best_sentences(hits[0]["text"], query)

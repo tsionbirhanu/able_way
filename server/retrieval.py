@@ -97,7 +97,13 @@ def coverage(index: "Index", query: str, hits: list[dict]) -> float:
         return 0.0
     position = {c["id"]: i for i, c in enumerate(index.chunks)}
     docs = [index.docs[position[h["id"]]] for h in hits if h.get("id") in position]
-    return sum(1 for t in terms if any(t in d for d in docs)) / len(terms)
+    def found(term: str) -> bool:
+        if any(term in d for d in docs):
+            return True
+        # "resubmit" and "resubmission": the same word family, which the light stemmer keeps apart.
+        return len(term) >= 6 and any(w.startswith(term[:6]) for d in docs for w in d)
+
+    return sum(1 for t in terms if found(t)) / len(terms)
 
 
 def load_chunks() -> list[dict]:

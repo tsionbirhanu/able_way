@@ -9,7 +9,7 @@
     "en": "English"
   },
   "intro": "Hello! I am Mimi, your course tutor. I can explain this lesson, answer your questions, tell you about jobs and connect you to a tutor. Shall we continue in English? For Amharic, say “Amharic”.",
-  "introSpoken": "Hello, I am Mimi, your course tutor. Shall we continue in English? For Amharic, say “Amharic”.",
+  "introSpoken": "Hello, I am Mimi, your course tutor. Shall we continue in English? For Amharic, say “Amharic” or press 1.",
   "otherLanguageHint": "For English, just say “English”.",
   "greetingWelcome": "Hello! I am Mimi, your course tutor.",
   "menu": {
@@ -134,5 +134,6 @@
     "Give me a practice question on this lesson."
   ],
   "sourceCountOne": "1 source is listed below.",
-  "shownInLesson": "Shown in the lesson"
+  "shownInLesson": "Shown in the lesson",
+  "offerPerson": "Would you like to talk to a person instead? Press “Talk to a person”, or say {n}."
 }
