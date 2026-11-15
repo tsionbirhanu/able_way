@@ -2,7 +2,11 @@
 
 **Track 3, Multilingual assistant and live help.** Digital Bridge Accessibility Hackathon 2026.
 
-- **Team:** *to fill in: names and roles*
+- **Team:**
+  - Hara Dejene: frontend developer
+  - Tsion Birhanu: AI engineer and DevOps
+  - Dagmawit Negash: full-stack developer
+  - Hermela Kassahun: project manager
 - **Co-designer:** *to fill in: first name, with their permission*
 
 ## What it does
