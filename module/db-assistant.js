@@ -52,6 +52,11 @@
   const config = {
     greetLang: setting('lang') === 'en' ? 'en' : 'am',
     autoWelcome: setting('auto-welcome') !== 'false',
+    // consent="given": the platform already asked this learner (for example at sign-up) and they
+    // agreed to online AI and voice, so Mimi does not ask again. Only for a platform that did ask.
+    consentGiven: setting('consent') === 'given',
+    // theme="light" | "dark" | "auto" (the default: follows the phone or computer's dark setting).
+    theme: ['light', 'dark'].includes(setting('theme')) ? setting('theme') : 'auto',
     course: setting('course') || '',
     lesson: setting('lesson') || '',
     lessonSelector: setting('lesson-selector') || '',
@@ -233,13 +238,22 @@
     sessionId: session.get('session-id'),
     simple: store(localStorage, 'ableway-simple') === true,
     handsFree: store(localStorage, 'ableway-hands-free') !== false, // listen again after each answer
-    bigText: store(localStorage, 'ableway-big-text') === true,
+    // 0 normal, 1 large, 2 extra large (an earlier "Larger text: on" counts as large).
+    textSize: [0, 1, 2].includes(store(localStorage, 'ableway-text-size')) ? store(localStorage, 'ableway-text-size') : store(localStorage, 'ableway-big-text') === true ? 1 : 0,
     minimized: session.get('minimized') == null ? !WIDE() : session.get('minimized') === true,
     open: session.get('open') == null ? WIDE() : session.get('open') === true,
     messages: session.get('messages') || [], // {role, text, lang, citations, provider, error, kind, translation}
     busy: false,
+    // 'yes': the learner allowed online AI and voice (Google, Microsoft). 'no': nothing leaves this
+    // site; answers come from the course text and there is no listening. null: not asked yet, and
+    // Mimi neither speaks nor sends anything until the learner answers.
+    consent: ['yes', 'no'].includes(store(localStorage, 'ableway-consent')) ? store(localStorage, 'ableway-consent') : config.consentGiven ? 'yes' : null,
   };
   const t = () => STRINGS[state.lang];
+  const allowCloud = () => state.consent === 'yes';
+  // A phone or tablet: its screen reader (TalkBack, VoiceOver) starts reading the page at once, so Mimi
+  // waits for the learner's first tap before she speaks, instead of talking over it.
+  const TOUCH = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   const caps = { server: false, tts: false, ttsCache: false, stt: false, sttAzure: false };
 
   // ------------------------------------------------------------ build the widget
@@ -273,7 +287,35 @@
     simpleText,
   );
   const clearButton = el('button', { type: 'button', class: 'link-button', onclick: clearChat });
-  const settings = el('div', { class: 'settings' }, langGroup, simpleSwitch, clearButton);
+  const cloudText = el('span');
+  const cloudSwitch = el(
+    'button',
+    { type: 'button', class: 'switch', role: 'switch', onclick: () => setConsent(allowCloud() ? 'no' : 'yes') },
+    el('span', { class: 'track', 'aria-hidden': 'true' }),
+    cloudText,
+  );
+  // The learner can take their conversation with them, and delete it ("Clear chat").
+  const downloadButton = el('button', { type: 'button', class: 'link-button', onclick: downloadChat });
+  const settings = el('div', { class: 'settings' }, langGroup, simpleSwitch, cloudSwitch, downloadButton, clearButton);
+  // Folded away by default (remembered), so the conversation has the room.
+  const settingsTitle = el('span');
+  const settingsBox = el('details', { class: 'settings-box' }, el('summary', {}, settingsTitle), settings);
+  settingsBox.open = store(localStorage, 'ableway-settings-open') === true;
+  settingsBox.addEventListener('toggle', () => store(localStorage, 'ableway-settings-open', settingsBox.open));
+
+  // Consent, asked once before anything is spoken or sent: in both languages, because the learner
+  // has not chosen one yet. Filled in by renderConsent().
+  const consentTitle = el('h3', { class: 'consent-title', id: 'ableway-consent-title' });
+  const consentBody = el('div', { class: 'consent-body' });
+  const consentYes = el('button', { type: 'button', class: 'choice consent-yes', onclick: () => setConsent('yes', true) });
+  const consentNo = el('button', { type: 'button', class: 'choice', onclick: () => setConsent('no', true) });
+  const consentBox = el(
+    'section',
+    { class: 'consent', 'aria-labelledby': 'ableway-consent-title', hidden: true },
+    consentTitle,
+    consentBody,
+    el('div', { class: 'choices' }, consentYes, consentNo),
+  );
 
   let screenStream = null;
   const talkText = el('span');
@@ -309,7 +351,7 @@
     'section',
     { class: 'panel', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'ableway-title', hidden: true },
     el('div', { class: 'header' }, el('div', { class: 'header-text' }, title, subtitle, langBadge), voiceToggle, closeButton),
-    settings,
+    settingsBox,
     helpStrip,
     scroller,
     announcer,
@@ -333,7 +375,12 @@
 
   const avatar = el('span', { class: 'avatar', 'aria-hidden': 'true', text: 'M' });
   const miniTitle = el('h2', { class: 'mini-title', id: 'ableway-mini-title' });
-  const [bigTextSwitch, bigTextText] = switchButton(() => setBigText(!state.bigText));
+  // Text size in three steps (low-vision learners need different steps): one group of three buttons,
+  // the chosen one pressed. Placed in the card and in the chat settings, as the switch was.
+  const textSizeLabel = el('span', { class: 'size-label', id: 'ableway-size-label' });
+  const textSizeButtons = [0, 1, 2].map((n) => el('button', { type: 'button', class: `size-${n}`, onclick: () => setTextSize(n) }));
+  const bigTextSwitch = el('div', { class: 'text-size', role: 'group', 'aria-labelledby': 'ableway-size-label' }, textSizeLabel,
+    el('div', { class: 'segmented' }, ...textSizeButtons));
   const minimizeButton = el('button', { type: 'button', class: 'icon-button mini-min', onclick: () => setMinimized(true) }, icon('minus'));
   const miniHeader = el('div', { class: 'mini-header' }, avatar, miniTitle, minimizeButton);
   const miniOptions = el('div', { class: 'mini-options' }, bigTextSwitch);
@@ -387,11 +434,14 @@
     whoEl.textContent = `${who === 'user' ? t().you : t().tutor}: `;
     textEl.textContent = clean;
     textEl.lang = lang || scriptLang(clean);
+    // A small conversation in time order: whoever spoke last is at the bottom (the learner's words on
+    // the right, Mimi's on the left), so new words never appear above an older answer.
+    if (clean && captions.lastElementChild !== line) captions.append(line);
     captions.scrollTop = captions.scrollHeight;
   }
 
   // <aside> gives screen-reader users a landmark to jump to from anywhere on the page.
-  const root = el('aside', { class: 'root', hidden: true }, pill, mini, panel);
+  const root = el('aside', { class: `root theme-${config.theme}`, hidden: true }, pill, mini, panel);
 
   // The controls sit wherever the learner is looking: in the chat when it is open, else the card.
   function placeVoiceBar() {
@@ -399,16 +449,19 @@
     // find them once the chat was open, because they stayed on the (hidden) card.
     if (state.open) {
       panel.insertBefore(controls, form);
+      panel.insertBefore(consentBox, settingsBox); // first thing after the title, for keyboard and screen readers
       settings.insertBefore(bigTextSwitch, clearButton);
       settings.insertBefore(handsFreeSwitch, clearButton);
     } else {
+      mini.insertBefore(consentBox, captions);
       mini.insertBefore(controls, miniOptions);
       miniOptions.append(bigTextSwitch);
       talkRow.append(handsFreeSwitch);
     }
     mini.hidden = state.open || state.minimized;
     pill.hidden = state.open || !state.minimized;
-    root.classList.toggle('big', state.bigText);
+    root.classList.toggle('big', state.textSize === 1);
+    root.classList.toggle('huge', state.textSize === 2);
   }
 
   function renderMenu() {
@@ -436,15 +489,53 @@
     handsFreeSwitch.hidden = !state.voiceOn;
     handsFreeText.textContent = s.handsFree;
     handsFreeSwitch.setAttribute('aria-checked', String(state.handsFree));
-    bigTextText.textContent = s.bigText;
-    bigTextSwitch.setAttribute('aria-checked', String(state.bigText));
+    textSizeLabel.textContent = s.textSize;
+    textSizeButtons.forEach((button, n) => {
+      button.textContent = s.textSizes[n];
+      button.setAttribute('aria-pressed', String(state.textSize === n));
+    });
     minimizeButton.setAttribute('aria-label', s.minimize);
     pillText.textContent = s.restore;
     pillState.textContent = voiceState.textContent ? ` · ${voiceState.textContent}` : '';
   }
   // The ring that marks a cited lesson section (see showInLesson).
   const ring = el('div', { class: 'source-ring', 'aria-hidden': 'true', hidden: true });
-  shadow.append(css, root, ring);
+  // Where the right edge of the screen is. A host page that is wider than the phone (it scrolls
+  // sideways) would otherwise push Mimi partly off screen: she is placed by the visible area instead.
+  const edgeProbe = el('div', { class: 'edge-probe', 'aria-hidden': 'true' });
+  function fitToScreen() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const overflow = Math.max(0, edgeProbe.getBoundingClientRect().right - (vv.offsetLeft + vv.width));
+    root.style.setProperty('--mimi-right', `${Math.round(overflow)}px`);
+    root.style.setProperty('--mimi-vw', `${Math.round(vv.width)}px`);
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitToScreen);
+    window.visualViewport.addEventListener('scroll', fitToScreen);
+  }
+  window.addEventListener('resize', fitToScreen);
+  window.addEventListener('load', fitToScreen); // the host page may grow wider once its images arrive
+  shadow.append(css, root, ring, edgeProbe);
+
+  // The host's brand colour (Bootstrap's --bs-primary, or --db-assistant-brand) on Mimi's main
+  // buttons, so she looks part of the platform: but only when white text on it is readable (4.5:1).
+  // Otherwise navy. Savanna's red, #db3e3e, reaches 4.0:1, so on Savanna Mimi stays navy.
+  function applyBrand() {
+    const page = getComputedStyle(document.documentElement);
+    const wanted = (page.getPropertyValue('--db-assistant-brand') || page.getPropertyValue('--bs-primary')).trim();
+    if (!wanted) return;
+    const probe = document.createElement('span');
+    probe.style.color = wanted;
+    probe.style.display = 'none';
+    document.body.append(probe);
+    const rgb = (getComputedStyle(probe).color.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    probe.remove();
+    if (rgb.length < 3) return;
+    const lin = (c) => ((c /= 255) <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    const lum = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+    if (1.05 / (lum + 0.05) >= 4.5) root.style.setProperty('--brand', `rgb(${rgb.join(' ')})`);
+  }
 
   // ------------------------------------------------------------ rendering
 
@@ -463,7 +554,12 @@
     for (const [code, button] of Object.entries(langButtons)) button.setAttribute('aria-pressed', String(state.langChosen && code === state.lang));
     simpleText.textContent = s.simple;
     simpleSwitch.setAttribute('aria-checked', String(state.simple));
+    cloudText.textContent = s.consentSwitch;
+    cloudSwitch.setAttribute('aria-checked', String(allowCloud()));
+    renderConsent();
     clearButton.textContent = s.clear;
+    downloadButton.textContent = s.download;
+    settingsTitle.textContent = s.settings;
     talkText.textContent = s.talkToPerson;
     talkButton.setAttribute('aria-label', s.talkToPerson);
     shareText.textContent = screenStream ? s.screenSharingActive : s.screenShare;
@@ -645,6 +741,8 @@
     const count = message.citations && message.citations.length ? ` ${fmt(message.citations.length === 1 ? s.sourceCountOne : s.sourceCount, { n: message.citations.length })}` : '';
     const line = el('p', { lang: message.lang, text: `${who}: ${message.text.replace(/\[\d+\]/g, '')}${count}` });
     announcer.append(line);
+    // The sentence in the other language (the greeting's "For English, …") in that language's voice.
+    if (message.translation) announcer.append(el('p', { lang: scriptLang(message.translation), text: message.translation }));
     while (announcer.children.length > 4) announcer.firstChild.remove();
   }
 
@@ -657,16 +755,70 @@
   const liveWho = el('span', { class: 'who' });
   const liveText = el('p', { dir: 'auto' });
   const liveBubble = el('li', { class: 'msg msg-user msg-live', 'aria-hidden': 'true' }, liveWho, el('div', { class: 'bubble' }, liveText));
-  function showLive(text) {
-    if (!text) return liveBubble.remove();
+  // The learner's words appear one by one as Mimi hears them, like hers as she speaks. Recognisers
+  // deliver words in uneven bursts (and the server transcribes a whole turn at once), so new words
+  // flow in at a steady pace; a word the recogniser changes its mind about is corrected in place.
+  // "…" (no words yet) shows that Mimi hears the learner start to speak.
+  let liveTarget = '';
+  let liveShown = '';
+  let liveTimer = null;
+  const WORD_MS = 110;
+  const wordsOf = (text) => text.split(/\s+/).filter(Boolean);
+
+  function renderLive() {
     liveWho.textContent = `${t().you} …`;
-    liveText.textContent = text;
-    liveText.lang = scriptLang(text);
+    liveText.textContent = liveShown || '…';
+    liveText.lang = scriptLang(liveShown || liveTarget);
+    caption('user', liveShown || '…');
     if (liveBubble.parentNode !== list) list.append(liveBubble);
     scrollToEnd();
   }
 
+  function showLive(text) {
+    if (!text) {
+      clearInterval(liveTimer);
+      liveTimer = null;
+      liveTarget = liveShown = '';
+      caption('user', '');
+      return liveBubble.remove();
+    }
+    if (text === '…' && liveTarget) return; // already showing words: keep them
+    liveTarget = text === '…' ? '' : text;
+    const shown = wordsOf(liveShown);
+    const target = wordsOf(liveTarget);
+    let same = 0;
+    while (same < shown.length && shown[same] === target[same]) same++;
+    liveShown = target.slice(0, same).join(' ');
+    renderLive();
+    if (liveTimer) return;
+    liveTimer = setInterval(() => {
+      const all = wordsOf(liveTarget);
+      const have = wordsOf(liveShown).length;
+      if (have >= all.length) {
+        clearInterval(liveTimer);
+        liveTimer = null;
+        return;
+      }
+      liveShown = all.slice(0, have + 1).join(' ');
+      renderLive();
+    }, WORD_MS);
+  }
+
+  // Wait until the words on screen have caught up (at most about a second and a half), so the
+  // learner sees their whole sentence appear before Mimi answers it.
+  function liveCaughtUp() {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      const check = () => (wordsOf(liveShown).length >= wordsOf(liveTarget).length || Date.now() - started > 1500 ? resolve() : setTimeout(check, 60));
+      check();
+    });
+  }
+
   function addMessage(message) {
+    // A new message ends any live words on screen (the list below is redrawn without them).
+    clearInterval(liveTimer);
+    liveTimer = null;
+    liveTarget = liveShown = '';
     state.messages.push(message);
     session.set('messages', state.messages.filter((m) => !m.error));
     list.replaceChildren(...state.messages.map(renderMessage));
@@ -704,9 +856,24 @@
       }
     }
 
+    // May this page play sound before the learner has tapped anything? Browsers usually say no, and
+    // some voices then "speak" in silence (their word events still arrive, so the caption moved with
+    // no sound). A silent clip tells us for sure, before Mimi starts.
+    async function soundAllowed() {
+      try {
+        const probe = new Audio(SILENCE);
+        probe.volume = 0;
+        await probe.play();
+        probe.pause();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     // Fixed phrases are recorded on the server, so they are worth asking for even when its voice is paused.
     const serverReady = (cache = false) =>
-      config.tts !== 'browser' && ((caps.tts && Date.now() > serverDownUntil) || (cache && caps.ttsCache));
+      allowCloud() && config.tts !== 'browser' && ((caps.tts && Date.now() > serverDownUntil) || (cache && caps.ttsCache));
     const available = () => serverReady() || !!synth;
 
     function sentences(text) {
@@ -740,15 +907,19 @@
       return URL.createObjectURL(await response.blob());
     }
 
-    function play(url) {
+    function play(url, onTime = () => {}) {
       return new Promise((resolve, reject) => {
         let done = false;
         let finish = (fn, value) => {
           if (done) return;
           done = true;
           cancelCurrent = null;
-          audio.onended = audio.onerror = audio.onloadedmetadata = null;
+          audio.onended = audio.onerror = audio.onloadedmetadata = audio.ontimeupdate = null;
           fn(value);
+        };
+        // How far through the clip, for the live caption.
+        audio.ontimeupdate = () => {
+          if (audio.duration > 0 && Number.isFinite(audio.duration)) onTime(audio.currentTime / audio.duration);
         };
         // If the clip never reports its end (seen on some phones), stop waiting a little after its length.
         let guard = setTimeout(() => finish(resolve, 'done'), 30000);
@@ -772,13 +943,17 @@
       });
     }
 
-    async function speakServer(text, lang, cache, my) {
+    async function speakServer(text, lang, cache, my, onProgress = () => {}) {
       // A fixed phrase (greeting, menu, confirmation) is one request, so the server records it
       // whole and replays it with no quota and no browser voice. Splitting it once made Mimi start
       // the greeting, then stop when the second piece needed a new request the quota refused.
       const parts = cache ? [text] : chunks(text);
+      const total = parts.reduce((n, p) => n + p.length, 0) || 1;
+      let base = 0;
       let next = fetchAudio(parts[0], lang, cache);
       for (let i = 0; i < parts.length; i++) {
+        const start = base;
+        base += parts[i].length;
         let url;
         try {
           url = await next;
@@ -789,7 +964,7 @@
           serverDownUntil = Date.now() + 120000;
           if (my !== token) return 'stopped';
           try {
-            return await speakBrowser(parts.slice(i).join(' '), lang, my);
+            return await speakBrowser(parts.slice(i).join(' '), lang, my, (f, real) => onProgress((start + f * (total - start)) / total, real));
           } catch {
             return 'partial';
           }
@@ -801,7 +976,7 @@
         next = i + 1 < parts.length ? fetchAudio(parts[i + 1], lang, cache) : null;
         if (next) next.catch(() => {}); // handled when awaited
         try {
-          if ((await play(url)) === 'stopped') return 'stopped';
+          if ((await play(url, (f) => onProgress((start + f * parts[i].length) / total, true))) === 'stopped') return 'stopped';
         } finally {
           URL.revokeObjectURL(url);
         }
@@ -810,30 +985,46 @@
       return 'done';
     }
 
+    // Edge lists its local voices first and its online "Natural" ones (the Amharic voice መቅደስ among
+    // them) a moment later. Taking the first list missed the Amharic voice, so Mimi said nothing:
+    // wait once, briefly, for the online voices before choosing.
+    let voicesSettled = false;
     function voices() {
       if (!synth) return Promise.resolve([]);
       const now = synth.getVoices();
-      if (now.length) return Promise.resolve(now);
+      if (now.length && (voicesSettled || now.some((v) => !v.localService))) return Promise.resolve(now);
       return new Promise((resolve) => {
-        const timer = setTimeout(() => resolve(synth.getVoices()), 1200);
-        synth.addEventListener('voiceschanged', () => { clearTimeout(timer); resolve(synth.getVoices()); }, { once: true });
+        const done = () => {
+          voicesSettled = true;
+          resolve(synth.getVoices());
+        };
+        const timer = setTimeout(done, 1500);
+        synth.addEventListener('voiceschanged', () => {
+          if (synth.getVoices().some((v) => !v.localService)) {
+            clearTimeout(timer);
+            done();
+          }
+        });
       });
     }
 
     function pickVoice(all, lang) {
-      const candidates = all.filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith(lang));
+      // Without consent only voices on this device: online ones (Edge's "Natural" voices) send the text out.
+      const candidates = all.filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith(lang) && (allowCloud() || v.localService));
       const score = (v) =>
         (FEMALE.test(v.name) ? 4 : 0) - (MALE.test(v.name) ? 6 : 0) + (/natural|neural|online|premium|enhanced/i.test(v.name) ? 2 : 0) +
         (v.lang.toLowerCase().replace('_', '-') === SPEECH_LANG[lang].toLowerCase() ? 1 : 0);
       return candidates.sort((a, b) => score(b) - score(a))[0] || null;
     }
 
-    async function speakBrowser(text, lang, my) {
+    async function speakBrowser(text, lang, my, onProgress = () => {}) {
       const voice = pickVoice(await voices(), lang);
       if (my !== token) return 'stopped';
       if (!voice) throw Object.assign(new Error('no voice'), { code: 'novoice' });
       return new Promise((resolve, reject) => {
         const parts = sentences(text);
+        const total = parts.reduce((n, p) => n + p.length + 1, 0) || 1;
+        let offset = 0;
         let i = 0;
         let settled = false;
         const settle = (fn, value) => {
@@ -858,18 +1049,29 @@
           if (my !== token) return settle(resolve, 'stopped');
           if (i >= parts.length) return settle(resolve, 'done');
           const sentence = parts[i++];
+          const startAt = offset;
+          offset += sentence.length + 1;
           const utterance = new SpeechSynthesisUtterance(sentence);
           utterance.voice = voice;
           utterance.lang = voice.lang;
           utterance.rate = 0.95;
           utterance.pitch = 1.05;
           let ended = false;
+          let started = false;
           const end = () => {
             if (ended) return;
             ended = true;
+            onProgress(Math.min(1, offset / total));
             next();
           };
-          utterance.onstart = () => { anyStarted = true; };
+          // Progress for the live caption: each word as the voice reaches it (where the voice reports
+          // word boundaries; otherwise the caption keeps an estimated pace).
+          utterance.onstart = () => {
+            started = true;
+            anyStarted = true;
+            onProgress(startAt / total, true);
+          };
+          utterance.onboundary = (event) => onProgress((startAt + (event.charIndex || 0)) / total, true);
           utterance.onend = end;
           utterance.onerror = (event) => {
             if (ended) return; // the watchdog already moved on (its cancel() fires this)
@@ -883,8 +1085,11 @@
           const longest = 4000 + sentence.length * 150;
           watchdog = setInterval(() => {
             if (ended || my !== token) return clearWatch();
+            const elapsed = Date.now() - begun;
             const idle = !synth.speaking && !synth.pending;
-            if ((idle && Date.now() - begun > 1500) || Date.now() - begun > longest) {
+            // An online voice can take a few seconds to begin (it fetches the audio); one the browser
+            // dropped never begins. Once a sentence has begun, silence means it ended unreported.
+            if ((!started && elapsed > 8000) || (started && idle && elapsed > 1200) || elapsed > longest + 8000) {
               synth.cancel();
               ended = true;
               clearWatch();
@@ -900,15 +1105,27 @@
       });
     }
 
-    function spoken(text) {
-      return text.replace(/\s*\[\d+\]/g, '').replace(/\s+/g, ' ').trim();
+    // What the voice reads: no source markers, and the words in the language file's "pronounce" list
+    // spelled the way that language's voice says them correctly (an Amharic voice reads "AI" as
+    // nonsense, "ኤ አይ" correctly; "85%" becomes "85 በመቶ").
+    function spoken(text, lang) {
+      let say = text.replace(/\s*\[\d+\]/g, '');
+      const words = (STRINGS[lang] && STRINGS[lang].pronounce) || {};
+      for (const [written, said] of Object.entries(words)) {
+        const escaped = written.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const edge = /^\w/.test(written) ? '\\b' : '';
+        say = say.replace(new RegExp(`${edge}${escaped}${/\w$/.test(written) ? '\\b' : ''}`, 'g'), said);
+      }
+      return say.replace(/\s+/g, ' ').trim();
     }
 
     // Resolves 'done' | 'partial' | 'stopped'; rejects with code 'blocked' | 'novoice' | 'unavailable'.
-    async function speak(text, lang, { cache = false } = {}) {
+    // onProgress(fraction 0..1, real): how far the voice has got, for the live caption. `real` is
+    // true when it comes from the voice itself (a word boundary, the audio clock).
+    async function speak(text, lang, { cache = false, onProgress = () => {} } = {}) {
       stop();
       const my = ++token;
-      const say = spoken(text);
+      const say = spoken(text, lang);
       if (!say) return 'done';
       // A natural (online, neural) voice in the browser for this language, such as Edge's Amharic
       // መቅደስ (Mekdes) and English Ava: use it first. No quota, starts at once, and the same voice for
@@ -916,11 +1133,11 @@
       if (synth && config.tts !== 'server') {
         const natural = pickVoice(await voices(), lang);
         if (my !== token) return 'stopped';
-        if (natural && /natural|neural|online/i.test(natural.name)) return speakBrowser(say, lang, my);
+        if (natural && /natural|neural|online/i.test(natural.name)) return speakBrowser(say, lang, my, onProgress);
       }
       if (serverReady(cache)) {
         try {
-          return await speakServer(say, lang, cache, my);
+          return await speakServer(say, lang, cache, my, onProgress);
         } catch (e) {
           if (e && e.name === 'NotAllowedError') throw Object.assign(new Error('blocked'), { code: 'blocked' });
           if (my !== token) return 'stopped';
@@ -928,7 +1145,7 @@
         }
       }
       if (!synth || config.tts === 'server') throw Object.assign(new Error('unavailable'), { code: 'unavailable' });
-      return speakBrowser(say, lang, my);
+      return speakBrowser(say, lang, my, onProgress);
     }
 
     function stop() {
@@ -938,7 +1155,7 @@
       if (synth) synth.cancel();
     }
 
-    return { speak, stop, unlock, available, busy: () => cancelCurrent !== null };
+    return { speak, stop, unlock, soundAllowed, available, busy: () => cancelCurrent !== null };
   })();
 
   // ------------------------------------------------------------ hearing the learner (speech to text)
@@ -951,6 +1168,9 @@
   const failedEngines = new Set();
 
   function engineFor(lang) {
+    // Browsers recognise speech on Google's or Microsoft's servers, and the server engine uses a cloud
+    // service too: no listening without consent.
+    if (!allowCloud()) return null;
     const server = caps.stt && canRecord && !failedEngines.has('server');
     const browser = !!Recognition && !failedEngines.has(`browser-${lang}`);
     if (config.stt === 'server') return server ? 'server' : null;
@@ -1002,6 +1222,10 @@
       rec.continuous = true;
       rec.interimResults = true;
       rec.maxAlternatives = 3;
+      // "…" the moment the learner starts to speak, before the first word is recognised.
+      rec.onspeechstart = () => {
+        if (my === generation) handlers.onInterim('…');
+      };
       rec.onresult = (event) => {
         if (my !== generation) return;
         current = Array.from(event.results, bestAlternative).join(' ');
@@ -1310,6 +1534,7 @@
         action = state.voiceOn ? ['resume', s.aResume] : ['voice', s.voiceOn];
         break;
       case PAUSED:
+        if (ctl.pauseReason === 'consent') { label = s.sConsent; iconName = 'pause'; break; } // nothing until the learner chooses
         if (ctl.pauseReason === 'press') { label = s.sPress; iconName = 'mic'; break; } // the big button starts listening
         if (ctl.pauseReason === 'blocked') { label = s.speechBlocked; iconName = 'speaker'; break; } // the browser holds sound until a tap
         label = ctl.pauseReason === 'typing' ? s.sTyping : s.sPaused; iconName = 'pause'; action = ['resume', s.aResume]; break;
@@ -1351,20 +1576,19 @@
 
   const handlers = {
     onInterim(text) {
-      if (listeningState() && ctl.pauseReason !== 'typing') {
-        caption('user', text);
-        showLive(text);
-      }
+      if (listeningState() && ctl.pauseReason !== 'typing') showLive(text);
     },
-    onFinal(text) {
+    async onFinal(text) {
       if (!listeningState()) return;
       input.value = '';
       resizeInput();
       if (isNoise(text) || isEcho(text)) {
-        caption('user', '');
         showLive('');
         return listen();
       }
+      showLive(text); // the last words finish appearing before the sentence becomes a message
+      await liveCaughtUp();
+      if (!listeningState() || state.busy) return;
       takeTurn(text, 'voice');
     },
     async onAudio(wav) {
@@ -1382,7 +1606,14 @@
         if (++ctl.sttErrors >= 2) failedEngines.add('server');
       }
       if (ctl.state !== PROCESSING || state.busy) return; // voice turned off, or the learner typed
-      if (text && !isNoise(text) && !isEcho(text)) return takeTurn(text, 'voice');
+      if (text && !isNoise(text) && !isEcho(text)) {
+        // The server hears a whole turn at once: show it word by word all the same.
+        showLive(text);
+        await liveCaughtUp();
+        if (ctl.state !== PROCESSING || state.busy) return;
+        return takeTurn(text, 'voice');
+      }
+      showLive('');
       go(state.langChosen ? LISTENING : CHOOSING);
       listen();
     },
@@ -1410,7 +1641,7 @@
     const kind = engineFor(state.lang);
     if (!kind) {
       ctl.canListen = false;
-      setStatus(t().micLang);
+      setStatus(allowCloud() ? t().micLang : t().offlineNoMic);
       if (state.langChosen) go(TEXT);
       else renderVoiceBar();
       return;
@@ -1429,16 +1660,73 @@
 
   const canSpeak = () => Speaker.available();
 
+  // Live caption: while Mimi speaks, her words appear in time with her voice, in the chat bubble and
+  // in the card's caption; when she stops, the full message (with its source links) is back. It
+  // follows the voice's own progress where the voice reports it, else an estimated speaking pace.
+  // Screen readers are not disturbed: the hidden log has already announced the whole message once.
+  const STREAM_PACE = { en: 15, am: 11 }; // characters per second at Mimi's speaking rate, a fallback
+  function startStream(bubble, shown, lang) {
+    const text = shown.replace(/\s*\[\d+\]/g, '').replace(/\s+/g, ' ').trim();
+    const saved = bubble ? [...bubble.childNodes] : null;
+    const line = el('p', { dir: 'auto', class: 'streaming', 'aria-hidden': 'true' });
+    if (bubble) bubble.replaceChildren(line);
+    let fraction = 0;
+    let lastReal = 0;
+    const began = Date.now();
+    let heard = false;
+    const render = () => {
+      let n = Math.round(fraction * text.length);
+      const space = text.indexOf(' ', n);
+      n = fraction >= 1 ? text.length : space === -1 ? text.length : space; // whole words only
+      const part = text.slice(0, n);
+      line.textContent = part || '…';
+      capMimiText.textContent = part;
+      capMimi.hidden = !part;
+    };
+    render();
+    const timer = setInterval(() => {
+      // No word reports from this voice for a moment: keep the caption moving at a speaking pace.
+      if (heard && Date.now() - lastReal > 900) {
+        fraction = Math.min(0.98, fraction + (STREAM_PACE[lang] || 13) * 0.15 / text.length);
+        render();
+      }
+    }, 150);
+    return {
+      update(f, real) {
+        if (!heard) heard = true; // the voice has started
+        if (real) lastReal = Date.now();
+        if (f > fraction) {
+          fraction = Math.min(1, f);
+          render();
+        }
+      },
+      end() {
+        clearInterval(timer);
+        if (bubble && saved && bubble.isConnected && bubble.firstChild === line) bubble.replaceChildren(...saved);
+        caption('mimi', shown, lang);
+        return Date.now() - began;
+      },
+    };
+  }
+
+  const lastBotBubble = () => {
+    const items = list.querySelectorAll('.msg-bot:not(.msg-live)');
+    const last = items[items.length - 1];
+    return last ? last.querySelector('.bubble') : null;
+  };
+
   // Speak, moving the state to "speaking" (or "greeting") for exactly as long as Mimi is heard.
-  async function say(text, lang, { cache = false, speakState = SPEAKING, button = null, captionText = null } = {}) {
+  async function say(text, lang, { cache = false, speakState = SPEAKING, button = null, captionText = null, bubble } = {}) {
     const my = ++ctl.speech;
     ctl.lastSpoken = `${ctl.lastSpoken || ''} ${text}`.slice(-1500); // for the echo check
     caption('mimi', captionText || text, captionText ? null : lang);
     if (!canSpeak() || !go(speakState)) return 'skipped';
     markButton(button);
+    // The message being spoken is the newest one, unless a "Replay" button names its own.
+    const stream = startStream(bubble === undefined ? (button ? button.closest('.msg').querySelector('.bubble') : lastBotBubble()) : bubble, captionText || text, lang);
     let result;
     try {
-      result = await Speaker.speak(text, lang, { cache });
+      result = await Speaker.speak(text, lang, { cache, onProgress: stream.update });
     } catch (e) {
       result = (e && e.code) || 'failed';
       if (result === 'blocked') {
@@ -1447,6 +1735,7 @@
       } else if (result === 'novoice') setStatus(fmt(t().noVoice, { voice: t().languageNames[lang] }));
       else setStatus(t().speechUnavailable);
     }
+    stream.end();
     if (my !== ctl.speech) return 'superseded';
     if (result === 'partial') setStatus(STRINGS[lang] ? STRINGS[lang].partialSpoken : t().partialSpoken);
     markButton(null);
@@ -1515,10 +1804,11 @@
     if (on && ctl.state === PAUSED && ctl.pauseReason === 'press') resume();
   }
 
-  function setBigText(on) {
-    state.bigText = on;
-    store(localStorage, 'ableway-big-text', on);
-    root.classList.toggle('big', on);
+  function setTextSize(n) {
+    state.textSize = n;
+    store(localStorage, 'ableway-text-size', n);
+    root.classList.toggle('big', n === 1);
+    root.classList.toggle('huge', n === 2);
     renderTalk();
   }
 
@@ -1526,7 +1816,7 @@
     state.minimized = on;
     session.set('minimized', on);
     placeVoiceBar();
-    (on ? pill : talkMain.hidden ? launcher : talkMain).focus();
+    (on ? pill : !state.consent ? consentYes : talkMain.hidden ? launcher : talkMain).focus();
   }
 
   function resume() {
@@ -1542,19 +1832,37 @@
   // one sentence in English, so a learner who does not understand Amharic still knows what to press.
   // Spoken: a short introduction (about five seconds, so it does not talk over a screen reader for
   // long), then one sentence in the other language. Shown in the chat: the full introduction.
-  // Co-designer test: hearing one text and reading another was confusing, and so was a greeting that
-  // switched voice and language halfway. Mimi now says the greeting in one language, and the chat
-  // shows exactly the words she says (which already tell the learner how to change language).
+  // Co-designer tests: hearing one text and reading another was confusing, a greeting that switched
+  // language mid-sentence was confusing, and an English speaker could not follow "how to switch to
+  // English" said in Amharic. So: the greeting whole in the page's language, then ONE separate
+  // sentence in the other language, in that language's voice ("For English, say English, or press
+  // 2."). The chat shows exactly these two sentences, each marked with its own language.
+  const switchHint = (lang) => STRINGS[otherLang(lang)].otherLanguageHint;
+  const otherLang = (lang) => (lang === 'am' ? 'en' : 'am');
   async function sayGreeting() {
     const lang = state.lang;
-    return say(GREETING_TEXT(lang), lang, { cache: true, speakState: GREETING_STATE });
+    const result = await say(GREETING_TEXT(lang), lang, { cache: true, speakState: GREETING_STATE });
+    if (result === 'superseded' || result === 'blocked' || result === 'stopped') return result;
+    // The bubble already shows this sentence (its own paragraph): only the card's caption follows it.
+    return say(switchHint(lang), otherLang(lang), { cache: true, speakState: GREETING_STATE, bubble: null });
   }
 
   async function greet() {
+    if (!state.consent) return; // nothing is said or sent before the learner answers the consent question
     if (!state.greeted) {
       state.greeted = true;
       session.set('greeted', true);
-      addMessage({ role: 'assistant', kind: 'greeting', text: GREETING_TEXT(state.lang), lang: state.lang, citations: [] });
+      addMessage({ role: 'assistant', kind: 'greeting', text: GREETING_TEXT(state.lang), translation: switchHint(state.lang), lang: state.lang, citations: [] });
+    }
+    // On a phone, do not talk over TalkBack or VoiceOver; and anywhere, do not "speak" while the
+    // browser holds sound back (the words would move in silence). The greeting is on screen and
+    // announced, and Mimi speaks it at the learner's first tap or key press ("Start Mimi").
+    if (state.voiceOn && canSpeak() && !ctl.gestured && (TOUCH || !(await Speaker.soundAllowed()))) {
+      ctl.greetPending = true;
+      ctl.needsUnlock = true;
+      go(PAUSED);
+      ctl.pauseReason = 'blocked';
+      return renderVoiceBar();
     }
     if (!state.voiceOn || !canSpeak()) return afterSpeech();
     const result = await sayGreeting();
@@ -1575,6 +1883,7 @@
   // The first click or key press anywhere on the page lets the browser play sound; if the
   // greeting was held back, it is spoken then.
   function onGesture(event) {
+    ctl.gestured = true;
     Speaker.unlock();
     if (mic.ctx && mic.ctx.state === 'suspended') mic.ctx.resume().catch(() => {});
     const wasBlocked = ctl.needsUnlock;
@@ -1740,7 +2049,7 @@
     try {
       const data = await postJSON(
         '/api/ask',
-        { question, lang: state.lang, simple: state.simple, history, session_id: state.sessionId, context: pageContext(), intent, voice: state.voiceOn, detect_switch: !intent },
+        { question, lang: state.lang, simple: state.simple, history, session_id: state.sessionId, context: pageContext(), intent, voice: state.voiceOn, detect_switch: !intent, cloud: allowCloud() },
         90000,
       );
       if (!data.session_id && state.sessionId) {
@@ -1756,6 +2065,8 @@
         offerPerson: data.grounded === false && !data.switch_lang && intent !== 'lesson_intro',
       };
     } catch {
+      // No signal: keep the question on this phone and send it when the connection is back.
+      if (navigator.onLine === false && question) return { queued: question };
       ctl.errors++;
       return { role: 'assistant', text: t().error, lang: state.lang, citations: [], error: true };
     } finally {
@@ -1793,7 +2104,33 @@
     setBusy(false);
   }
 
+  // ------------------------------------------------------------ offline: saved questions
+  // Questions asked with no signal are kept in this browser (not on any server) and sent, in order,
+  // as soon as the connection is back. The learner is told in words, in their language.
+  const QUEUE_KEY = 'ableway-queue';
+  const savedQuestions = () => store(localStorage, QUEUE_KEY) || [];
+
+  async function sendSavedQuestions() {
+    const queue = savedQuestions();
+    if (!queue.length || state.busy || navigator.onLine === false || !state.consent) return;
+    store(localStorage, QUEUE_KEY, []);
+    setStatus(t().sendingSaved);
+    for (const question of queue) await askTutor(question, { shown: true });
+  }
+  window.addEventListener('online', () => sendSavedQuestions());
+
   async function deliver(reply) {
+    if (reply.queued) {
+      store(localStorage, QUEUE_KEY, [...savedQuestions(), reply.queued]);
+      const message = { role: 'assistant', kind: 'menu', text: t().savedOffline, lang: state.lang, citations: [] };
+      addMessage(message);
+      setStatus(t().savedOffline);
+      if (state.voiceOn) {
+        const result = await say(message.text, state.lang);
+        if (result === 'superseded') return;
+      }
+      return afterSpeech();
+    }
     if (reply.switchLang) {
       state.lang = reply.switchLang; // the server already moved the session to this language
       session.set('lang', reply.switchLang);
@@ -1935,8 +2272,50 @@
     ctl.choiceAttempts = 0;
     setStatus(t().voiceTurnedOn);
     if (state.busy) return renderVoiceBar(); // the answer on its way will be spoken
+    if (!state.consent) return renderVoiceBar();
     if (!state.greeted) return greet();
     resume();
+  }
+
+  // ------------------------------------------------------------ consent
+
+  function renderConsent() {
+    consentBox.hidden = !!state.consent;
+    if (state.consent || !STRINGS.am || !STRINGS.en) return;
+    // Both languages: the learner has not chosen one yet. The page's language first.
+    const order = state.lang === 'en' ? ['en', 'am'] : ['am', 'en'];
+    const both = (key) => order.flatMap((l, i) => [i ? ' · ' : '', el('span', { lang: l, text: STRINGS[l][key] })]);
+    consentTitle.replaceChildren(...both('consentTitle'));
+    consentBody.replaceChildren(...order.map((l) => el('p', { lang: l, dir: 'auto', text: STRINGS[l].consentText })));
+    consentYes.replaceChildren(...both('consentYes'));
+    consentNo.replaceChildren(...both('consentNo'));
+  }
+
+  function setConsent(value, fromPrompt = false) {
+    state.consent = value;
+    store(localStorage, 'ableway-consent', value);
+    applyLanguage(); // hides the question, updates the "Online AI and voice" switch
+    if (value === 'no') {
+      ++ctl.speech;
+      Speaker.stop();
+      stopListener();
+      releaseMic();
+      ctl.canListen = false;
+      if (listeningState()) go(state.langChosen ? TEXT : CHOOSING);
+      setStatus(t().consentOff);
+    } else {
+      ctl.canListen = true;
+      failedEngines.clear();
+      setStatus('');
+    }
+    if (fromPrompt) {
+      // The press is a user gesture: the browser now lets Mimi speak, so the greeting plays at once.
+      ctl.gestured = true;
+      Speaker.unlock();
+      (state.open ? input : talkMain.hidden ? launcher : talkMain).focus();
+      if (!state.greeted) return greet();
+    }
+    if (value === 'yes' && !state.busy && ctl.state !== SPEAKING && ctl.state !== GREETING_STATE) resume();
   }
 
   function setOpen(open) {
@@ -1948,6 +2327,7 @@
     placeVoiceBar();
     if (open) {
       scrollToEnd();
+      if (!state.consent) return consentYes.focus(); // the question comes first
       input.focus();
       if (!state.greeted) greet();
       else if (!Speaker.busy() && !state.busy && !listeningState()) resume();
@@ -1958,10 +2338,53 @@
     }
   }
 
+  // WCAG 2.4.11: a keyboard user who tabs to a page link hidden behind the open chat must still see it.
+  // Mimi then shrinks to her small button (without taking focus) and says so once.
+  function coveredByMimi(target) {
+    const r = target.getBoundingClientRect();
+    if (!r.width && !r.height) return false;
+    for (const part of [panel, mini]) {
+      if (part.hidden || root.hidden) continue;
+      const p = part.getBoundingClientRect();
+      if (r.left >= p.left && r.right <= p.right && r.top >= p.top && r.bottom <= p.bottom) return true;
+    }
+    return false;
+  }
+  document.addEventListener('focusin', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element) || event.composedPath().includes(host) || !coveredByMimi(target)) return;
+    state.open = false;
+    session.set('open', false);
+    root.classList.remove('open');
+    panel.hidden = true;
+    launcher.setAttribute('aria-expanded', 'false');
+    state.minimized = true;
+    session.set('minimized', true);
+    placeVoiceBar();
+    announcer.append(el('p', { lang: state.lang, text: t().movedAside }));
+  });
+
   function setSimple(on) {
     state.simple = on;
     store(localStorage, 'ableway-simple', on);
     simpleSwitch.setAttribute('aria-checked', String(on));
+  }
+
+  // The conversation as a plain text file, with the address of every source: the learner's own copy.
+  function downloadChat() {
+    const s = t();
+    const lines = state.messages.filter((m) => !m.error).map((m) => {
+      const who = m.role === 'user' ? s.you : s.tutor;
+      const sources = (m.citations || []).map((c) => `  [${c.n}] ${c.title}: ${new URL(c.url, siteRoot).href}`);
+      return [`${who}: ${m.text}`, ...sources].join('\n');
+    });
+    const file = new Blob([`${s.title}\n${new Date().toLocaleString()}\n\n${lines.join('\n\n')}\n`], { type: 'text/plain;charset=utf-8' });
+    const link = el('a', { href: URL.createObjectURL(file), download: `mimi-${new Date().toISOString().slice(0, 10)}.txt` });
+    shadow.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+    setStatus(s.downloaded);
   }
 
   function clearChat() {
@@ -2046,6 +2469,17 @@
     if (!state.sessionId || state.langChosen) syncSession(state.langChosen ? state.lang : null);
     if (!canSpeak() && !Recognition && !(caps.stt && canRecord)) state.voiceOn = false; // no voice at all here
     applyLanguage();
+    if (!state.consent) {
+      // First visit: ask before anything is spoken or sent. Mimi stays silent until the learner answers.
+      go(PAUSED);
+      ctl.pauseReason = 'consent';
+      renderVoiceBar();
+      const s = STRINGS[state.lang];
+      announcer.append(el('p', { lang: state.lang, text: `${s.consentTitle}. ${s.consentText}` }));
+      return;
+    }
+    if (state.consent === 'no') ctl.canListen = false;
+    if (savedQuestions().length) setTimeout(sendSavedQuestions, 1500); // asked offline on an earlier visit
     if (!state.open && !config.autoWelcome && !state.greeted) return go(PAUSED);
     if (!state.greeted) return greet();
     resume();
@@ -2098,10 +2532,16 @@
   if (typeof customElements !== 'undefined' && !customElements.get('db-assistant')) {
     customElements.define('db-assistant', class extends HTMLElement {
       static get observedAttributes() {
-        return ['lang'];
+        return ['lang', 'theme'];
       }
 
       attributeChangedCallback(name, before, after) {
+        if (name === 'theme') {
+          const theme = ['light', 'dark'].includes(after) ? after : 'auto';
+          root.classList.remove('theme-light', 'theme-dark', 'theme-auto');
+          root.classList.add(`theme-${theme}`);
+          return;
+        }
         if (ctl.booted && before !== null && after !== before && STRINGS[after]) chooseLanguage(after);
       }
     });
@@ -2111,6 +2551,8 @@
   // time as the language files. On a slow connection each round trip counts.
   document.body.append(host);
   Promise.all([loadLanguages(), cssReady]).then(() => {
+    fitToScreen();
+    applyBrand();
     applyLanguage();
     placeVoiceBar();
     if (state.open) {

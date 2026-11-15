@@ -65,7 +65,11 @@ AMHARIC_NOTE = (
     "in English words where a common Amharic word exists. For technical terms, course names and "
     "assignment titles, explain them in Amharic and keep the English term in brackets the first time, "
     "for example ሰው ሠራሽ አስተውሎት (AI). Address the learner with the respectful form (እርስዎ), which does "
-    "not assume their gender. "
+    "not assume their gender. Use these Amharic terms every time, so the learner always hears the same "
+    "word: virtual assistant = ቨርቹዋል ረዳት; deadline = የማስረከቢያ ቀን; assignment = የቤት ሥራ; quiz = ፈተና; "
+    "resubmission = እንደገና ማስገባት; peer review = የአቻ ግምገማ; course = ኮርስ; lesson = ትምህርት; "
+    "client = ደንበኛ; skills = ክህሎቶች; artificial intelligence = ሰው ሠራሽ አስተውሎት (AI). Write numbers as "
+    "digits (7, 85%), which voices read correctly. "
 )
 ENGLISH_NOTE = "Use clear, everyday English and short sentences, and avoid needlessly complicated words. "
 SIMPLE_NOTE = (
@@ -92,6 +96,13 @@ INTRO_QUESTION = (
 TRANSLATE_PROMPT = (
     "Translate this learner's question into a short English search query that would find the "
     "relevant page of their course. Reply with the query only.\n\n{question}"
+)
+
+# Greetings, thanks and "what can you do": no course source is needed, so the model may answer.
+SMALL_TALK = re.compile(
+    r"^\W*(hi|hello|hey|thanks?|thank you|good (morning|afternoon|evening)|bye|goodbye|who are you|"
+    r"what can you do|how are you|ሰላም|ጤና ይስጥልኝ|እንደምን|አመሰግናለሁ|እናመሰግናለን|ደህና|ማን ነሽ|ምን ትሰሪያለሽ|ምን ማድረግ ትችያለሽ)",
+    re.I,
 )
 
 TEXT = {
@@ -212,6 +223,7 @@ class Tutor:
         intent: str | None = None,
         voice: bool = False,
         detect_switch: bool = False,
+        cloud: bool = True,
     ) -> dict:
         """Answer one question. `history` is the earlier turns of this chat as
         [{"role": "user"|"assistant", "content": str}], kept by the client; the server stores nothing.
@@ -221,7 +233,9 @@ class Tutor:
         welcome to that lesson instead of answering a question. `voice` shortens the reply for a
         spoken conversation. With `detect_switch`, "English please" or "ወደ አማርኛ ቀይሪ" changes the
         reply language (returned as "switch_lang") instead of going to the model; channels that have
-        their own language command (Telegram's /lang) leave it off."""
+        their own language command (Telegram's /lang) leave it off. With `cloud=False` (the learner did
+        not agree to their question leaving this server) only a local model and the offline answers are
+        used; a cached answer may still be returned, since that sends nothing anywhere."""
         question = (question or "").strip()
         lang = lang if lang in LANGUAGES else "en"
         history = history or []
@@ -242,7 +256,7 @@ class Tutor:
         if cached and time.time() - cached[0] < self.CACHE_SECONDS:
             return {**cached[1], "cached": True}
         for provider in self.chain:
-            if not provider.status()["available"]:
+            if (provider.remote and not cloud) or not provider.status()["available"]:
                 continue
             try:
                 if provider.uses_model:
@@ -307,7 +321,11 @@ class Tutor:
         else:
             hits = self._search(query, page=context["page"])
             if coverage(self.index, query, hits) < self.MIN_COVERAGE:
-                hits = []  # one shared word is not a match; the model then says it is not in the course
+                hits = []  # one shared word is not a match
+            if not hits and not SMALL_TALK.search(question):
+                # Nothing in the course: say so and offer a person, without calling the model at all
+                # (it could only guess, and it would spend quota).
+                return {"answer": TEXT[lang]["not_found"], "grounded": False, "citations": []}
 
         where = ", ".join(
             f'{label} "{value}"' for label, value in (("course", context["course"]), ("lesson", context["lesson"])) if value
@@ -329,7 +347,10 @@ class Tutor:
         messages = [{"role": m["role"], "content": m["content"]} for m in history[-6:]]
         while messages and messages[0]["role"] != "user":
             messages.pop(0)
-        messages.append({"role": "user", "content": f"Sources:\n{sources}\n\nQuestion: {question}"})
+        # Smaller models (Flash-Lite) follow a reminder next to the question better than one in
+        # the system prompt: without it they sometimes answered correctly but with no [n] at all.
+        reminder = "\n\n(Put the source number, like [1], after each sentence about the course.)" if hits else ""
+        messages.append({"role": "user", "content": f"Sources:\n{sources}\n\nQuestion: {question}{reminder}"})
 
         raw = provider.complete(system, messages)
         return parse_answer(raw, hits, fallback=TEXT[lang]["not_found"])
@@ -349,6 +370,11 @@ class Tutor:
         hits = self.index.search(query, k=k * 2 if page else k)
         if not hits:
             return []
+        # Not a job question: the course comes first. Job titles repeat course words ("Virtual
+        # Assistant") so often that "What is a virtual assistant?" otherwise found only job ads.
+        course = [h for h in self.index.search(query, k=k * 2 if page else k, corpus="course")]
+        if course:
+            hits = course + [h for h in hits if h.get("corpus") == "jobs"][:1]
         if page:
             for h in hits:
                 if h["url"].split("#")[0] == page:
@@ -400,6 +426,14 @@ class Tutor:
                     score = similarity(question, variant)
                     if score > best_score:
                         best, best_score = entry, score
+        if best and best_score >= self.FAQ_THRESHOLD and best_score < 0.8 and not is_amharic(question):
+            # A loose FAQ match loses to a course section whose own title is the question
+            # ("Is the future of VA work promising?" -> "So, is the Future of VA Promising?").
+            top = self._search(question, k=1)
+            terms = set(tokenize(question))
+            in_title = terms and sum(1 for w in terms if w in set(tokenize(top[0]["title"]))) / len(terms) if top else 0
+            if in_title >= 0.6 and top[0]["title"] != best["source"]["title"]:
+                best = None
         if best and best_score >= self.FAQ_THRESHOLD:
             answers = best.get("simple", {}) if simple else {}
             answer = answers.get(lang) or best["answer"].get(lang) or best["answer"]["en"]

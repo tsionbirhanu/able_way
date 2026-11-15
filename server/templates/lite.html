@@ -37,6 +37,8 @@
   <select id="lang" name="lang">
     {% for code, name in LANGS.items() %}<option value="{{ code }}" lang="{{ code }}"{% if code == lang %} selected{% endif %}>{{ name }}</option>{% endfor %}
   </select>
+  <div class="consent"><input type="checkbox" id="cloud" name="cloud" value="1"{% if cloud %} checked{% endif %}>
+  <label for="cloud">{{ t(lang, "lite_cloud_label") }}</label></div>
   <div><button type="submit">{{ t(lang, "lite_ask") }}</button></div>
 </form>
 <p class="note"><a href="/accommodation?lang={{ lang }}">{{ t(lang, "lite_accommodation_link") }}</a></p>

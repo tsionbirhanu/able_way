@@ -20,7 +20,7 @@ from server.teacher.question_log import log_question
 from . import core_client, voice
 from .config import log as _base_log
 from .config import telegram_token
-from .db import get_lang, get_voice, set_lang, set_voice
+from .db import forget, get_consent, get_lang, get_voice, set_consent, set_lang, set_voice
 from .strings import format_citations, norm_lang, t
 
 log = _base_log.getChild("telegram")
@@ -114,7 +114,8 @@ async def handle_message(chat_id, text: str) -> list:
         lang = asked_in
         set_lang("telegram", chat_id, lang)
 
-    result = await asyncio.to_thread(core_client.ask, text, lang, "telegram", False)
+    cloud = get_consent("telegram", chat_id) is True  # not asked yet, or said no: nothing is sent out
+    result = await asyncio.to_thread(core_client.ask, text, lang, "telegram", False, cloud)
     log_question(text, lang, "telegram", result["matched"])  # no chat id is passed
     if not result["matched"]:
         return [t(lang, "dont_know") + "\n" + t(lang, "tg_offer_human")]
@@ -147,7 +148,36 @@ async def _cmd_voice(chat_id, arg, lang):
     return [t(lang, "tg_voice_on" if on else "tg_voice_off")]
 
 
-COMMANDS.update({"/start": _cmd_start, "/help": _cmd_help, "/lang": _cmd_lang, "/voice": _cmd_voice})
+async def _cmd_privacy(chat_id, arg, lang):
+    """/privacy: the current choice and the question again (the buttons are added when sent)."""
+    status = {True: "tg_consent_status_yes", False: "tg_consent_status_no"}.get(get_consent("telegram", chat_id))
+    return ([t(lang, status)] if status else []) + [t(lang, "tg_consent_ask")]
+
+
+async def _cmd_forget(chat_id, arg, lang):
+    """/forget: delete everything kept about this chat (the learner can delete their data)."""
+    forget("telegram", chat_id)
+    _flows.pop(str(chat_id), None)
+    _pending_voice.pop(str(chat_id), None)
+    return [t(lang, "tg_forgotten")]
+
+
+COMMANDS.update({"/start": _cmd_start, "/help": _cmd_help, "/lang": _cmd_lang, "/voice": _cmd_voice,
+                 "/privacy": _cmd_privacy, "/forget": _cmd_forget})
+
+
+# ------------------------------------------------------------------ consent
+# Nothing leaves this server until the learner agrees: questions are answered from the course
+# text (or a local model), and voice is off. Asked once, after the first answer, with two buttons.
+_pending_voice = {}  # chat_id -> a voice note waiting for the learner's answer; in memory only
+
+
+def _consent_buttons(lang: str) -> list:
+    return [(t(lang, "tg_consent_yes_button"), "consent:yes"), (t(lang, "tg_consent_no_button"), "consent:no")]
+
+
+async def _ask_consent(chat_id, lang: str) -> None:
+    await send_message(chat_id, t(lang, "tg_consent_ask"), _consent_buttons(lang))
 
 
 # ------------------------------------------------------------------ long polling
@@ -167,7 +197,17 @@ async def _handle_update(update: dict) -> None:
     except Exception as exc:
         log.error("handler error: %s", type(exc).__name__)
         return
-    await _deliver(chat_id, replies, question=bool(text.strip()) and not text.startswith("/"), spoken_input=False)
+    is_command = text.strip().startswith("/")
+    if is_command and text.strip().split()[0].split("@")[0].lower() == "/privacy" and replies:
+        # The last reply is the question: send it with its two buttons.
+        lang = get_lang("telegram", str(chat_id))
+        for reply in replies[:-1]:
+            await send_message(chat_id, reply)
+        return await _ask_consent(chat_id, lang)
+    question = bool(text.strip()) and not is_command
+    await _deliver(chat_id, replies, question=question, spoken_input=False)
+    if question and get_consent("telegram", str(chat_id)) is None:
+        await _ask_consent(chat_id, get_lang("telegram", str(chat_id)))
 
 
 # ------------------------------------------------------------------ answers in voice
@@ -193,11 +233,15 @@ async def _deliver(chat_id, replies: list, question: bool, spoken_input: bool) -
         if question and i == 0:
             buttons = [(t(lang, "tg_listen_button"), "listen:" + _remember_answer(reply, lang))]
         await send_message(chat_id, reply, buttons)
-    if question and replies and (spoken_input or get_voice("telegram", str(chat_id))):
+    allowed = get_consent("telegram", str(chat_id)) is True
+    if question and replies and allowed and (spoken_input or get_voice("telegram", str(chat_id))):
         await _say(chat_id, replies[0], lang)
 
 
 async def _say(chat_id, text: str, lang: str) -> bool:
+    if get_consent("telegram", str(chat_id)) is not True:  # voice is made by a cloud service
+        await send_message(chat_id, t(lang, "tg_voice_needs_consent"))
+        return False
     await _chat_action(chat_id, "record_voice")
     spoken = await asyncio.to_thread(voice.speak, voice.spoken_part(text, lang), lang)
     if spoken and await send_voice(chat_id, *spoken):
@@ -215,7 +259,18 @@ async def _handle_callback(query: dict) -> None:
             await client.post(API.format(token=token, method="answerCallbackQuery"), json={"callback_query_id": query.get("id")})
         except httpx.HTTPError:
             pass
-    if chat_id is None or not data.startswith("listen:"):
+    if chat_id is None:
+        return
+    if data in ("consent:yes", "consent:no"):
+        allowed = data == "consent:yes"
+        set_consent("telegram", str(chat_id), allowed)
+        lang = get_lang("telegram", str(chat_id))
+        await send_message(chat_id, t(lang, "tg_consent_yes" if allowed else "tg_consent_no"))
+        note = _pending_voice.pop(str(chat_id), None)
+        if note and allowed:
+            await _handle_voice(chat_id, note)  # the voice message they sent before choosing
+        return
+    if not data.startswith("listen:"):
         return
     found = _answers.get(data.split(":", 1)[1])
     if not found:
@@ -272,6 +327,13 @@ async def send_voice(chat_id, audio: bytes, mime: str) -> bool:
 async def _handle_voice(chat_id, note: dict) -> None:
     """Voice in, text and voice out: the learner sees what Mimi heard, reads the answer and hears it."""
     lang = get_lang("telegram", str(chat_id))
+    consent = get_consent("telegram", str(chat_id))
+    if consent is None:  # hearing a voice note needs a cloud service: ask first, keep the note
+        _pending_voice[str(chat_id)] = note
+        return await _ask_consent(chat_id, lang)
+    if consent is False:
+        await send_message(chat_id, t(lang, "tg_voice_needs_consent"))
+        return
     if voice.too_long(note):
         await send_message(chat_id, t(lang, "tg_voice_too_long"))
         return

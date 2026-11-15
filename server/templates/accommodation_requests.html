@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interview accommodation requests</title>
+{% include "_p34_style.html" %}
+<style>
+body{max-width:64rem}
+.request{border:1px solid #767676;border-radius:8px;padding:1rem;margin:0 0 1rem}
+.request dl{display:grid;grid-template-columns:9rem 1fr;gap:.25rem 1rem;margin:0 0 .75rem}
+.request dt{font-weight:700}
+.request dd{margin:0;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the requests</a>
+<main id="main">
+<h1>Interview accommodation requests</h1>
+<p>Private: only signed-in tutors and staff see this page. Contact the learner, arrange the support with the
+employer without naming any disability, then mark the request as handled: it is then deleted.</p>
+<p><a href="/handoff/console">Back to the tutor console</a></p>
+{% if not requests %}
+<p role="status">No requests are waiting.</p>
+{% else %}
+<p role="status">{{ requests|length }} waiting.</p>
+{% for r in requests %}
+<section class="request" aria-labelledby="r{{ r.id }}">
+  <h2 id="r{{ r.id }}">Request {{ r.id }}, {{ r.created_at }} UTC</h2>
+  <dl>
+    <dt>Job</dt><dd dir="auto">{{ r.job }}</dd>
+    <dt>Support needed</dt><dd dir="auto" lang="{{ r.lang }}">{{ r.support }}</dd>
+    <dt>Contact</dt><dd dir="auto">{{ r.contact }}</dd>
+    <dt>Language, channel</dt><dd>{{ r.lang }}, {{ r.channel }}</dd>
+  </dl>
+  <form method="post" action="/accommodation/requests/{{ r.id }}/done">
+    <button type="submit">Mark request {{ r.id }} as handled (deletes it)</button>
+  </form>
+</section>
+{% endfor %}
+{% endif %}
+</main>
+</body>
+</html>

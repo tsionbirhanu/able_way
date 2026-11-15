@@ -6,16 +6,17 @@ GET  /sms/simulator             -> a fake phone that talks to the webhook
 GET  /sms/outbox?to=...         -> outbound messages (job alerts) for the simulator
 """
 import asyncio
+import json
 
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 
 from server.teacher.question_log import log_question
 
-from . import core_client
+from . import core_client, sms_gateway
 from .config import STATIC_DIR
 from .ethiopian import normalize_phone
-from .db import connect, get_lang, set_lang
+from .db import connect, forget, get_consent, get_lang, set_consent, set_lang
 from .strings import norm_lang, t
 from .web import render
 
@@ -30,12 +31,15 @@ def fit_sms(text: str, limit: int = SMS_LIMIT) -> str:
 
 
 def queue_sms(to_number: str, text: str, kind: str = "alert") -> None:
-    """'Send' an SMS: there is no provider, so it goes to the outbox table."""
+    """Send an SMS that is not a direct reply (job alerts, notices): through the real gateway when
+    SMS_PROVIDER is set, and always into the outbox table, which the phone simulator shows."""
     with connect() as c:
         c.execute(
             "INSERT INTO sms_outbox (to_number, text, kind) VALUES (?,?,?)",
             (to_number, fit_sms(text), kind),
         )
+    if sms_gateway.provider():
+        sms_gateway.send(to_number, fit_sms(text))
 
 
 # Extra keyword commands (JOBS, SUB, ...) register themselves here: word -> f(sender, arg, lang) -> str
@@ -55,9 +59,22 @@ async def handle_sms(sender: str, text: str) -> str:
         lang = norm_lang(arg)
         set_lang("sms", sender, lang)
         return fit_sms(t(lang, "sms_lang_set"))
+    if word in ("FORGET", "DELETE"):
+        forget("sms", sender)
+        return fit_sms(t(lang, "sms_forgotten"))
+    if word == "AI" and arg.upper() in ("ON", "OFF", ""):
+        allowed = arg.upper() != "OFF"
+        set_consent("sms", sender, allowed)
+        return fit_sms(t(lang, "sms_consent_on" if allowed else "sms_consent_off"))
     if word in COMMANDS:
         return fit_sms(COMMANDS[word](sender, arg, lang))
-    result = await asyncio.to_thread(core_client.ask, text, lang, "sms", True)
+    consent = get_consent("sms", sender)
+    if consent is None:
+        # First question from this number: answer from the course text (nothing leaves the server)
+        # and say once, in a second SMS, how to allow AI answers. Not asked again after that.
+        set_consent("sms", sender, False)
+        queue_sms(sender, t(lang, "sms_consent_info"), kind="info")
+    result = await asyncio.to_thread(core_client.ask, text, lang, "sms", True, consent is True)
     log_question(text, lang, "sms", result["matched"])  # no phone number is passed
     if not result["matched"]:
         return fit_sms(t(lang, "sms_dont_know"))
@@ -68,6 +85,42 @@ async def handle_sms(sender: str, text: str) -> str:
         if len(reply) + len(source) <= SMS_LIMIT:
             reply += source
     return fit_sms(reply)
+
+
+# ------------------------------------------------------------------ real gateways (free for development)
+@router.post("/webhook/android")
+async def webhook_android(request: Request):
+    """SMS Gateway for Android posts {"event": "sms:received", "payload": {"sender", "message"}}.
+    The reply goes back through the phone as a normal SMS."""
+    raw = await request.body()
+    if not sms_gateway.android_signature_ok(raw, request.headers.get("x-signature"), request.headers.get("x-timestamp")):
+        return JSONResponse({"error": "bad signature"}, status_code=401)
+    try:
+        data = json.loads(raw or b"{}")
+    except ValueError:
+        return JSONResponse({"error": "expected JSON"}, status_code=400)
+    payload = data.get("payload") or {}
+    if data.get("event") != "sms:received" or not payload.get("message"):
+        return {"ok": True, "ignored": data.get("event")}  # delivery reports and other events
+    sender = normalize_phone(str(payload.get("sender") or payload.get("phoneNumber") or ""))
+    if not sender:
+        return JSONResponse({"error": "missing sender"}, status_code=400)
+    reply = await handle_sms(sender, str(payload["message"])[:1000])
+    sent = await asyncio.to_thread(sms_gateway.send, sender, reply)
+    return {"ok": True, "sent": sent}
+
+
+@router.post("/webhook/africastalking")
+async def webhook_africastalking(request: Request):
+    """Africa's Talking posts the incoming SMS form-encoded (from, to, text, date, id). The reply is
+    sent with their messaging API (free in the sandbox)."""
+    form = dict(await request.form())
+    sender = normalize_phone(str(form.get("from") or ""))
+    if not sender:
+        return JSONResponse({"error": "missing 'from'"}, status_code=400)
+    reply = await handle_sms(sender, str(form.get("text") or "")[:1000])
+    await asyncio.to_thread(sms_gateway.send, sender, reply)
+    return PlainTextResponse("")
 
 
 @router.post("/inbound")

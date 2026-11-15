@@ -32,7 +32,7 @@ Settings (in `server/.env` or the environment):
 | Name | Default | Meaning |
 |---|---|---|
 | `ABLEWAY_PROVIDERS` | `gemini,local,offline` | Order to try. `offline` alone forces offline mode. |
-| `ABLEWAY_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model name. For voice, a fast model matters: in testing `gemini-3.5-flash-lite` answered in 1.5–4 s with natural Amharic, `gemini-3.5-flash` took 20–40 s. |
+| `ABLEWAY_GEMINI_MODEL` | `gemini-3.5-flash-lite` | Gemini model name. For voice, a fast model matters: in testing `gemini-3.5-flash-lite` answered in 1.5–4 s with natural Amharic, `gemini-3.5-flash` took 20–40 s. |
 | `ABLEWAY_OLLAMA_MODEL` | `gemma3:4b` | Local model name. |
 | `ABLEWAY_OLLAMA_URL` | `http://127.0.0.1:11434` | Where Ollama listens. |
 | `ABLEWAY_PORT` / `ABLEWAY_HOST` | `8000` / `127.0.0.1` | Where this server listens. |

@@ -12,6 +12,9 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
+    # Import first: starting the server reads .env files (the project's and the one a folder up),
+    # and the test settings below must win over whatever a developer has in them.
+    from server.main import app  # noqa: F401
     monkeypatch.setenv("CHANNELS_DB_PATH", str(tmp_path / "channels.db"))
     monkeypatch.setenv("ACCOMMODATIONS_DB_PATH", str(tmp_path / "accommodations.db"))
     monkeypatch.setenv("TUTOR_PASSWORD", "test-password")

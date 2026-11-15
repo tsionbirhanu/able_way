@@ -23,7 +23,9 @@ UNMATCHED = {"answer": "", "citations": [], "matched": False}
 _tutor = None
 
 
-def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
+def ask(question: str, lang: str, channel: str, simple: bool = False, cloud: bool = False) -> dict:
+    """`cloud`: the learner agreed that their question may go to a cloud AI. Without it only a local
+    model or the offline answers are used, so nothing leaves the server."""
     question = (question or "").strip()
     if not question:
         return dict(UNMATCHED)
@@ -31,9 +33,9 @@ def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
     url = (os.environ.get("CORE_ASK_URL") or "").strip()
     try:
         if import_path:
-            raw = _ask_import(import_path, question, lang, channel, simple)
+            raw = _ask_import(import_path, question, lang, channel, simple, cloud)
         elif url:
-            raw = _ask_http(url, question, lang, channel, simple)
+            raw = _ask_http(url, question, lang, channel, simple, cloud)
         else:
             raw = _ask_stub(question, lang, channel, simple)
         return _normalise(raw)
@@ -45,23 +47,6 @@ def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
 
 def using_stub() -> bool:
     return not (os.environ.get("CORE_ASK_IMPORT") or os.environ.get("CORE_ASK_URL"))
-
-
-def _ask_tutor(question, lang, simple):
-    """Use the same retrieval and configured AI provider as the web assistant."""
-    global _tutor
-    if _tutor is None:
-        from server.tutor import Tutor
-        _tutor = Tutor()
-    result = _tutor.ask(question, lang=lang, simple=simple)
-    return {
-        "answer": result["answer"],
-        "matched": result.get("grounded", False),
-        "citations": [
-            {"page": c.get("url", ""), "heading": c.get("title", "")}
-            for c in result.get("citations", [])
-        ],
-    }
 
 
 def _normalise(raw) -> dict:
@@ -77,18 +62,18 @@ def _normalise(raw) -> dict:
 
 
 # ---------------------------------------------------------------- real: Python import
-def _ask_import(path, question, lang, channel, simple):
+def _ask_import(path, question, lang, channel, simple, cloud=False):
     module_name, _, func_name = path.partition(":")
     func = getattr(importlib.import_module(module_name), func_name or "ask")
-    return func(question=question, lang=lang, channel=channel, simple=simple)
+    return func(question=question, lang=lang, channel=channel, simple=simple, cloud=cloud)
 
 
 # ---------------------------------------------------------------- real: HTTP endpoint
-def _ask_http(url, question, lang, channel, simple):
+def _ask_http(url, question, lang, channel, simple, cloud=False):
     import httpx
 
     resp = httpx.post(
-        url, json={"question": question, "lang": lang, "channel": channel, "simple": simple}, timeout=30
+        url, json={"question": question, "lang": lang, "channel": channel, "simple": simple, "cloud": cloud}, timeout=30
     )
     resp.raise_for_status()
     return resp.json()

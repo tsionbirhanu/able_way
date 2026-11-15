@@ -120,7 +120,47 @@ def load_glossary() -> dict[str, str]:
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
 
 
+# Amharic letters (fidel) are a consonant plus one of seven vowel orders: ሰ ሱ ሲ ሳ ሴ ስ ሶ are all "s".
+# Unicode keeps each consonant's orders together in a row of eight code points from U+1200.
+_ROW = 8
+# Letters that sound the same and are written either way (ሀ/ሐ/ኀ, ሰ/ሠ, አ/ዐ, ጸ/ፀ): so "ሥራ" and
+# "ስራ", or "ፀሐይ" and "ጸሀይ", are one word. Each pair maps a whole row onto its usual spelling.
+_SAME_SOUND = {0x1210: 0x1200, 0x1280: 0x1200, 0x1220: 0x1230, 0x12D0: 0x12A0, 0x1340: 0x1338}
+
+
+def normalize_amharic(text: str) -> str:
+    """One spelling for letters that sound the same; ሃ/ሓ/ኃ and ኣ/ዓ written as ሀ and አ."""
+    out = []
+    for ch in text:
+        cp = ord(ch)
+        base = cp - (cp - 0x1200) % _ROW if 0x1200 <= cp <= 0x137F else None
+        if base in _SAME_SOUND and cp - base < 7:
+            cp = _SAME_SOUND[base] + (cp - base)
+            base = _SAME_SOUND[base]
+        if base in (0x1200, 0x12A0) and cp - base == 3:  # ሃ -> ሀ, ኣ -> አ (the same sound)
+            cp = base
+        out.append(chr(cp))
+    return "".join(out)
+
+
+def consonants(text: str) -> str:
+    """The consonant skeleton: every letter in its sixth (vowel-less) order, so a vowel misheard by
+    speech recognition, or another form of the same word (ማስረከብ, ማስረከቢያ), still matches."""
+    out = []
+    for ch in normalize_amharic(text):
+        cp = ord(ch)
+        if 0x1200 <= cp <= 0x137F and (cp - 0x1200) % _ROW < 7:
+            cp = cp - (cp - 0x1200) % _ROW + 5
+        out.append(chr(cp))
+    return "".join(out)
+
+
 def expand_amharic(question: str, glossary: dict[str, str]) -> str:
-    """English search terms for the Amharic words we recognise in the question."""
-    found = [english for amharic, english in glossary.items() if amharic in question]
+    """English search terms for the Amharic words we recognise in the question: by spelling (with
+    same-sound letters treated as one), else, for longer words, by consonant skeleton."""
+    plain, skeleton = normalize_amharic(question), consonants(question)
+    found = []
+    for amharic, english in glossary.items():
+        if normalize_amharic(amharic) in plain or (len(amharic) >= 3 and consonants(amharic) in skeleton):
+            found.append(english)
     return " ".join(found)

@@ -17,6 +17,7 @@ import json
 import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
@@ -34,6 +35,9 @@ class Provider:
     name = ""
     label = ""
     uses_model = True
+    # True when the question leaves this server (a cloud API). Such providers are used only when the
+    # learner agreed (the "cloud" consent); a local model and the offline answers never send anything out.
+    remote = True
 
     def status(self) -> dict:
         raise NotImplementedError
@@ -51,7 +55,7 @@ class GeminiProvider(Provider):
     COOLDOWN = 60  # seconds to skip the cloud after a network failure, so offline use stays fast
 
     def __init__(self):
-        self.model = os.environ.get("ABLEWAY_GEMINI_MODEL", "gemini-2.5-flash")
+        self.model = os.environ.get("ABLEWAY_GEMINI_MODEL", "gemini-3.5-flash-lite")  # free tier: ~500 requests a day, vs ~20 for bigger Flash models
         self.api_keys = gemini_keys()
         self._next_key = 0
         self._down_until = 0.0
@@ -135,6 +139,8 @@ class OllamaProvider(Provider):
 
     def __init__(self):
         self.base = os.environ.get("ABLEWAY_OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
+        # On this machine (the default) nothing leaves the server; an Ollama elsewhere counts as remote.
+        self.remote = urllib.parse.urlparse(self.base).hostname not in ("127.0.0.1", "localhost", "::1", "ollama")
         self.model = os.environ.get("ABLEWAY_OLLAMA_MODEL", "gemma3:4b")
         self._checked_at = 0.0
         self._status = {"available": False, "detail": "not checked yet"}
@@ -190,6 +196,7 @@ class OfflineProvider(Provider):
     name = "offline"
     label = "Offline answers (no AI model)"
     uses_model = False
+    remote = False
 
     def status(self) -> dict:
         return {"available": True, "detail": "FAQ and course text search; always available"}

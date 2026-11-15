@@ -6,7 +6,9 @@ like text messages, it is never logged.
 """
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 
 from server.speech import Speech, SpeechError
 
@@ -40,13 +42,33 @@ def transcribe(audio: bytes, mime: str, lang: str) -> str:
     return speech.transcribe(audio, mime or "audio/ogg", hint)
 
 
+_PRONOUNCE: dict[str, dict] = {}
+
+
+def pronounce(text: str, lang: str) -> str:
+    """The same "pronounce" list as the web widget (module/i18n/<lang>.json): words spelled the way
+    the voice for that language reads them correctly, for example AI -> ኤ አይ, 85% -> 85 በመቶ."""
+    if lang not in _PRONOUNCE:
+        path = Path(__file__).resolve().parents[2] / "module" / "i18n" / f"{lang}.json"
+        try:
+            _PRONOUNCE[lang] = json.loads(path.read_text(encoding="utf-8")).get("pronounce", {})
+        except (OSError, ValueError):
+            _PRONOUNCE[lang] = {}
+    for written, said in _PRONOUNCE[lang].items():
+        # Latin letters only: "የVA" (an Amharic prefix on an English abbreviation) must still match.
+        left = r"(?<![A-Za-z0-9])" if re.match(r"[A-Za-z0-9]", written) else ""
+        right = r"(?![A-Za-z0-9])" if re.search(r"[A-Za-z0-9]$", written) else ""
+        text = re.sub(left + re.escape(written) + right, said, text)
+    return text
+
+
 def spoken_part(reply: str, lang: str) -> str:
     """What to read aloud from a text reply: not the sources line, not links."""
     label = t(lang, "sources") + ":"
     keep = [p for p in reply.split("\n\n") if not p.strip().startswith(label)]
     text = re.sub(r"https?://\S+", "", "\n".join(keep))
     text = re.sub(r"\s*\[\d+\]", "", text)
-    return " ".join(text.split())[:MAX_SPOKEN]
+    return " ".join(pronounce(text, lang).split())[:MAX_SPOKEN]
 
 
 def speak(text: str, lang: str) -> tuple[bytes, str] | None:

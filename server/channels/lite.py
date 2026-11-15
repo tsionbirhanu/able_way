@@ -15,16 +15,18 @@ router = APIRouter(prefix="/lite", tags=["lite"])
 @router.get("")
 @router.get("/", include_in_schema=False)
 async def lite_form(request: Request, lang: str = "en"):
-    return render(request, "lite.html", lang, question="", result=None, error=None)
+    return render(request, "lite.html", lang, question="", result=None, error=None, cloud=False)
 
 
 @router.post("")
 @router.post("/", include_in_schema=False)
-async def lite_ask(request: Request, question: str = Form(""), lang: str = Form("en")):
+async def lite_ask(request: Request, question: str = Form(""), lang: str = Form("en"), cloud: str = Form("")):
+    # The tick box is the learner's consent: unticked (the default), the question stays on this server.
+    allowed = cloud == "1"
     lang = norm_lang(lang)
     question = question.strip()[:1000]
     if not question:
-        return render(request, "lite.html", lang, question="", result=None, error="empty_question")
-    result = await asyncio.to_thread(core_client.ask, question, lang, "lite", True)
+        return render(request, "lite.html", lang, question="", result=None, error="empty_question", cloud=allowed)
+    result = await asyncio.to_thread(core_client.ask, question, lang, "lite", True, allowed)
     log_question(question, lang, "lite", result["matched"])
-    return render(request, "lite.html", lang, question=question, result=result, error=None)
+    return render(request, "lite.html", lang, question=question, result=result, error=None, cloud=allowed)

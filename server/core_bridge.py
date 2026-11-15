@@ -21,12 +21,12 @@ from tutor import Tutor  # noqa: E402
 _tutor: Tutor | None = None
 
 
-def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
+def ask(question: str, lang: str, channel: str, simple: bool = False, cloud: bool = False) -> dict:
     """The core_client contract: {"answer", "citations": [{"page", "heading"}], "matched"}."""
     global _tutor
     if _tutor is None:
         _tutor = Tutor()
-    result = _tutor.ask(question, lang=lang, simple=simple)
+    result = _tutor.ask(question, lang=lang, simple=simple, cloud=cloud)
     citations = [{"page": c["url"], "heading": c["title"]} for c in result["citations"]]
     answer = result["answer"]
     if channel in ("sms", "telegram", "lite"):

@@ -14,7 +14,7 @@ services:
       - key: ABLEWAY_PROVIDERS
         value: gemini,offline
       - key: ABLEWAY_GEMINI_MODEL
-        value: gemini-2.5-flash 
+        value: gemini-3.5-flash-lite
       - key: GEMINI_API_KEY
         sync: false          # you will paste this in the Render dashboard
       - key: CHANNELS_DB_PATH

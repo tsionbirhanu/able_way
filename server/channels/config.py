@@ -17,6 +17,8 @@ try:  # .env is optional; load the project's server config regardless of launch 
     # server/.env is the older location, still read. Neither overrides a real environment variable.
     load_dotenv(dotenv_path=REPO_ROOT / ".env")
     load_dotenv(dotenv_path=SERVER_DIR / ".env")
+    # Or one folder up, outside the project and outside git (as the tutor server reads it too).
+    load_dotenv(dotenv_path=REPO_ROOT.parent / ".env")
 except Exception:  # pragma: no cover
     pass
 

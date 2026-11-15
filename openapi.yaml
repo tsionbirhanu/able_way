@@ -289,6 +289,12 @@ components:
         question: { type: string, maxLength: 1000 }
         language: { type: string, enum: [am, en], description: 'Reply language (alias: lang)' }
         simple: { type: boolean, description: Short sentences and everyday words }
+        cloud:
+          type: boolean
+          default: true
+          description: >-
+            Whether the learner agreed that their question may go to a cloud AI. Send false when they
+            have not: only a local model and the offline answers are used, and nothing leaves the server.
         history:
           type: array
           description: Earlier turns of this conversation; the server stores nothing

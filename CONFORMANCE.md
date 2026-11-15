@@ -32,11 +32,11 @@ affect learners reaching Mimi.
 | 1.3.4 Orientation | AA | Supports | Works in portrait and landscape. |
 | 1.3.5 Identify input purpose | AA | Not applicable | Mimi asks for no personal data. |
 | 1.4.1 Use of colour | A | Supports | Every state is in words with an icon: "Listening…", "Mimi is speaking", "Sharing screen". |
-| 1.4.2 Audio control | A | Partly | Mimi speaks when the page opens if the browser allows sound. "Stop speaking" and "Turn off voice" are on screen at once, and the spoken greeting is about 5 seconds. **Still to check with a screen reader user**: the greeting can overlap NVDA or TalkBack starting to read the page. A host can set `auto-welcome="false"`. |
+| 1.4.2 Audio control | A | Supports | On a first visit Mimi says nothing until the learner answers the consent question. On a phone she never speaks before the learner's first tap, so she does not talk over TalkBack or VoiceOver. On a computer, on later visits, the greeting (about 5 seconds) plays only if the browser allows sound, with "Stop speaking" and "Turn off voice" on screen at once. A host can set `auto-welcome="false"`. **Still to confirm with an NVDA user** on a computer. |
 | 1.4.3 Contrast (minimum) | AA | Supports | axe-core finds no contrast issue. Main text is 14:1 or more, buttons 7:1 or more. |
-| 1.4.4 Resize text | AA | Supports | Works at 200 % zoom; Mimi starts as a small button there. A "Larger text" switch adds 25 %. |
+| 1.4.4 Resize text | AA | Supports | Works at 200 % zoom; Mimi starts as a small button there. Conversation text is 18 px and no text is under 15 px, even on hosts that shrink their base size (Savanna uses 14 px); every size still grows with the browser's text size. A text size choice (Normal, Large, Extra large) adds 25 % or 50 %, and Mimi stays fully on screen at each size. |
 | 1.4.5 Images of text | AA | Supports | No images of text. |
-| 1.4.10 Reflow | AA | Supports | At 320 px wide, no part of Mimi goes off screen and the blank page never scrolls sideways (button, card or chat). The Savanna starter page itself scrolls sideways at 320 px; see the end. |
+| 1.4.10 Reflow | AA | Supports | At 320 px wide, no part of Mimi goes off screen and the blank page never scrolls sideways (button, card or chat). The Savanna starter page itself is wider than a phone (481 px on a 390 px screen; see the end): Mimi measures the visible area and stays inside it, so her card is fully on screen there too (tested at 390 px). |
 | 1.4.11 Non-text contrast | AA | Supports | Control borders and the focus ring are navy (#0f2a47) on white, 14:1. |
 | 1.4.12 Text spacing | AA | Supports | With line height 1.5, letter spacing 0.12 em, word spacing 0.16 em and paragraph spacing 2 em, no text is cut off or overlaps (tested at 320 px). |
 | 1.4.13 Content on hover or focus | AA | Supports | No tooltips or hover-only content. |
@@ -53,7 +53,7 @@ affect learners reaching Mimi.
 | 2.4.5 Multiple ways | AA | Not applicable | A component, not a set of pages. |
 | 2.4.6 Headings and labels | AA | Supports | Descriptive headings and button names in Amharic and English. |
 | 2.4.7 Focus visible | AA | Supports | Two-tone ring (navy and yellow) on every control, visible on light and dark backgrounds; Windows high contrast uses the system colour. |
-| 2.4.11 Focus not obscured (minimum) | AA | Partly | The chat panel is fixed at the bottom right on wide screens and can cover page content behind it while focus is there. It starts as a small button on narrow and zoomed screens, and it can be closed or minimised at any time. |
+| 2.4.11 Focus not obscured (minimum) | AA | Supports | When keyboard focus moves to a page element that the open chat (or the card) completely covers, Mimi shrinks to her small "Open Mimi" button, without taking focus, and announces that she moved aside. She starts as that small button on narrow and zoomed screens. |
 | 2.5.1 Pointer gestures | A | Supports | Single taps only. |
 | 2.5.2 Pointer cancellation | A | Supports | Actions run on click (release). |
 | 2.5.3 Label in name | A | Supports | Each button's name starts with its visible label; menu buttons include their number ("2 English"). |
@@ -77,6 +77,15 @@ affect learners reaching Mimi.
 | 4.1.3 Status messages | AA | Supports | New messages go to a hidden `role="log"` live region (announced once, without stealing focus); states and notices use `role="status"`. |
 
 ## Beyond WCAG
+
+- **Dark mode.** Mimi follows the device's dark setting, with the same contrast rules (every text pair
+  measured at 6.9:1 or more). Listening is shown in green with words and a ring; red is kept for errors.
+
+- **Consent before anything leaves the site.** On the first visit Mimi asks, in Amharic and English,
+  whether online AI and voice may be used. The question is the third Tab stop inside Mimi, has real
+  buttons with visible names, and is announced once. "No, text only" keeps every question on the
+  host (answers from the course text) and turns listening off; it can be changed in the chat
+  settings. The same choice exists on Telegram (`/privacy`), SMS (`AI ON` / `AI OFF`) and `/lite`.
 
 - **Every feature in both forms.** Voice and text everywhere, so a Deaf learner and a blind learner can
   both do everything: every spoken word is written, and every written reply has a "Replay" button.

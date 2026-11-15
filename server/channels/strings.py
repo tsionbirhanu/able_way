@@ -46,8 +46,8 @@ STRINGS = {
     },
     # ---- SMS ----
     "sms_help": {
-        "en": "Send a question, or: JOBS, SUB <word>, UNSUB, LANG AM, LANG EN, HELP.",
-        "am": "ጥያቄ ይላኩ፣ ወይም፦ JOBS፣ SUB <ቃል>፣ UNSUB፣ LANG AM፣ LANG EN፣ HELP።",
+        "en": "Send a question, or: JOBS, SUB <word>, UNSUB, LANG AM/EN, AI ON/OFF, FORGET, HELP.",
+        "am": "ጥያቄ ይላኩ፣ ወይም፦ JOBS፣ SUB <ቃል>፣ UNSUB፣ LANG AM/EN፣ AI ON/OFF፣ FORGET፣ HELP።",
     },
     "sms_lang_set": {"en": "Language set to English.", "am": "ቋንቋ ወደ አማርኛ ተቀይሯል።"},
     "sms_lang_usage": {"en": "Send LANG AM or LANG EN.", "am": "LANG AM ወይም LANG EN ይላኩ።"},
@@ -92,6 +92,8 @@ STRINGS = {
             "Type a question, or send a voice message, and I will answer from the course pages.\n\n"
             "/lang - choose Amharic or English\n"
             "/voice on - get every answer as a voice message too (/voice off to stop)\n"
+            "/privacy - choose whether AI and voice services may be used\n"
+            "/forget - delete everything kept about this chat\n"
             "/jobs - newest virtual assistant jobs\n"
             "/subscribe <word> - get job alerts (for example /subscribe calendar)\n"
             "/unsubscribe - stop job alerts\n"
@@ -103,6 +105,8 @@ STRINGS = {
             "ማንኛውንም ጥያቄ ይጻፉ ወይም የድምፅ መልእክት ይላኩ፤ ከትምህርቱ ገጾች እመልሳለሁ።\n\n"
             "/lang - አማርኛ ወይም እንግሊዝኛ ይምረጡ\n"
             "/voice on - እያንዳንዱን መልስ በድምፅም ያግኙ (ለማቆም /voice off)\n"
+            "/privacy - የAIና የድምፅ አገልግሎቶች ይፈቀዱ እንደሆነ ይምረጡ\n"
+            "/forget - ስለዚህ ውይይት የተያዘውን ሁሉ ይሰርዙ\n"
             "/jobs - አዳዲስ የቨርቹዋል ረዳት ስራዎች\n"
             "/subscribe <ቃል> - የስራ ማሳወቂያ ያግኙ (ለምሳሌ /subscribe calendar)\n"
             "/unsubscribe - የስራ ማሳወቂያ ያቁሙ\n"
@@ -144,6 +148,61 @@ STRINGS = {
     "tg_voice_failed": {
         "en": "I cannot listen to voice messages right now. Please type your question.",
         "am": "አሁን የድምፅ መልእክት ማዳመጥ አልችልም። እባክዎ ጥያቄዎን ይጻፉ።",
+    },
+    # ---- consent: nothing leaves the server until the learner agrees ----
+    "tg_consent_ask": {
+        "en": (
+            "Before I answer: to write answers and to hear and speak voice messages, I send your "
+            "question or voice message to Google's AI services. Your name and phone number are not sent.\n\n"
+            "Allow this? If not, I answer with text from the course on this server only, and voice is off. "
+            "You can change it any time with /privacy."
+        ),
+        "am": (
+            "ከመመለሴ በፊት፦ መልስ ለመጻፍና የድምፅ መልእክት ለመስማትና ለመናገር ጥያቄዎን ወይም የድምፅ መልእክትዎን "
+            "ወደ Google የAI አገልግሎቶች እልካለሁ። ስምዎና ስልክ ቁጥርዎ አይላኩም።\n\n"
+            "ይፈቅዳሉ? ካልፈቀዱ በዚህ ሰርቨር ላይ ካለው የኮርስ ጽሑፍ ብቻ እመልሳለሁ፤ ድምፅ አይሰራም። "
+            "በማንኛውም ጊዜ በ /privacy መቀየር ይችላሉ።"
+        ),
+    },
+    "tg_consent_yes_button": {"en": "✅ Allow", "am": "✅ እፈቅዳለሁ"},
+    "tg_consent_no_button": {"en": "Offline only", "am": "ያለ ኢንተርኔት ብቻ"},
+    "tg_consent_yes": {
+        "en": "Thank you. AI answers and voice are on. Send /privacy to change this.",
+        "am": "እናመሰግናለን። የAI መልሶችና ድምፅ በርተዋል። ለመቀየር /privacy ይላኩ።",
+    },
+    "tg_consent_no": {
+        "en": "Understood. Nothing is sent outside: I answer from the course text only, and voice is off. Send /privacy to change this.",
+        "am": "ተረድቻለሁ። ምንም ወደ ውጭ አይላክም፦ ከኮርሱ ጽሑፍ ብቻ እመልሳለሁ፤ ድምፅ አይሰራም። ለመቀየር /privacy ይላኩ።",
+    },
+    "tg_consent_status_yes": {"en": "Now: AI answers and voice are allowed.", "am": "አሁን፦ የAI መልሶችና ድምፅ ተፈቅደዋል።"},
+    "tg_consent_status_no": {"en": "Now: offline only, nothing is sent outside.", "am": "አሁን፦ ያለ ኢንተርኔት ብቻ፤ ምንም ወደ ውጭ አይላክም።"},
+    "tg_voice_needs_consent": {
+        "en": "Voice needs the online services, which are off for this chat. Type your question, or send /privacy to allow them.",
+        "am": "ድምፅ የኢንተርኔት አገልግሎቶችን ይፈልጋል፤ ለዚህ ውይይት ጠፍተዋል። ጥያቄዎን ይጻፉ፣ ወይም ለመፍቀድ /privacy ይላኩ።",
+    },
+    "sms_consent_info": {
+        "en": "Mimi: answers now come from the course text only. Reply AI ON for AI answers (your question goes to Google), AI OFF to stop.",
+        "am": "ሚሚ፦ መልሶች ከኮርሱ ጽሑፍ ብቻ ናቸው። ለAI መልስ AI ON ይላኩ (ጥያቄዎ ወደ Google ይሄዳል)፤ ለማቆም AI OFF።",
+    },
+    "sms_consent_on": {
+        "en": "AI answers on. Your questions go to Google's AI to write the answer. Reply AI OFF to stop.",
+        "am": "የAI መልስ በርቷል። ጥያቄዎ መልስ ለመጻፍ ወደ Google AI ይሄዳል። ለማቆም AI OFF ይላኩ።",
+    },
+    "sms_consent_off": {
+        "en": "AI answers off. Answers come from the course text only; nothing is sent outside.",
+        "am": "የAI መልስ ጠፍቷል። መልሶች ከኮርሱ ጽሑፍ ብቻ ናቸው፤ ምንም ወደ ውጭ አይላክም።",
+    },
+    "lite_cloud_label": {
+        "en": "Use AI to write the answer (your question is sent to Google's AI; leave unticked to keep it on this server)",
+        "am": "መልሱን በAI ይጻፍ (ጥያቄዎ ወደ Google AI ይላካል፤ በዚህ ሰርቨር ብቻ እንዲቆይ ምልክት አያድርጉ)",
+    },
+    "tg_forgotten": {
+        "en": "Done: everything this bot kept about this chat is deleted (language, voice and privacy choices, job alerts, and the link to any help chat). Send /start to begin again.",
+        "am": "ተጠናቋል፦ ይህ ቦት ስለዚህ ውይይት የያዘው ሁሉ ተሰርዟል (ቋንቋ፣ የድምፅና የግላዊነት ምርጫዎች፣ የስራ ማሳወቂያዎች እና ከእርዳታ ውይይት ጋር ያለው ግንኙነት)። እንደገና ለመጀመር /start ይላኩ።",
+    },
+    "sms_forgotten": {
+        "en": "Deleted: your language, AI choice, job alerts and messages kept for this number.",
+        "am": "ተሰርዟል፦ ለዚህ ቁጥር የተያዙት ቋንቋ፣ የAI ምርጫ፣ የስራ ማሳወቂያዎችና መልእክቶች።",
     },
     "tg_listen_button": {"en": "🔊 Listen", "am": "🔊 ያዳምጡ"},
     "tg_listen_expired": {

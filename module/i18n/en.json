@@ -9,8 +9,8 @@
     "en": "English"
   },
   "intro": "Hello! I am Mimi, your course tutor. I can explain this lesson, answer your questions, tell you about jobs and connect you to a tutor. Shall we continue in English? For Amharic, say “Amharic”.",
-  "introSpoken": "Hello, I am Mimi, your course tutor. Shall we continue in English? For Amharic, say “Amharic” or press 1.",
-  "otherLanguageHint": "For English, just say “English”.",
+  "introSpoken": "Hello, I am Mimi, your course tutor. Shall we continue in English?",
+  "otherLanguageHint": "For English, say “English”, or press 2.",
   "greetingWelcome": "Hello! I am Mimi, your course tutor.",
   "menu": {
     "intro": "What would you like to do?",
@@ -135,5 +135,30 @@
   ],
   "sourceCountOne": "1 source is listed below.",
   "shownInLesson": "Shown in the lesson",
-  "offerPerson": "Would you like to talk to a person instead? Press “Talk to a person”, or say {n}."
+  "offerPerson": "Would you like to talk to a person instead? Press “Talk to a person”, or say {n}.",
+  "consentTitle": "Before Mimi starts",
+  "consentText": "To understand your voice, speak and write answers, Mimi sends your questions and voice to online services (Google and Microsoft). Your name is not sent. If you say no, Mimi answers from the course text on this website only, by text.",
+  "consentYes": "Allow and start",
+  "consentNo": "No, text only",
+  "consentSwitch": "Online AI and voice",
+  "consentOff": "Online services are off: nothing you write leaves this website. Answers come from the course text. You can turn on “Online AI and voice” in the chat settings.",
+  "offlineNoMic": "Listening needs the online services, which are off. Type your question, or turn on “Online AI and voice” in the chat settings.",
+  "sConsent": "Waiting for your choice above",
+  "movedAside": "Mimi moved aside so you can see the page. Press “Open Mimi” to bring her back.",
+  "savedOffline": "Saved on this phone. It will send when you are online.",
+  "sendingSaved": "You are online again: sending your saved question.",
+  "download": "Download chat",
+  "downloaded": "The conversation was saved as a file on this device.",
+  "pronounce": {
+    "VA": "V A",
+    "ALX": "A L X",
+    "WR 100": "W R 100"
+  },
+  "settings": "Settings",
+  "textSize": "Text size",
+  "textSizes": [
+    "Normal",
+    "Large",
+    "Extra large"
+  ]
 }

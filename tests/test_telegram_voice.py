@@ -39,12 +39,20 @@ def bot(client, monkeypatch):  # noqa: F811
     return telegram_bot, voice, sent
 
 
+@pytest.fixture()
+def bot_allowed(bot, monkeypatch):
+    """The learner already agreed to the online services (consent is tested separately below)."""
+    telegram_bot = bot[0]
+    monkeypatch.setattr(telegram_bot, "get_consent", lambda channel, address: True)
+    return bot
+
+
 def run(coro):
     return asyncio.run(coro)
 
 
-def test_voice_question_gets_heard_text_answer_and_voice(bot, monkeypatch):
-    telegram_bot, voice, sent = bot
+def test_voice_question_gets_heard_text_answer_and_voice(bot_allowed, monkeypatch):
+    telegram_bot, voice, sent = bot_allowed
     monkeypatch.setattr(voice, "transcribe", lambda audio, mime, lang: "What is the late policy?")
     run(telegram_bot._handle_update({"message": {"chat": {"id": 42}, "voice": {"file_id": "f1", "duration": 4, "mime_type": "audio/ogg"}}}))
     kinds = [k for k, _ in sent]
@@ -53,15 +61,15 @@ def test_voice_question_gets_heard_text_answer_and_voice(bot, monkeypatch):
     assert kinds[-1] == "voice"
 
 
-def test_voice_with_no_words_asks_again(bot, monkeypatch):
-    telegram_bot, voice, sent = bot
+def test_voice_with_no_words_asks_again(bot_allowed, monkeypatch):
+    telegram_bot, voice, sent = bot_allowed
     monkeypatch.setattr(voice, "transcribe", lambda audio, mime, lang: "")
     run(telegram_bot._handle_update({"message": {"chat": {"id": 43}, "voice": {"file_id": "f2", "duration": 2}}}))
     assert sent == [("text", "I could not hear any words in that voice message. Please try again, or type your question.")]
 
 
-def test_voice_without_speech_service_says_type_instead(bot, monkeypatch):
-    telegram_bot, voice, sent = bot
+def test_voice_without_speech_service_says_type_instead(bot_allowed, monkeypatch):
+    telegram_bot, voice, sent = bot_allowed
 
     def unavailable(audio, mime, lang):
         raise voice.SpeechError("no key")
@@ -71,8 +79,8 @@ def test_voice_without_speech_service_says_type_instead(bot, monkeypatch):
     assert sent == [("text", "I cannot listen to voice messages right now. Please type your question.")]
 
 
-def test_long_voice_note_is_refused(bot):
-    telegram_bot, voice, sent = bot
+def test_long_voice_note_is_refused(bot_allowed):
+    telegram_bot, voice, sent = bot_allowed
     run(telegram_bot._handle_update({"message": {"chat": {"id": 45}, "voice": {"file_id": "f4", "duration": 300}}}))
     assert sent == [("text", "That voice message is too long. Please keep it under two minutes.")]
 
@@ -81,8 +89,8 @@ def text_message(chat, text):
     return {"message": {"chat": {"id": chat}, "text": text}}
 
 
-def test_typed_answer_has_listen_button_that_speaks_it(bot):
-    telegram_bot, voice, sent = bot
+def test_typed_answer_has_listen_button_that_speaks_it(bot_allowed):
+    telegram_bot, voice, sent = bot_allowed
     run(telegram_bot._handle_update(text_message(50, "What is the late policy?")))
     buttons = [b for k, b in sent if k == "buttons"]
     assert buttons and buttons[0][0][0] == "🔊 Listen"
@@ -92,14 +100,14 @@ def test_typed_answer_has_listen_button_that_speaks_it(bot):
     assert sent == [("voice", "audio/mpeg")]
 
 
-def test_commands_have_no_listen_button(bot):
-    telegram_bot, voice, sent = bot
+def test_commands_have_no_listen_button(bot_allowed):
+    telegram_bot, voice, sent = bot_allowed
     run(telegram_bot._handle_update(text_message(51, "/help")))
     assert "buttons" not in [k for k, _ in sent]
 
 
-def test_voice_on_speaks_every_answer_and_off_stops(bot):
-    telegram_bot, voice, sent = bot
+def test_voice_on_speaks_every_answer_and_off_stops(bot_allowed):
+    telegram_bot, voice, sent = bot_allowed
     run(telegram_bot._handle_update(text_message(52, "/voice on")))
     assert sent[0][1].startswith("Voice answers are on")
     sent.clear()
@@ -111,16 +119,16 @@ def test_voice_on_speaks_every_answer_and_off_stops(bot):
     assert "voice" not in [k for k, _ in sent]
 
 
-def test_listen_when_no_voice_says_so(bot, monkeypatch):
-    telegram_bot, voice, sent = bot
+def test_listen_when_no_voice_says_so(bot_allowed, monkeypatch):
+    telegram_bot, voice, sent = bot_allowed
     monkeypatch.setattr(voice, "speak", lambda text, lang: None)
     key = telegram_bot._remember_answer("Some answer.", "en")
     run(telegram_bot._handle_update({"callback_query": {"id": "q2", "data": "listen:" + key, "message": {"chat": {"id": 53}}}}))
     assert sent == [("text", "I cannot speak right now. The answer is in the text above.")]
 
 
-def test_english_question_in_amharic_chat_gets_english_text_and_voice(bot, monkeypatch):
-    telegram_bot, voice, sent = bot
+def test_english_question_in_amharic_chat_gets_english_text_and_voice(bot_allowed, monkeypatch):
+    telegram_bot, voice, sent = bot_allowed
     spoken_langs = []
     monkeypatch.setattr(voice, "speak", lambda text, lang: spoken_langs.append(lang) or (b"mp3", "audio/mpeg"))
     monkeypatch.setattr(voice, "transcribe", lambda audio, mime, lang: "What is the late policy?")
@@ -149,3 +157,59 @@ def test_spoken_part_drops_sources_and_markers():
 
     reply = "Late work gets one resubmission [1].\n\nSources: pages/x.html - Late policy"
     assert voice.spoken_part(reply, "en") == "Late work gets one resubmission."
+
+
+# ---------------------------------------------------------------- consent
+def test_first_question_is_answered_offline_then_consent_is_asked(bot, monkeypatch):
+    telegram_bot, voice, sent = bot
+    calls = []
+    real_ask = telegram_bot.core_client.ask
+    monkeypatch.setattr(telegram_bot.core_client, "ask", lambda *a: calls.append(a) or real_ask(*a))
+    run(telegram_bot._handle_update(text_message(60, "What is the late policy?")))
+    assert calls[0][-1] is False  # not asked yet: nothing may leave the server
+    buttons = [b for k, b in sent if k == "buttons"]
+    assert [d for _, d in buttons[-1]] == ["consent:yes", "consent:no"]
+    assert "voice" not in [k for k, _ in sent]
+
+
+def test_consent_yes_allows_cloud_and_no_keeps_it_off(bot, monkeypatch):
+    telegram_bot, voice, sent = bot
+    calls = []
+    real_ask = telegram_bot.core_client.ask
+    monkeypatch.setattr(telegram_bot.core_client, "ask", lambda *a: calls.append(a) or real_ask(*a))
+    run(telegram_bot._handle_update({"callback_query": {"id": "c1", "data": "consent:yes", "message": {"chat": {"id": 61}}}}))
+    assert sent[-1][1].startswith("Thank you. AI answers and voice are on")
+    run(telegram_bot._handle_update(text_message(61, "What is the late policy?")))
+    assert calls[-1][-1] is True
+    assert "consent:yes" not in str(sent[2:])  # not asked again
+    run(telegram_bot._handle_update({"callback_query": {"id": "c2", "data": "consent:no", "message": {"chat": {"id": 61}}}}))
+    run(telegram_bot._handle_update(text_message(61, "What is the late policy?")))
+    assert calls[-1][-1] is False
+
+
+def test_voice_note_waits_for_consent_and_is_answered_after_yes(bot, monkeypatch):
+    telegram_bot, voice, sent = bot
+    heard = []
+    monkeypatch.setattr(voice, "transcribe", lambda audio, mime, lang: heard.append(1) or "What is the late policy?")
+    run(telegram_bot._handle_update({"message": {"chat": {"id": 62}, "voice": {"file_id": "v", "duration": 3}}}))
+    assert heard == []  # not sent to any speech service before the learner agrees
+    assert [d for _, d in [b for k, b in sent if k == "buttons"][-1]] == ["consent:yes", "consent:no"]
+    sent.clear()
+    run(telegram_bot._handle_update({"callback_query": {"id": "c3", "data": "consent:yes", "message": {"chat": {"id": 62}}}}))
+    assert heard == [1]
+    assert ("text", "🎤 I heard: What is the late policy?") in sent and sent[-1] == ("voice", "audio/mpeg")
+
+
+def test_voice_note_after_no_is_not_sent_anywhere(bot, monkeypatch):
+    telegram_bot, voice, sent = bot
+    monkeypatch.setattr(voice, "transcribe", lambda *a: pytest.fail("audio left the server"))
+    run(telegram_bot._handle_update({"callback_query": {"id": "c4", "data": "consent:no", "message": {"chat": {"id": 63}}}}))
+    sent.clear()
+    run(telegram_bot._handle_update({"message": {"chat": {"id": 63}, "voice": {"file_id": "v", "duration": 3}}}))
+    assert sent[0][1].startswith("Voice needs the online services")
+
+
+def test_privacy_command_shows_choice_with_buttons(bot):
+    telegram_bot, voice, sent = bot
+    run(telegram_bot._handle_update(text_message(64, "/privacy")))
+    assert [d for _, d in [b for k, b in sent if k == "buttons"][-1]] == ["consent:yes", "consent:no"]

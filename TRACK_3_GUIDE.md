@@ -32,7 +32,7 @@ The key is read by the Python server. Do not put it in the browser widget or com
 1. Create a Gemini API key in Google AI Studio. Free usage depends on the model, account, region and current quota; confirm the current limits in AI Studio.
 2. From `able_way/`, copy `server/.env.example` to `server/.env` and replace the placeholder `GEMINI_API_KEY` value.
 3. Keep `ABLEWAY_PROVIDERS=gemini,local,offline`. If Gemini is unavailable or out of quota, the tutor tries local Ollama if installed, then offline FAQ/course-text answers.
-4. `ABLEWAY_GEMINI_MODEL` defaults to `gemini-2.5-flash`. Change it only to a model available to your API key.
+4. `ABLEWAY_GEMINI_MODEL` defaults to `gemini-3.5-flash-lite` (the largest free daily allowance). Change it only to a model available to your API key.
 5. Start the web tutor with `python server/app.py`, then open `http://localhost:8000/`.
 6. Check `http://localhost:8000/api/health`. Gemini should report `available: true` and the expected model. The key itself should never appear in the response or browser source.
 

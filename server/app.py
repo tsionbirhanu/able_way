@@ -45,6 +45,9 @@ def load_env(path: Path) -> None:
 
 load_env(ROOT / ".env")  # the one settings file, shared with the channels server
 load_env(HERE / ".env")  # older location, still read
+# Or one folder up, outside the project (and so outside git entirely). Read last: a setting in the
+# project's own .env wins.
+load_env(ROOT.parent / ".env")
 
 from sessions import Sessions  # noqa: E402
 from speech import MAX_AUDIO_BYTES, MAX_TTS_TEXT, Speech, SpeechError  # noqa: E402
@@ -94,6 +97,8 @@ def validate(body: dict) -> tuple[dict | None, str]:
         "intent": intent,
         "voice": body.get("voice") is True,
         "detect_switch": body.get("detect_switch") is True,
+        # false: the learner has not agreed to their question going to a cloud AI (see openapi.yaml).
+        "cloud": body.get("cloud") is not False,
     }, ""
 
 

@@ -44,12 +44,53 @@ def save_request(job: str, support: str, contact: str, lang: str, channel: str) 
             "INSERT INTO accommodation_requests (job, support, contact, lang, channel) VALUES (?,?,?,?,?)",
             (job.strip()[:300], support.strip()[:2000], contact.strip()[:300], norm_lang(lang), channel),
         )
+    # Tell the platform's staff that a request is waiting: the event only, never its content.
+    from . import webhook
+
+    webhook.send("accommodation.requested", {"channel": channel, "lang": norm_lang(lang)})
+
+
+def list_requests() -> list[dict]:
+    with _connect() as c:
+        c.row_factory = sqlite3.Row
+        rows = c.execute("SELECT * FROM accommodation_requests ORDER BY id DESC").fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_request(request_id: int) -> None:
+    with _connect() as c:
+        c.execute("DELETE FROM accommodation_requests WHERE id=?", (request_id,))
 
 
 def _job_options():
     from server.jobs.store import load_jobs
 
     return ["{} - {}".format(j["title"], j["company"]) for j in load_jobs()]
+
+
+# ------------------------------------------------------------------ staff page: a person handles each request
+# Behind the tutor console's password. Requests are deleted once handled (keep no more than needed).
+@router.get("/requests")
+async def staff_list(request: Request):
+    from fastapi.responses import RedirectResponse
+
+    from server.handoff.router import is_tutor
+
+    if not is_tutor(request.cookies):
+        return RedirectResponse("/handoff/console", status_code=303)
+    return render(request, "accommodation_requests.html", "en", requests=list_requests())
+
+
+@router.post("/requests/{request_id}/done")
+async def staff_done(request: Request, request_id: int):
+    from fastapi.responses import JSONResponse, RedirectResponse
+
+    from server.handoff.router import is_tutor
+
+    if not is_tutor(request.cookies):
+        return JSONResponse({"error": "tutor login required"}, status_code=401)
+    delete_request(request_id)
+    return RedirectResponse("/accommodation/requests", status_code=303)
 
 
 # ------------------------------------------------------------------ web form (no JavaScript)
