@@ -96,7 +96,7 @@ Telegram, SMS and `/lite` use `server/channels/core_client.py`, which now calls 
 | `data/faq.json` | Hand-written offline answers in both languages. |
 | `data/glossary_am.json` | Amharic words mapped to English search terms, for offline search. |
 | `tests/` | `python -m unittest discover -s server/tests` |
-| `../assistant/` | The web chat widget (`assistant.js`, `assistant.css`). |
+| `../module/` | The web module: `db-assistant.js`, `db-assistant.css` and the language files in `i18n/`. |
 
 To add more content (for example job listings), drop a `data/chunks_jobs.json` file with the same
 fields as `chunks.json` and `"corpus": "jobs"`. It is loaded automatically.
@@ -104,7 +104,7 @@ fields as `chunks.json` and `"corpus": "jobs"`. It is loaded automatically.
 ## Add the widget to a page
 
 ```html
-<script src="../assistant/assistant.js" defer></script>
+<script src="../module/db-assistant.js" defer></script>
 ```
 
 Add `data-api="https://your-server"` when the API is not on `http://localhost:8000`. Other options:

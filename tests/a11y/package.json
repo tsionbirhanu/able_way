@@ -1,0 +1,11 @@
+{
+  "name": "ableway-a11y-check",
+  "private": true,
+  "description": "axe-core check of the <db-assistant> module (WCAG 2.2 AA rules)",
+  "scripts": {
+    "check": "node axe.mjs http://localhost:8001/demo/blank.html && node axe.mjs http://localhost:8001/pages/concept-with-navigation.html"
+  },
+  "dependencies": {
+    "axe-core": "4.10.2"
+  }
+}

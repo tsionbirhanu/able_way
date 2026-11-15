@@ -2,6 +2,7 @@
 import datetime
 import json
 
+from server.channels.ethiopian import format_date  # Ethiopian calendar for Amharic
 from server.channels.config import JOBS_FILE
 from server.channels.strings import t
 
@@ -42,7 +43,7 @@ def format_job(job: dict, lang: str) -> str:
         job["location"] + (" ({})".format(t(lang, "job_remote")) if job.get("remote") else ""),
         desc.get(lang) or desc.get("en", ""),
         "{}: {}".format(t(lang, "job_skills"), ", ".join(job.get("skills") or [])),
-        "{}: {}".format(t(lang, "job_deadline"), job["deadline"]),
+        "{}: {}".format(t(lang, "job_deadline"), format_date(job["deadline"], lang)),
         job["link"],
     ]
     return "\n".join(line for line in lines if line)
@@ -51,7 +52,7 @@ def format_job(job: dict, lang: str) -> str:
 def format_job_sms(job: dict, lang: str) -> str:
     """One compact line for SMS."""
     return "{}, {}. {} {}. {}".format(
-        job["title"], job["company"], t(lang, "job_deadline"), job["deadline"], job["link"]
+        job["title"], job["company"], t(lang, "job_deadline"), format_date(job["deadline"], lang, short=True), job["link"]
     )
 
 
@@ -59,5 +60,6 @@ def jobs_list_sms(lang: str, limit: int = 3) -> str:
     jobs = load_jobs()[:limit]
     if not jobs:
         return t(lang, "jobs_none")
-    items = ["{}. {} ({}, {})".format(i, j["title"], j["company"], j["deadline"][5:]) for i, j in enumerate(jobs, 1)]
+    items = ["{}. {} ({}, {})".format(i, j["title"], j["company"], format_date(j["deadline"], lang, short=True))
+             for i, j in enumerate(jobs, 1)]
     return t(lang, "jobs_header") + " " + " ".join(items)

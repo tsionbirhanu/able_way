@@ -8,7 +8,7 @@ The source project is under `able_way/`. This document distinguishes the brief's
 
 | Track 3 capability | Evidence in this project | Assessment |
 |---|---|---|
-| Web tutor | `assistant/assistant.js` and `/api/ask` in `server/app.py`; course pages load the widget | Implemented for the included pages. |
+| Web tutor | `module/db-assistant.js` and `/api/ask` in `server/app.py`; course pages load the widget | Implemented for the included pages. |
 | Amharic and English text answers | `server/tutor.py`, Amharic glossary, bilingual FAQ and UI strings | Implemented; test Amharic accuracy and script rendering with fluent speakers. |
 | Answers only from course material, with citations | `server/retrieval.py` searches extracted chunks; `tutor.py` passes sources to the model and validates citation numbers; widget makes citations links | Implemented as a retrieval-grounded flow. It is not a formal guarantee against every model hallucination. |
 | Voice | Widget uses browser speech recognition and speech synthesis where available | Partial/browser-dependent. Amharic voices and recognition vary by device; voice output is not the same as a server voice tutor. |

@@ -112,3 +112,42 @@ class WithModel(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OffTopic(unittest.TestCase):
+    def test_one_shared_word_is_not_an_answer(self):
+        r = Tutor(chain=[OfflineProvider()]).ask("Who won the football world cup?", "en")
+        self.assertFalse(r["grounded"])
+        self.assertEqual(r["citations"], [])
+
+
+class Jobs(unittest.TestCase):
+    def test_job_question_is_answered_from_the_listings(self):
+        for question, lang in (("What jobs are open for me, and how do I apply?", "en"),
+                               ("ለእኔ የሚሆኑ ክፍት ሥራዎች የትኞቹ ናቸው? እንዴትስ ማመልከት እችላለሁ?", "am")):
+            r = Tutor(chain=[OfflineProvider()]).ask(question, lang)
+            self.assertTrue(r["grounded"], question)
+            self.assertTrue(r["citations"][0]["url"].endswith("jobs.html") or "jobs" in r["citations"][0]["url"], r["citations"])
+
+    def test_course_question_still_uses_the_course(self):
+        r = Tutor(chain=[OfflineProvider()]).ask("Can I resubmit an assignment?", "en")
+        self.assertIn("Resubmission", r["citations"][0]["title"])
+
+
+class AnswerCache(unittest.TestCase):
+    def test_the_same_question_does_not_call_the_ai_twice(self):
+        model = FakeModel(["Resubmission is allowed once [1]."])  # only one reply: a second call would fail
+        tutor = Tutor(chain=[model, OfflineProvider()])
+        first = tutor.ask("Can I resubmit an assignment in WR 100?")
+        second = tutor.ask("can I resubmit an assignment in WR 100")
+        self.assertEqual(len(model.calls), 1)
+        self.assertTrue(second.get("cached"))
+        self.assertEqual(first["answer"], second["answer"])
+
+    def test_follow_up_questions_are_not_cached(self):
+        model = FakeModel(["One [1].", "Two [1]."])
+        tutor = Tutor(chain=[model, OfflineProvider()])
+        history = [{"role": "user", "content": "Tell me about resubmission"}]
+        tutor.ask("Can I resubmit an assignment in WR 100?", history=history)
+        tutor.ask("Can I resubmit an assignment in WR 100?", history=history)
+        self.assertEqual(len(model.calls), 2)

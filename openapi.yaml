@@ -1,0 +1,347 @@
+openapi: 3.1.0
+info:
+  title: Ableway multilingual assistant (Mimi)
+  version: 1.0.0
+  summary: Track 3 module, Digital Bridge Accessibility Hackathon 2026.
+  description: |
+    A course tutor that answers in Amharic and English only from course content, with sources, plus
+    one-click help from a person, an SMS route and a webhook.
+
+    Two servers (both started by `docker compose up`):
+    - **tutor** (`http://localhost:8001`): the `/api/...` calls below. Interactive docs: `/docs`.
+    - **channels** (`http://localhost:8000`): `/sms/inbound` and `/handoff/tickets` below; Telegram, `/lite`,
+      job alerts and the teacher view. Its full generated docs: `http://localhost:8000/docs`.
+
+    No call needs a key. AI keys stay on the server (`.env`); the browser never sees them.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8001
+    description: tutor
+  - url: http://localhost:8000
+    description: channels (only /sms/inbound and /handoff/tickets)
+
+paths:
+  /api/v1/ask:
+    post:
+      summary: Ask the tutor a question
+      description: |
+        Answers only from the indexed course content. When nothing in the course matches, `grounded` is
+        false, `sources` is empty and the answer says so and offers a person; no AI is called then.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AskRequest' }
+            example: { question: 'Can I resubmit an assignment?', language: am }
+      responses:
+        '200':
+          description: The answer
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AskResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/v1/content:
+    post:
+      summary: Send the host's own lessons to be indexed
+      description: The same item sent twice is kept once. The `<db-assistant content="...">` attribute does this for you.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chunks]
+              properties:
+                chunks:
+                  type: array
+                  maxItems: 500
+                  items: { $ref: '#/components/schemas/ContentItem' }
+      responses:
+        '201':
+          description: New items were indexed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentResult' }
+        '200':
+          description: Nothing new (all items were already indexed)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/v1/escalations:
+    post:
+      summary: Ask for a person (opens a help-desk ticket with the conversation so far)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                language: { type: string, enum: [am, en] }
+                conversation:
+                  type: array
+                  maxItems: 12
+                  items:
+                    type: object
+                    properties:
+                      role: { type: string, enum: [user, assistant] }
+                      text: { type: string }
+            example:
+              language: en
+              conversation:
+                - { role: user, text: 'When is the deadline?' }
+                - { role: assistant, text: 'Seven days after it is assigned.' }
+      responses:
+        '201':
+          description: Ticket opened
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticketId: { type: string }
+                  chatUrl: { type: string, format: uri, description: 'Live chat with the tutor, for the learner' }
+                  message: { type: string }
+        '503':
+          description: The help desk (channels server) is not reachable
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/health:
+    get:
+      summary: Which AI providers and voices are available
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chunks: { type: integer, description: Indexed pieces of course content }
+                  providers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string, enum: [gemini, cloud, local, offline] }
+                        available: { type: boolean }
+                        detail: { type: string }
+                  speech: { type: object }
+
+  /api/tts:
+    post:
+      summary: Mimi's voice for a sentence (server voice; browsers with their own natural voice do not need it)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text, lang]
+              properties:
+                text: { type: string, maxLength: 1500 }
+                lang: { type: string, enum: [am, en] }
+                cache: { type: boolean, description: 'Keep the recording (fixed phrases only)' }
+      responses:
+        '200':
+          description: Audio
+          content:
+            audio/wav: {}
+            audio/mpeg: {}
+        '503':
+          description: No server voice right now (quota or no key); the widget then uses the browser's voice
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/transcribe:
+    post:
+      summary: Speech to text for one spoken turn (when the browser cannot recognise the language)
+      parameters:
+        - { name: lang, in: query, schema: { type: string, enum: [am, en] } }
+      requestBody:
+        required: true
+        content:
+          audio/wav: {}
+      responses:
+        '200':
+          description: What was said
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text: { type: string }
+        '503':
+          description: No speech recognition configured
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /sms/inbound:
+    servers:
+      - url: http://localhost:8000
+    post:
+      summary: The text route. An SMS gateway posts the learner's message here and sends back the reply.
+      description: |
+        The reply is plain text of at most 160 characters. Send `Accept: application/json` to get
+        `{"to", "reply"}` instead. Keywords: HELP, LANG am|en, JOBS, SUB <words>, UNSUB. Phone numbers
+        09..., 07... and +251... are stored in one format (+251...).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [from, text]
+              properties:
+                from: { type: string, example: '0911000000' }
+                text: { type: string, example: 'What is the late policy?' }
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                from: { type: string }
+                text: { type: string }
+      responses:
+        '200':
+          description: The reply to send back by SMS
+          content:
+            text/plain:
+              schema: { type: string, maxLength: 160 }
+            application/json:
+              schema:
+                type: object
+                properties:
+                  to: { type: string, example: '+251911000000' }
+                  reply: { type: string, maxLength: 160 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /handoff/tickets:
+    servers:
+      - url: http://localhost:8000
+    post:
+      summary: Open a help-desk ticket directly (what /api/v1/escalations calls)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lang: { type: string, enum: [am, en] }
+                topic: { type: string }
+                channel: { type: string, example: web }
+                conversation:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role: { type: string }
+                      text: { type: string }
+      responses:
+        '201':
+          description: Ticket opened
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket_id: { type: string }
+                  chat_url: { type: string }
+                  absolute_chat_url: { type: string }
+
+webhooks:
+  ticket.opened:
+    post:
+      summary: Sent to WEBHOOK_URL (in .env) when a learner asks for a person
+      description: No name, phone number or message text is sent.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event: { type: string, const: ticket.opened }
+                at: { type: string, format: date-time }
+                data:
+                  type: object
+                  properties:
+                    ticketId: { type: string }
+                    channel: { type: string }
+                    lang: { type: string }
+      responses:
+        '200':
+          description: The host received it (the response is ignored)
+
+components:
+  schemas:
+    AskRequest:
+      type: object
+      required: [question]
+      properties:
+        question: { type: string, maxLength: 1000 }
+        language: { type: string, enum: [am, en], description: 'Reply language (alias: lang)' }
+        simple: { type: boolean, description: Short sentences and everyday words }
+        history:
+          type: array
+          description: Earlier turns of this conversation; the server stores nothing
+          items:
+            type: object
+            properties:
+              role: { type: string, enum: [user, assistant] }
+              content: { type: string }
+    AskResponse:
+      type: object
+      properties:
+        answer: { type: string, description: 'Plain text; [1], [2] refer to sources' }
+        grounded: { type: boolean, description: 'True only when the answer cites real course content' }
+        sources:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: string }
+              url: { type: string, description: 'Page and section, for example pages/concept-with-navigation.html#so-is-the-future-of-va-promising' }
+        citations:
+          type: array
+          items:
+            type: object
+            properties:
+              n: { type: integer }
+              title: { type: string }
+              url: { type: string }
+              snippet: { type: string }
+        lang: { type: string, enum: [am, en] }
+        provider: { type: string, enum: [gemini, cloud, local, offline], description: Who answered }
+        cached: { type: boolean, description: 'Reused answer to the same question (no AI call)' }
+    ContentItem:
+      type: object
+      required: [text]
+      properties:
+        title: { type: string }
+        url: { type: string, description: 'Where the learner can read it; answers link here' }
+        text: { type: string, maxLength: 6000 }
+        course: { type: string }
+    ContentResult:
+      type: object
+      properties:
+        status: { type: string }
+        added: { type: integer }
+        total_chunks: { type: integer }
+    Error:
+      type: object
+      properties:
+        error: { type: string, description: What went wrong, in words }
+  responses:
+    BadRequest:
+      description: The request is missing something; the message says what
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }

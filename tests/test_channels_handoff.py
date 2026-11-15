@@ -43,18 +43,18 @@ def test_lite_post_unknown_question_in_amharic(client):
 
 
 def test_sms_inbound_reply_is_short(client):
-    reply = client.post("/sms/inbound", json={"from": "+251911000001", "text": "What skills do I need?"})
+    reply = client.post("/sms/inbound", headers={"Accept": "application/json"}, json={"from": "+251911000001", "text": "What skills do I need?"})
     assert reply.status_code == 200
-    assert reply.json()["reply"] and len(reply.json()["reply"]) < 300
+    assert reply.json()["reply"] and len(reply.json()["reply"]) <= 160
     for text in ["HELP", "JOBS", "is AI the future? " * 40, "something unknown"]:
-        body = client.post("/sms/inbound", json={"from": "+251911000001", "text": text}).json()
-        assert 0 < len(body["reply"]) < 300
-    assert client.post("/sms/inbound", json={"text": "no sender"}).status_code == 400
+        body = client.post("/sms/inbound", headers={"Accept": "application/json"}, json={"from": "+251911000001", "text": text}).json()
+        assert 0 < len(body["reply"]) <= 160
+    assert client.post("/sms/inbound", headers={"Accept": "application/json"}, json={"text": "no sender"}).status_code == 400
 
 
 def test_subscribe_then_run_alerts(client):
     number = "+251911000002"
-    reply = client.post("/sms/inbound", json={"from": number, "text": "SUB calendar"}).json()["reply"]
+    reply = client.post("/sms/inbound", headers={"Accept": "application/json"}, json={"from": number, "text": "SUB calendar"}).json()["reply"]
     assert "calendar" in reply
     first = client.post("/jobs/run-alerts").json()
     assert first["sent"] >= 1 and first["sms"] == first["sent"]
@@ -68,7 +68,7 @@ def test_subscribe_then_run_alerts(client):
     assert client.post("/jobs/run-alerts").json()["sent"] == 0
     assert len(client.get("/sms/outbox", params={"to": number}).json()["messages"]) == total
     # Unsubscribing stops alerts.
-    client.post("/sms/inbound", json={"from": number, "text": "UNSUB"})
+    client.post("/sms/inbound", headers={"Accept": "application/json"}, json={"from": number, "text": "UNSUB"})
     assert client.post("/jobs/run-alerts").json()["subscriptions"] == 0
 
 
@@ -106,7 +106,7 @@ def test_accommodation_stays_out_of_teacher_view(client):
 
 
 def test_question_log_is_anonymous(client):
-    client.post("/sms/inbound", json={"from": "+251911000003", "text": "Where is the cafeteria?"})
+    client.post("/sms/inbound", headers={"Accept": "application/json"}, json={"from": "+251911000003", "text": "Where is the cafeteria?"})
     conn = sqlite3.connect(str(client.tmp / "channels.db"))
     columns = [r[1] for r in conn.execute("PRAGMA table_info(question_log)")]
     assert columns == ["id", "question", "normalised", "lang", "channel", "matched", "asked_on"]
@@ -159,3 +159,31 @@ def test_server_starts_without_telegram_token(client):
     with client:  # runs startup and shutdown
         status = client.get("/telegram/status").json()
     assert status == {"configured": False, "running": False, "username": None}
+
+
+def test_sms_reply_is_plain_text_by_default(client):
+    """The Track 3 brief: POST /sms/inbound {from, text} returns the reply as plain text, at most 160."""
+    resp = client.post("/sms/inbound", json={"from": "0911000009", "text": "is AI the future? " * 30})
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/plain")
+    assert 0 < len(resp.text) <= 160
+
+
+def test_sms_sender_is_stored_in_one_format(client):
+    number = client.post("/sms/inbound", headers={"Accept": "application/json"}, json={"from": "0911 00 00 10", "text": "HELP"}).json()["to"]
+    assert number == "+251911000010"
+
+
+def test_ticket_carries_the_conversation(client):
+    convo = [{"role": "user", "text": "When is the deadline?"}, {"role": "assistant", "text": "Seven days after it is assigned."}]
+    ticket = client.post("/handoff/tickets", json={"lang": "en", "topic": "deadline", "conversation": convo}).json()
+    from server.handoff import tickets
+    saved = tickets.messages(ticket["ticket_id"])
+    assert saved and saved[0]["role"] == "mimi"
+    assert "When is the deadline?" in saved[0]["text"] and "Seven days" in saved[0]["text"]
+
+
+def test_job_deadline_in_ethiopian_calendar_for_amharic():
+    from server.channels.ethiopian import format_date
+    assert format_date("2026-11-14", "am") == "5 ኅዳር 2019 ዓ.ም."
+    assert format_date("2026-11-14", "en") == "14 November 2026"

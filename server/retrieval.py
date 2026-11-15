@@ -88,6 +88,18 @@ class Index:
         return [{**self.chunks[i], "score": round(score, 3)} for score, i in scored[:k]]
 
 
+def coverage(index: "Index", query: str, hits: list[dict]) -> float:
+    """Share of the query's words found in at least one of the hits (0..1). An off-topic
+    question can still score well on one shared word ("world cup" finds "world"), but only a
+    real course question has most of its words in the course."""
+    terms = set(tokenize(query))
+    if not terms or not hits:
+        return 0.0
+    position = {c["id"]: i for i, c in enumerate(index.chunks)}
+    docs = [index.docs[position[h["id"]]] for h in hits if h.get("id") in position]
+    return sum(1 for t in terms if any(t in d for d in docs)) / len(terms)
+
+
 def load_chunks() -> list[dict]:
     """All chunk files in data/: chunks.json from extract.py, plus any chunks_*.json that
     teammates add (for example a jobs corpus with "corpus": "jobs")."""

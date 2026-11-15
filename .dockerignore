@@ -1,0 +1,8 @@
+.git
+.env
+**/.venv
+**/__pycache__
+**/node_modules
+data/*.db
+data/tts_cache
+*.pyc

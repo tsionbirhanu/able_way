@@ -35,6 +35,7 @@ import urllib.request
 import wave
 from collections import OrderedDict
 from pathlib import Path
+from xml.sax.saxutils import escape as xml_escape
 
 try:
     from .providers import gemini_keys
@@ -215,14 +216,100 @@ class GoogleCloudTTS:
         return base64.b64decode(payload["audioContent"]), "audio/mpeg"
 
 
-TTS_REGISTRY = {"gemini": GeminiTTS, "google": GoogleCloudTTS}
+def azure_settings() -> tuple[str, str]:
+    """(key, region) of an Azure AI Speech resource. Its free tier (F0) covers a class: about
+    half a million characters of neural speech and five hours of recognition a month."""
+    return os.environ.get("AZURE_SPEECH_KEY", "").strip(), os.environ.get("AZURE_SPEECH_REGION", "").strip()
+
+
+class AzureTTS:
+    """Azure AI Speech, official REST API. Neural voices in both languages: am-ET-MekdesNeural is a
+    female Amharic voice, so Mimi sounds the same person in Amharic and English."""
+
+    name = "azure"
+    FORMAT = "audio-24khz-48kbitrate-mono-mp3"
+
+    def __init__(self):
+        self.key, self.region = azure_settings()
+        self.voices = {
+            "am": os.environ.get("AZURE_VOICE_AM", "am-ET-MekdesNeural"),
+            "en": os.environ.get("AZURE_VOICE_EN", "en-US-AvaNeural"),
+        }
+        self.cooldowns = _Cooldowns()
+
+    def voice_id(self, lang: str) -> str:
+        return f"azure:{self.voices[lang]}"
+
+    def status(self) -> dict:
+        if not (self.key and self.region):
+            return {"available": False, "detail": "no AZURE_SPEECH_KEY / AZURE_SPEECH_REGION"}
+        if not self.cooldowns.ready("azure"):
+            return {"available": False, "detail": self.cooldowns.detail("azure")}
+        return {"available": True, "detail": f"voices {self.voices['am']}, {self.voices['en']}"}
+
+    def synthesize(self, text: str, lang: str) -> tuple[bytes, str]:
+        voice = self.voices[lang]
+        locale = "-".join(voice.split("-")[:2])
+        ssml = (
+            f"<speak version='1.0' xml:lang='{locale}'><voice name='{voice}'>"
+            f"<prosody rate='-6%'>{xml_escape(text)}</prosody></voice></speak>"
+        )
+        request = urllib.request.Request(
+            f"https://{self.region}.tts.speech.microsoft.com/cognitiveservices/v1",
+            data=ssml.encode("utf-8"),
+            headers={
+                "Ocp-Apim-Subscription-Key": self.key,
+                "Content-Type": "application/ssml+xml",
+                "X-Microsoft-OutputFormat": self.FORMAT,
+                "User-Agent": "ableway-tutor",
+            },
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return response.read(), "audio/mpeg"
+        except urllib.error.HTTPError as e:
+            self.cooldowns.pause("azure", _retry_after(e) if e.code == 429 else 600 if e.code in (401, 403) else 60, f"API error {e.code}")
+            raise SpeechError(f"Azure TTS error {e.code}") from e
+        except (urllib.error.URLError, OSError) as e:
+            raise SpeechError(f"no connection to Azure Speech: {e}") from e
+
+
+def azure_transcribe(audio: bytes, lang: str | None) -> str:
+    """Azure AI Speech short-audio recognition (official REST API), for a 16 kHz mono WAV turn."""
+    key, region = azure_settings()
+    locale = {"am": "am-ET", "en": "en-US"}.get(lang or "", "en-US")
+    request = urllib.request.Request(
+        f"https://{region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1"
+        f"?language={locale}&format=simple&profanity=raw",
+        data=audio,
+        headers={
+            "Ocp-Apim-Subscription-Key": key,
+            "Content-Type": "audio/wav; codecs=audio/pcm; samplerate=16000",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        raise SpeechError(f"Azure STT error {e.code}") from e
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        raise SpeechError(f"no connection to Azure Speech: {e}") from e
+    if payload.get("RecognitionStatus") == "Success":
+        return (payload.get("DisplayText") or "").strip()
+    if payload.get("RecognitionStatus") in ("NoMatch", "InitialSilenceTimeout", "BabbleTimeout"):
+        return ""
+    raise SpeechError(f"Azure STT status {payload.get('RecognitionStatus')}")
+
+
+TTS_REGISTRY = {"azure": AzureTTS, "gemini": GeminiTTS, "google": GoogleCloudTTS}
 
 
 class Speech:
     MEMORY_ITEMS = 48  # recent answers, so "Replay" does not cost another request
 
     def __init__(self):
-        names = [n.strip() for n in os.environ.get("ABLEWAY_TTS", "gemini").split(",") if n.strip()]
+        names = [n.strip() for n in os.environ.get("ABLEWAY_TTS", "azure,gemini,google").split(",") if n.strip()]
         self.tts = [TTS_REGISTRY[n]() for n in names if n in TTS_REGISTRY]
         self.stt_models = [
             m.strip() for m in os.environ.get("ABLEWAY_STT_MODELS", "gemini-3-flash-preview,gemini-3.5-flash-lite,gemini-2.5-flash-lite").split(",") if m.strip()
@@ -232,15 +319,24 @@ class Speech:
         self._memory: OrderedDict[str, tuple[bytes, str]] = OrderedDict()
         self._lock = threading.Lock()
 
+    def _azure_stt(self) -> bool:
+        key, region = azure_settings()
+        return bool(key and region) and self.stt_cooldowns.ready("azure")
+
     def status(self) -> dict:
         tts = [{"name": p.name, **p.status()} for p in self.tts]
-        stt_ready = bool(self.stt_keys) and any(self.stt_cooldowns.ready(m) for m in self.stt_models)
+        gemini_ready = bool(self.stt_keys) and any(self.stt_cooldowns.ready(m) for m in self.stt_models)
+        details = []
+        if self._azure_stt():
+            details.append("Azure Speech (am-ET, en-US)")
+        if self.stt_keys:
+            details.append(f"Gemini models {', '.join(self.stt_models)}")
         return {
             "tts": any(p["available"] for p in tts),
             "tts_cache": bool(self.tts),  # recorded fixed phrases (greeting, confirmations) can still play
             "tts_providers": tts,
-            "stt": stt_ready,
-            "stt_detail": f"models {', '.join(self.stt_models)}" if self.stt_keys else "no GEMINI_API_KEYS",
+            "stt": self._azure_stt() or gemini_ready,
+            "stt_detail": "; ".join(details) or "no AZURE_SPEECH_KEY or GEMINI_API_KEYS",
         }
 
     # ------------------------------------------------------------ text to speech
@@ -300,10 +396,21 @@ class Speech:
     )
     # Short answers are hard to hear without context; when the question is known, say so.
     PURPOSES = {
-        "language_choice": " They are answering whether they want to learn in Amharic (አማርኛ) or English (እንግሊዝኛ).",
+        "language_choice": (
+            " They are answering whether they want to learn in Amharic (አማርኛ) or English (እንግሊዝኛ),"
+            " possibly by saying a number: one (አንድ) for Amharic or two (ሁለት) for English."
+            " Write a spoken number as a digit."
+        ),
     }
 
     def transcribe(self, audio: bytes, mime: str, lang: str | None = None, purpose: str | None = None) -> str:
+        # Azure first when configured: a recogniser made for speech, with a generous free tier.
+        if self._azure_stt() and lang in ("am", "en"):
+            try:
+                return azure_transcribe(audio, lang)
+            except SpeechError as e:
+                self.stt_cooldowns.pause("azure", 60, str(e))
+                print(f"[speech] Azure could not transcribe: {e}", file=sys.stderr)
         if not self.stt_keys:
             raise SpeechError("speech to text is not configured")
         hint = {"am": ", most likely Amharic", "en": ", most likely English"}.get(lang or "", "")

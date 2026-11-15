@@ -77,6 +77,10 @@ class GeminiProvider(Provider):
             "contents": contents,
             "generationConfig": {"maxOutputTokens": min(max_tokens, 2048), "temperature": 0.2},
         }
+        if "flash" in self.model and self.model.startswith("gemini-2.5"):
+            # Answering from supplied sources needs no long reasoning; thinking made spoken replies
+            # take 20 seconds or more. A budget of 0 turns it off on the 2.5 Flash models.
+            body["generationConfig"]["thinkingConfig"] = {"thinkingBudget": 0}
         payload = None
         start = self._next_key % len(self.api_keys)
         last_error = None
@@ -88,7 +92,8 @@ class GeminiProvider(Provider):
                 headers={"Content-Type": "application/json", "x-goog-api-key": self.api_keys[key_index]},
             )
             try:
-                with urllib.request.urlopen(request, timeout=45) as response:
+                # A learner is waiting: after 20 seconds the next key, then the offline answers.
+                with urllib.request.urlopen(request, timeout=20) as response:
                     payload = json.load(response)
                 self._next_key = key_index
                 break

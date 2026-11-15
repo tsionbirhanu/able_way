@@ -77,7 +77,7 @@
 &lt;script src="https://your-platform/db-assistant.js" defer&gt;&lt;/script&gt;
 
 &lt;!-- Place the component --&gt;
-&lt;db-assistant lang="am" api="http://localhost:8001" content="/data/jobs.json"&gt;&lt;/db-assistant&gt;
+&lt;db-assistant lang="am" api="https://your-tutor-server" content="/content.json"&gt;&lt;/db-assistant&gt;
 
 &lt;!-- Listen to lifecycle events --&gt;
 &lt;script&gt;
@@ -86,13 +86,24 @@
 &lt;/script&gt;
     </div>
 
+    <section aria-labelledby="host-lesson">
+      <h2 id="host-lesson">Host lesson: writing a professional email</h2>
+      <p>This lesson belongs to this host page, not to Savanna. The page sends it to the tutor with
+      <code>content="data/content.json"</code>, so Mimi can answer from it and link back here. Try asking
+      Mimi: <em>"How long should an email subject line be?"</em></p>
+      <p>A professional email starts with a clear subject line. Keep the subject line under eight words and say
+      what you need, for example: Request: meeting on Tuesday. Avoid vague subject lines such as Hello or Question,
+      because busy readers skip them.</p>
+      <p>End a professional email with one clear next step and a polite closing, such as Kind regards, followed by
+      your full name. Reply to work emails within one working day, even if only to say when you will answer in full.</p>
+    </section>
     <h3>2. Host Lifecycle Event Monitor</h3>
     <p>Live events dispatched by the component will appear below:</p>
     <div id="event-log">Waiting for component interaction...</div>
   </div>
 
   <!-- 2. Place the component -->
-  <db-assistant lang="am" api="http://localhost:8001" content="../demo/data/jobs.json"></db-assistant>
+  <db-assistant lang="am" api="http://localhost:8001" content="data/content.json"></db-assistant>
 
   <!-- 3. Host event listeners -->
   <script>

@@ -1,0 +1,49 @@
+# Run everything with one command:
+#
+#   cp .env.example .env        (optional: AI keys, Telegram token; everything works without them)
+#   docker compose up --build
+#
+# Then open http://localhost:8001/pages/concept-with-navigation.html  (Savanna page with Mimi)
+#       and http://localhost:8001/demo/blank.html                    (Mimi on a plain page)
+#
+# Other ports: TUTOR_PORT=9001 CHANNELS_PORT=9000 docker compose up
+
+services:
+  tutor:
+    build: .
+    command: python server/app.py
+    ports:
+      - "${TUTOR_PORT:-8001}:8001"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      ABLEWAY_HOST: 0.0.0.0
+      ABLEWAY_PORT: "8001"
+      CHANNELS_URL: http://channels:8000 # "talk to a person" opens a ticket on the help desk
+    volumes:
+      - voice-clips:/app/data/tts_cache
+    depends_on:
+      - channels
+    restart: unless-stopped
+
+  channels:
+    build: .
+    command: uvicorn server.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "${CHANNELS_PORT:-8000}:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      CORE_ASK_IMPORT: server.core_bridge:ask # Telegram, SMS and /lite use the same tutor
+      PUBLIC_BASE_URL: http://localhost:${CHANNELS_PORT:-8000}
+      CHANNELS_DB_PATH: /app/state/channels.db
+      ACCOMMODATIONS_DB_PATH: /app/state/accommodations.db
+    volumes:
+      - state:/app/state
+    restart: unless-stopped
+
+volumes:
+  state: # tickets, job-alert subscriptions, the anonymous question log, accommodation requests
+  voice-clips: # recorded fixed phrases, so they play with no voice quota

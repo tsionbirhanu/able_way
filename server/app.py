@@ -1,6 +1,6 @@
 """HTTP API for the tutor, plus a static server for the Savanna pages.
 
-    python server/app.py            then open http://localhost:8000/
+    python server/app.py            then open http://localhost:8001/
 
 Endpoints
     POST /api/ask         {"question": str, "lang": "en"|"am", "simple": bool, "history": [...],
@@ -16,10 +16,13 @@ Standard library only. The Claude provider additionally needs `pip install anthr
 
 from __future__ import annotations
 
+import gzip
 import json
 import mimetypes
 import os
 import sys
+import urllib.error
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -40,14 +43,15 @@ def load_env(path: Path) -> None:
             os.environ.setdefault(key.strip(), value.strip().strip("'\""))
 
 
-load_env(HERE / ".env")
+load_env(ROOT / ".env")  # the one settings file, shared with the channels server
+load_env(HERE / ".env")  # older location, still read
 
 from sessions import Sessions  # noqa: E402
 from speech import MAX_AUDIO_BYTES, MAX_TTS_TEXT, Speech, SpeechError  # noqa: E402
 from tutor import Tutor  # noqa: E402  (after .env so providers see the settings)
 
 # Only the site itself is served; server code, .env and .git are never reachable.
-PUBLIC = ("index.html", "pages", "assets", "assistant", "module", "demo")
+PUBLIC = ("index.html", "pages", "assets", "module", "demo")
 # Single files from otherwise private folders. data/ also holds the channel and accommodation
 # databases (learners' personal data), so the folder itself is never served.
 PUBLIC_FILES = ("data/jobs.json",)
@@ -82,7 +86,8 @@ def validate(body: dict) -> tuple[dict | None, str]:
     context = body.get("context") if isinstance(body.get("context"), dict) else None
     return {
         "question": question,
-        "lang": body.get("lang") if body.get("lang") in ("en", "am") else None,
+        # "language" is the Track 3 contract's name for it; "lang" is what the widget sends.
+        "lang": next((v for v in (body.get("language"), body.get("lang")) if v in ("en", "am")), None),
         "simple": body.get("simple") is True,
         "history": history,
         "context": context,
@@ -102,6 +107,17 @@ def resolve_language(request: dict, session_id) -> tuple[str, str | None]:
     return lang, session_id if session else None
 
 
+# Interactive API documentation (Swagger UI) for openapi.yaml, so a judge can try every call here.
+DOCS_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ableway tutor API</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui.css">
+</head><body><main><h1 style="font-family:system-ui;margin:16px">Ableway tutor API</h1><div id="api"></div></main>
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+<script>SwaggerUIBundle({ url: '/openapi.yaml', dom_id: '#api' });</script>
+</body></html>"""
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "Ableway/0.1"
 
@@ -110,6 +126,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         for name, value in (headers or {}).items():
             self.send_header(name, value)
+        # Text is compressed for slow, expensive connections (3G): the widget shrinks about four times.
+        compressible = content_type.startswith(("text/", "application/json", "application/javascript", "application/yaml"))
+        if compressible and len(body) > 1024 and "gzip" in (self.headers.get("Accept-Encoding") or ""):
+            body = gzip.compress(body, compresslevel=6)
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Vary", "Accept-Encoding")
         self.send_header("Content-Length", str(len(body)))
         # The pages are also opened straight from disk (file://), whose origin is "null",
         # so the API accepts any origin. It holds no cookies or per-user state.
@@ -185,24 +207,55 @@ class Handler(BaseHTTPRequestHandler):
         if body is None:
             return None
         items = body.get("chunks") or body.get("lessons") or []
-        if not isinstance(items, list):
-            return self._json(400, {"error": "Expected 'chunks' list."})
+        if not isinstance(items, list) or len(items) > 500:
+            return self._json(400, {"error": "Send 'chunks': a list of up to 500 {title, url, text} items."})
+        import hashlib
+
         from retrieval import Index
 
-        tutor.index.chunks.extend(items)
-        tutor.index = Index(tutor.index.chunks)
-        self._json(200, {"status": "indexed", "total_chunks": len(tutor.index.chunks)})
+        # Each item becomes a citable chunk. Pages send their content on every visit, so the same
+        # item twice is kept once.
+        known = {c["id"] for c in tutor.index.chunks}
+        added = []
+        for item in items:
+            if not isinstance(item, dict) or not str(item.get("text") or "").strip():
+                continue
+            title, url, text = str(item.get("title") or "Lesson")[:200], str(item.get("url") or "")[:300], str(item["text"])[:6000]
+            chunk_id = "host-" + hashlib.sha1(f"{url}|{title}|{text}".encode("utf-8")).hexdigest()[:12]
+            if chunk_id in known:
+                continue
+            known.add(chunk_id)
+            added.append({"id": chunk_id, "corpus": "course", "kind": "lesson", "lang": "en",
+                          "course": str(item.get("course") or "")[:200], "title": title, "url": url, "page": url, "text": text})
+        if added:
+            tutor.index = Index(tutor.index.chunks + added)
+        self._json(201 if added else 200, {"status": "indexed", "added": len(added), "total_chunks": len(tutor.index.chunks)})
 
     def _escalation(self):
-        """Track 3 data contract: POST /api/v1/escalations queues a question for a human tutor."""
-        if self._read_json() is None:
-            return None
-        import uuid
+        """Track 3 data contract: POST /api/v1/escalations {conversation, language} -> {ticketId}.
 
+        Opens a real ticket on the help desk (server/main.py, /handoff), with the conversation so far,
+        so the tutor in the console sees what the learner already asked."""
+        body = self._read_json()
+        if body is None:
+            return None
+        conversation = body.get("conversation") if isinstance(body.get("conversation"), list) else []
+        lang = next((v for v in (body.get("language"), body.get("lang")) if v in ("en", "am")), "en")
+        topic = next((str(t.get("text") or t.get("content") or "") for t in reversed(conversation)
+                      if isinstance(t, dict) and t.get("role") in ("user", "learner")), "")
+        payload = json.dumps({"lang": lang, "topic": topic[:200], "channel": "web", "conversation": conversation[-12:]})
+        base = os.environ.get("CHANNELS_URL", "http://localhost:8000").rstrip("/")
+        try:
+            request = urllib.request.Request(f"{base}/handoff/tickets", data=payload.encode("utf-8"),
+                                             headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(request, timeout=10) as response:
+                ticket = json.load(response)
+        except (urllib.error.URLError, OSError, ValueError):
+            return self._json(503, {"error": "The help desk is not reachable right now. Please try again in a minute."})
         self._json(201, {
-            "ticketId": f"esc-{uuid.uuid4().hex[:6]}",
-            "status": "queued",
-            "message": "A human tutor will review your question. It may take until morning.",
+            "ticketId": ticket["ticket_id"],
+            "chatUrl": ticket.get("absolute_chat_url") or f"{base}{ticket['chat_url']}",
+            "message": "A tutor will answer in this chat. If nobody is online now, it may take until morning.",
         })
 
     def _tts(self):
@@ -239,6 +292,13 @@ class Handler(BaseHTTPRequestHandler):
         path = unquote(urlparse(self.path).path)
         if path == "/api/health":
             return self._json(200, {**tutor.health(), "speech": speech.status()})
+        if path == "/openapi.yaml":
+            spec = ROOT / "openapi.yaml"
+            if not spec.is_file():
+                return self._json(404, {"error": "openapi.yaml is missing from this installation."})
+            return self._send(200, spec.read_bytes(), "application/yaml; charset=utf-8")
+        if path in ("/docs", "/docs/"):
+            return self._send(200, DOCS_PAGE.encode("utf-8"), "text/html; charset=utf-8")
         relative = path.lstrip("/") or "index.html"
         target = (ROOT / relative).resolve()
         # Judge the resolved path, not the requested one, so "pages/../server/.env" is refused.
@@ -252,7 +312,8 @@ class Handler(BaseHTTPRequestHandler):
         content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
         if content_type.startswith("text/") or content_type == "application/json":
             content_type += "; charset=utf-8"
-        self._send(200, target.read_bytes(), content_type)
+        # no-cache: the browser re-checks each file, so after an update it never runs an old widget.
+        self._send(200, target.read_bytes(), content_type, {"Cache-Control": "no-cache"})
 
     do_HEAD = do_GET
 
@@ -263,7 +324,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    port = int(os.environ.get("ABLEWAY_PORT", "8000"))
+    port = int(os.environ.get("ABLEWAY_PORT", "8001"))
     host = os.environ.get("ABLEWAY_HOST", "127.0.0.1")
     health = tutor.health()
     print(f"Ableway tutor: {health['chunks']} course chunks, {health['faq_entries']} FAQ entries")
@@ -273,8 +334,15 @@ def main() -> None:
     for p in voice["tts_providers"]:
         print(f"  {'ready  ' if p['available'] else 'skipped'} Mimi's voice ({p['name']}): {p['detail']}")
     print(f"  {'ready  ' if voice['stt'] else 'skipped'} Server speech recognition: {voice['stt_detail']}")
+    # On Windows, address reuse lets a second server bind a port that is already in use, and the
+    # old one keeps answering. Without it, a second start fails at once with a clear error.
+    ThreadingHTTPServer.allow_reuse_address = os.name != "nt"
+    try:
+        server = ThreadingHTTPServer((host, port), Handler)
+    except OSError:
+        sys.exit(f"Port {port} is already in use. Stop the other server (Ctrl+C in its window) or set ABLEWAY_PORT.")
     print(f"Open http://{host if host != '0.0.0.0' else 'localhost'}:{port}/  (Ctrl+C to stop)")
-    ThreadingHTTPServer((host, port), Handler).serve_forever()
+    server.serve_forever()
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@
     if (m.role === "tutor") p.className = "mine";
     var who = document.createElement("span");
     who.className = "who";
-    who.textContent = m.role === "tutor" ? "You (tutor)" : "Learner";
+    who.textContent = m.role === "tutor" ? "You (tutor)" : m.role === "mimi" ? "Before handoff (with Mimi)" : "Learner";
     var body = document.createElement("span");
     body.dir = "auto";
     if (ETHIOPIC.test(m.text)) body.lang = "am";

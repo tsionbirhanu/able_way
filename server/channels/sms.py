@@ -1,30 +1,32 @@
 """SMS channel without a real provider.
 
-POST /sms/inbound  {from, text} -> {"to": ..., "reply": "..."}   (reply is always under 300 chars)
+POST /sms/inbound  {from, text} -> the reply as plain text, at most 160 characters
+                                    (JSON {"to", "reply"} instead when the caller sends Accept: application/json)
 GET  /sms/simulator             -> a fake phone that talks to the webhook
 GET  /sms/outbox?to=...         -> outbound messages (job alerts) for the simulator
 """
 import asyncio
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 
 from server.teacher.question_log import log_question
 
 from . import core_client
 from .config import STATIC_DIR
+from .ethiopian import normalize_phone
 from .db import connect, get_lang, set_lang
 from .strings import norm_lang, t
 from .web import render
 
 router = APIRouter(prefix="/sms", tags=["sms"])
 
-SMS_LIMIT = 300  # replies are kept strictly under this
+SMS_LIMIT = 160  # one SMS, as the Track 3 brief requires: replies are at most this long
 
 
 def fit_sms(text: str, limit: int = SMS_LIMIT) -> str:
     text = " ".join((text or "").split())
-    return text if len(text) < limit else text[: limit - 2].rstrip() + "…"
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 
 def queue_sms(to_number: str, text: str, kind: str = "alert") -> None:
@@ -63,7 +65,7 @@ async def handle_sms(sender: str, text: str) -> str:
     if result["citations"]:
         c = result["citations"][0]
         source = " (" + (c["heading"] or c["page"]) + ")"
-        if len(reply) + len(source) < SMS_LIMIT:
+        if len(reply) + len(source) <= SMS_LIMIT:
             reply += source
     return fit_sms(reply)
 
@@ -80,11 +82,14 @@ async def inbound(request: Request):
         data = None
     if not isinstance(data, dict):
         return JSONResponse({"error": "expected {from, text}"}, status_code=400)
-    sender = str(data.get("from") or "").strip()[:32]
+    sender = normalize_phone(str(data.get("from") or ""))  # 09..., +251... -> one format
     if not sender:
         return JSONResponse({"error": "missing 'from'"}, status_code=400)
     reply = await handle_sms(sender, str(data.get("text") or "")[:1000])
-    return {"to": sender, "reply": reply}
+    if "application/json" in request.headers.get("accept", ""):
+        return {"to": sender, "reply": reply}
+    # A gateway posts the learner's text and sends back whatever comes back: plain text.
+    return PlainTextResponse(reply)
 
 
 @router.get("/outbox")

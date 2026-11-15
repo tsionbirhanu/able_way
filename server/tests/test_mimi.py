@@ -292,8 +292,49 @@ class HttpApi(unittest.TestCase):
         status, _, body = self.post("/api/v1/ask", {"question": "Is the VA profession shrinking?", "lang": "en"})
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(body)["sources"][0]["url"], "pages/concept-with-navigation.html")
-        status, _, body = self.post("/api/v1/escalations", {"question": "help"})
-        self.assertEqual((status, json.loads(body)["status"]), (201, "queued"))
+
+    def test_escalation_opens_a_ticket_with_the_conversation(self):
+        """POST /api/v1/escalations forwards to the help desk (a fake one here) with the conversation."""
+        import os
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        received = {}
+
+        class FakeDesk(BaseHTTPRequestHandler):
+            def do_POST(self):
+                received["path"] = self.path
+                received["body"] = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                reply = json.dumps({"ticket_id": "T1", "chat_url": "/handoff/chat/T1?lang=en"}).encode()
+                self.send_response(201)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(reply)))
+                self.end_headers()
+                self.wfile.write(reply)
+
+            def log_message(self, *args):
+                pass
+
+        desk = HTTPServer(("127.0.0.1", 0), FakeDesk)
+        threading.Thread(target=desk.serve_forever, daemon=True).start()
+        old = os.environ.get("CHANNELS_URL")
+        os.environ["CHANNELS_URL"] = f"http://127.0.0.1:{desk.server_port}"
+        try:
+            convo = [{"role": "user", "text": "When is the deadline?"}, {"role": "assistant", "text": "Seven days."}]
+            status, _, body = self.post("/api/v1/escalations", {"conversation": convo, "language": "en"})
+            self.assertEqual(status, 201)
+            self.assertEqual(json.loads(body)["ticketId"], "T1")
+            self.assertEqual(received["path"], "/handoff/tickets")
+            self.assertEqual(received["body"]["conversation"], convo)
+            os.environ["CHANNELS_URL"] = "http://127.0.0.1:9"  # nothing listens here
+            status, _, body = self.post("/api/v1/escalations", {"conversation": convo})
+            self.assertEqual(status, 503)
+        finally:
+            desk.shutdown()
+            if old is None:
+                os.environ.pop("CHANNELS_URL", None)
+            else:
+                os.environ["CHANNELS_URL"] = old
 
 
 if __name__ == "__main__":

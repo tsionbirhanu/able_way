@@ -4,6 +4,7 @@ import hmac
 import json
 import re
 
+from server.channels import webhook
 from fastapi import APIRouter, Form, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
@@ -29,10 +30,27 @@ def is_tutor(cookies) -> bool:
     return hmac.compare_digest(cookies.get(COOKIE) or "", _session_value())
 
 
+def conversation_summary(conversation, limit: int = 12) -> str:
+    """The learner's chat with Mimi before asking for a person, as one readable message."""
+    if not isinstance(conversation, list):
+        return ""
+    lines = []
+    for turn in conversation[-limit:]:
+        if not isinstance(turn, dict):
+            continue
+        text = " ".join(str(turn.get("text") or turn.get("content") or "").split())[:600]
+        if text:
+            who = "Learner" if turn.get("role") in ("user", "learner") else "Mimi"
+            lines.append(f"{who}: {text}")
+    return ("Conversation with Mimi before asking for help:\n" + "\n".join(lines)) if lines else ""
+
+
 # ------------------------------------------------------------------ tickets
 @router.post("/tickets")
 async def create_ticket(request: Request):
-    """Create a ticket. Body is optional JSON: {"lang": "en"|"am", "topic": "...", "channel": "web"}.
+    """Create a ticket. Body is optional JSON: {"lang": "en"|"am", "topic": "...", "channel": "web",
+    "conversation": [{"role": "user"|"assistant", "text": "..."}]}. The conversation so far is stored on
+    the ticket, so the tutor sees what the learner already asked and was told.
 
     Sent as a "simple" cross-origin request by handoff.js, so the response allows any origin.
     """
@@ -48,6 +66,10 @@ async def create_ticket(request: Request):
     channel = re.sub(r"[^a-z0-9_-]", "", str(data.get("channel") or "web").lower()) or "web"
     lang = norm_lang(data.get("lang"))
     ticket_id = tickets.create_ticket(channel=channel, lang=lang, topic=str(data.get("topic") or ""))
+    summary = conversation_summary(data.get("conversation"))
+    if summary:
+        tickets.add_message(ticket_id, "mimi", summary)
+    webhook.send("ticket.opened", {"ticketId": ticket_id, "channel": channel, "lang": lang})
     chat_path = "/handoff/chat/{}?lang={}".format(ticket_id, lang)
     return JSONResponse(
         {"ticket_id": ticket_id, "chat_url": chat_path, "ws_url": "/handoff/ws/" + ticket_id,

@@ -9,14 +9,15 @@ from __future__ import annotations
 import json
 import re
 import sys
+import time
 from pathlib import Path
 
 try:  # supports both `python server/app.py` and `import server.tutor`
     from .providers import Provider, ProviderError, build_chain
-    from .retrieval import Index, expand_amharic, is_amharic, load_chunks, load_glossary, tokenize
+    from .retrieval import Index, coverage, expand_amharic, is_amharic, load_chunks, load_glossary, tokenize
 except ImportError:  # pragma: no cover - exercised by the standalone app entry point
     from providers import Provider, ProviderError, build_chain
-    from retrieval import Index, expand_amharic, is_amharic, load_chunks, load_glossary, tokenize
+    from retrieval import Index, coverage, expand_amharic, is_amharic, load_chunks, load_glossary, tokenize
 
 DATA = Path(__file__).resolve().parent / "data"
 NOT_FOUND = "[[NOT_FOUND]]"
@@ -79,7 +80,9 @@ VOICE_NOTE = (
 )
 CONTEXT_NOTE = (
     "\n\nThe learner is on this page now: {where}. When they say \"this lesson\", \"this week\" or "
-    "\"here\", they mean it, and sources from this page are the most relevant."
+    "\"here\", they mean it, and sources from this page are the most relevant. A learner takes several "
+    "courses, so a question may be about another of their courses: sources from any of their courses "
+    "are valid answers."
 )
 INTRO_QUESTION = (
     "I have just opened {lesson}. Welcome me to it, then in two or three sentences tell me what it "
@@ -180,6 +183,7 @@ def similarity(a: str, b: str) -> float:
 class Tutor:
     FAQ_THRESHOLD = 0.42  # below this likeness a FAQ entry is not treated as the same question
     OFFLINE_MIN_SCORE = 2.5  # BM25 score below which offline quoting would be a guess
+    MIN_COVERAGE = 0.3  # share of the question's words that must appear in the matched course text
 
     def __init__(self, chain: list[Provider] | None = None):
         self.index = Index(load_chunks())
@@ -188,6 +192,15 @@ class Tutor:
         self.chain = chain if chain is not None else build_chain()
 
     # -------------------------------------------------------------- public
+
+    CACHE_SECONDS = 24 * 3600  # answers from the AI are reused for a day (the course does not change faster)
+    CACHE_ITEMS = 1000
+
+    @property
+    def _cache(self) -> dict:
+        if not hasattr(self, "_answer_cache"):
+            self._answer_cache = {}
+        return self._answer_cache
 
     def ask(
         self,
@@ -222,6 +235,12 @@ class Tutor:
                 }
         if intent == "lesson_intro":
             question = INTRO_QUESTION.format(lesson=f'"{context["lesson"] or context["course"] or "this page"}"')
+        # The same question in the same place gets the same answer: reuse it instead of asking the AI
+        # again. Learners repeat questions a lot (see the teacher view), so this saves most of the quota.
+        key = None if history else (normalise(question).strip(), lang, simple, voice, intent, context["page"], context["lesson"])
+        cached = self._cache.get(key) if key else None
+        if cached and time.time() - cached[0] < self.CACHE_SECONDS:
+            return {**cached[1], "cached": True}
         for provider in self.chain:
             if not provider.status()["available"]:
                 continue
@@ -235,7 +254,12 @@ class Tutor:
             except ProviderError as e:
                 print(f"[tutor] {provider.name} failed, trying the next provider: {e}", file=sys.stderr)
                 continue
-            return {**result, "lang": lang, "provider": provider.name, "provider_label": provider.label}
+            answer = {**result, "lang": lang, "provider": provider.name, "provider_label": provider.label}
+            if key and provider.uses_model and result.get("grounded"):
+                self._cache[key] = (time.time(), answer)
+                while len(self._cache) > self.CACHE_ITEMS:
+                    self._cache.pop(next(iter(self._cache)))
+            return answer
         raise RuntimeError("No provider could answer; the offline provider should always be in the chain.")
 
     def health(self) -> dict:
@@ -282,6 +306,8 @@ class Tutor:
                 hits = self._search(context["course"], page=context["page"])
         else:
             hits = self._search(query, page=context["page"])
+            if coverage(self.index, query, hits) < self.MIN_COVERAGE:
+                hits = []  # one shared word is not a match; the model then says it is not in the course
 
         where = ", ".join(
             f'{label} "{value}"' for label, value in (("course", context["course"]), ("lesson", context["lesson"])) if value
@@ -310,7 +336,16 @@ class Tutor:
 
     PAGE_BOOST = 1.3  # the page the learner is on is the likeliest home of "this lesson"
 
+    JOB_WORDS = re.compile(r"\b(jobs?|vacanc\w*|hiring|hire|employ\w*|career\w*|apply|application|interview|salary|remote work)\b", re.I)
+
     def _search(self, query: str, k: int = 5, page: str = "") -> list[dict]:
+        if self.JOB_WORDS.search(query):
+            # A question about jobs is answered from the job listings first: in the course text
+            # "job" and "apply" are common words, and the listings would otherwise be outranked.
+            jobs = self.index.search(query, k=3, corpus="jobs")
+            if jobs:
+                rest = [h for h in self.index.search(query, k=k) if h.get("corpus") != "jobs"][: max(k - len(jobs), 0)]
+                return jobs + rest
         hits = self.index.search(query, k=k * 2 if page else k)
         if not hits:
             return []
@@ -380,7 +415,10 @@ class Tutor:
         if is_amharic(question):
             query = expand_amharic(question, self.glossary)
         hits = self._search(query, k=2)
-        if not hits or hits[0]["score"] < self.OFFLINE_MIN_SCORE:
+        # Job listings found for a job question are an answer even when they score low: the
+        # question was already recognised as being about jobs (see _search).
+        job_answer = bool(hits) and hits[0].get("corpus") == "jobs"
+        if not hits or (not job_answer and (hits[0]["score"] < self.OFFLINE_MIN_SCORE or coverage(self.index, query, hits) < self.MIN_COVERAGE)):
             return {"answer": text["not_found"], "grounded": False, "citations": []}
         quote = best_sentences(hits[0]["text"], query)
         answer = f"{text['offline_quote']}\n\n{quote} [1]"

@@ -190,23 +190,24 @@ svg {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #0284c7;
+  background: #075985; /* white text on this blue: 7.6:1 (axe needs 4.5:1) */
   color: #ffffff;
-  border: 0;
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  min-height: 38px;
+  border: 2px solid #075985;
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  min-height: 44px;
   cursor: pointer;
 }
 
 .help-strip .btn-help:hover {
-  background: #0369a1;
+  background: #0c4a6e;
 }
 
 .help-strip .btn-help.active {
-  background: #dc2626;
+  background: #a4161a; /* sharing: 7.4:1 with white */
+  border-color: #a4161a;
 }
 
 .segmented {
@@ -777,4 +778,561 @@ textarea::placeholder {
     outline: 3px solid Highlight;
     box-shadow: none;
   }
+}
+
+/* ------------------------------------------------------------ Mimi's card (chat closed) */
+
+/* Mimi talks and listens with the chat closed. The card shows captions, what she is doing, a big
+   talk button and the numbered menu. Targets are at least 44px; text contrast is at least 7:1. */
+.mini {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(390px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 14px;
+  border: 2px solid var(--navy);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 10px 32px rgb(15 42 71 / 30%);
+  overscroll-behavior: contain;
+}
+
+.mini-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--green);
+  font-weight: 800;
+  font-size: 1.25rem;
+}
+
+.avatar.small {
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+}
+
+.mini-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--navy);
+}
+
+.mini-min {
+  color: var(--navy);
+  border: 2px solid var(--line);
+}
+
+.mini-min:hover {
+  background: var(--bot);
+  border-color: var(--navy);
+}
+
+/* Captions: what was just said, readable with the sound off. */
+.captions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 11rem;
+  overflow-y: auto;
+}
+
+.captions:not(:has(.cap:not([hidden]))) {
+  display: none;
+}
+
+.cap {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.cap-mimi {
+  align-self: flex-start;
+  max-width: 100%;
+  background: var(--bot);
+  border: 1px solid var(--line);
+  border-end-start-radius: 4px;
+  color: var(--ink);
+}
+
+.cap-user {
+  align-self: flex-end;
+  max-width: 90%;
+  background: var(--navy);
+  color: #fff;
+  border-end-end-radius: 4px;
+}
+
+.cap-who {
+  font-weight: 700;
+}
+
+.cap-text {
+  unicode-bidi: plaintext;
+}
+
+/* Voice bar, notices, talk button and menu: in the card, or in the chat when it is open. */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel .controls {
+  padding: 8px 12px 4px;
+  border-top: 1px solid var(--line);
+}
+
+.controls .voicebar {
+  margin: 0;
+}
+
+.controls .status:empty {
+  display: none;
+}
+
+.controls .status {
+  margin: 0;
+  padding: 8px 12px;
+  border-inline-start: 4px solid var(--danger);
+  border-radius: 6px;
+  background: #fdf3f3;
+  color: var(--ink);
+  font-size: 0.9375rem;
+}
+
+/* The big talk button. Green and "Press to talk" when ready; red, pulsing and "press to stop"
+   while listening. The words and the pressed state carry the meaning, never the colour alone. */
+.talk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.talk {
+  display: inline-flex;
+  flex: 1 1 210px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 18px 8px 10px;
+  border: 2px solid var(--navy);
+  border-radius: 999px;
+  background: var(--green);
+  color: var(--navy);
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.talk:hover {
+  background: #2be487;
+}
+
+.talk-mic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+}
+
+.talk[data-on="true"] {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.talk[data-on="true"] .talk-mic {
+  background: #fff;
+  color: var(--danger);
+  animation: talk-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes talk-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(255 255 255 / 70%); }
+  50% { box-shadow: 0 0 0 8px rgb(255 255 255 / 0%); }
+}
+
+/* The menu: the same numbers Mimi says, as buttons. */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 2px solid var(--navy);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--navy);
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: start;
+}
+
+.menu-item:hover {
+  background: var(--bot);
+}
+
+.menu-item .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 800;
+}
+
+.menu-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--navy);
+}
+
+.menu-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.menu-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lang-item {
+  justify-content: center;
+  min-height: 60px;
+  font-size: 1.125rem;
+}
+
+/* Options and the way into the full chat. */
+.mini-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mini-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mini-actions .launcher {
+  flex: 1 1 180px;
+  justify-content: center;
+  min-height: 48px;
+  border-color: var(--navy);
+  box-shadow: none;
+}
+
+.mini-voice {
+  flex: 0 1 auto;
+  min-height: 48px;
+  padding: 6px 16px;
+  border: 2px solid var(--navy);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.mini-voice:hover {
+  background: var(--bot);
+}
+
+.mini-voice[aria-pressed="true"] {
+  background: var(--navy);
+  color: #fff;
+}
+
+/* Minimised: one button that never covers the page. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 18px 8px 10px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgb(15 42 71 / 35%);
+}
+
+.pill:hover {
+  background: var(--navy-2);
+}
+
+.pill-state {
+  font-weight: 500;
+  color: #dbe6f2;
+}
+
+/* Larger text, chosen by the learner. Zoom scales every size in the widget together. */
+.root.big {
+  zoom: 1.25;
+}
+
+/* Amharic needs more line height than Latin script, and no letter spacing. */
+.root:lang(am) .cap,
+.root:lang(am) .menu-item,
+.root:lang(am) .bubble {
+  line-height: 1.7;
+}
+
+@media (max-width: 480px) {
+  .mini {
+    width: calc(100vw - 32px); /* 16px gutters; borders included */
+  }
+
+  .root:not(.open) {
+    right: 12px;
+    bottom: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .talk[data-on="true"] .talk-mic {
+    animation: none;
+    outline: 3px solid #fff;
+  }
+}
+
+@media (forced-colors: active) {
+  .mini,
+  .cap,
+  .talk,
+  .menu-item,
+  .mini-voice,
+  .pill {
+    border: 2px solid CanvasText;
+  }
+
+  .talk[data-on="true"],
+  .mini-voice[aria-pressed="true"] {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .menu-item .num,
+  .avatar,
+  .talk-mic {
+    forced-color-adjust: none;
+    background: CanvasText;
+    color: Canvas;
+  }
+}
+
+/* Sections keep their size; when space runs out the card scrolls as a whole (200% zoom, phones). */
+.mini > *,
+.controls > * {
+  flex-shrink: 0;
+}
+
+/* Larger text zooms the widget by 1.25, which also scales screen-relative sizes: divide them back,
+   so the card and the chat still fit the screen. */
+.root.big .mini {
+  width: min(390px, calc((100vw - 32px) / 1.25));
+  max-height: calc((100vh - 32px) / 1.25);
+  max-height: calc((100dvh - 32px) / 1.25);
+}
+
+.root.big .panel {
+  width: min(560px, calc((100vw - 32px) / 1.25));
+  height: min(800px, calc((100vh - 32px) / 1.25));
+  height: min(800px, calc((100dvh - 32px) / 1.25));
+}
+
+.root.big .pill {
+  max-width: calc((100vw - 32px) / 1.25);
+}
+
+@media (max-width: 480px) {
+  .root.big .mini {
+    width: calc((100vw - 24px) / 1.25);
+  }
+}
+
+/* In the full chat the conversation comes first: keep the voice state and the talk button, and
+   leave the numbered buttons to the card (numbers still work by voice, keyboard and typing). */
+.panel .menu {
+  display: none;
+}
+
+.panel .controls {
+  gap: 6px;
+}
+
+.panel .talk {
+  min-height: 48px;
+}
+
+.panel .scroller {
+  min-height: 160px;
+}
+
+/* "Start Mimi": shown when the browser holds sound until the learner taps. Big and obvious. */
+.voice-action[data-action="unlock"] {
+  min-height: 52px;
+  padding: 8px 22px;
+  border: 2px solid var(--navy);
+  background: var(--green);
+  color: var(--navy);
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.voicebar[data-state="paused"]:has(.voice-action[data-action="unlock"]) {
+  flex-wrap: wrap;
+  border: 2px solid var(--navy);
+  background: #fffbe6;
+}
+
+/* ------------------------------------------------------------ the chat, simplified */
+
+/* Mimi asks one simple question (Amharic or English) and then talks; the numbered menu stays
+   available by voice ("menu") but is not shown, so the chat stays calm and readable. */
+.menu,
+.panel .talk-row .switch {
+  display: none;
+}
+
+/* The learner's words while they are still speaking. */
+.msg-live .bubble {
+  background: #fff;
+  color: var(--navy);
+  border: 2px dashed var(--navy);
+}
+
+.msg-live .who {
+  font-style: italic;
+}
+
+/* Larger, calmer conversation text. */
+.panel .bubble {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.root:lang(am) .panel .bubble {
+  line-height: 1.75;
+}
+
+/* The language buttons under the introduction: big, clear targets. */
+.choices .choice {
+  min-height: 52px;
+  min-width: 120px;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+/* A calmer header: the title and the current language. What Mimi does, she says in her introduction. */
+.panel .subtitle {
+  display: none;
+}
+
+/* The English line under the Amharic introduction: full size, easy to read. */
+.bubble .translation {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+/* The source ring: drawn over the lesson section an answer came from. */
+.source-ring {
+  position: fixed;
+  z-index: 2147482999;
+  pointer-events: none;
+  border: 4px solid #ffb703;
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px rgb(15 42 71 / 85%), 0 0 0 9999px rgb(15 42 71 / 18%);
+  transition: top 0.1s, left 0.1s, width 0.1s, height 0.1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-ring {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .source-ring {
+    border-color: Highlight;
+    box-shadow: none;
+  }
+}
+
+/* The host's font when it has one (Savanna exposes Bootstrap's), with Ethiopic fallbacks. */
+.root {
+  font-family: var(--bs-body-font-family, system-ui), "Segoe UI", "Noto Sans", "Noto Sans Ethiopic", Ebrima, Nyala, Kefa, sans-serif;
+}
+
+/* The message box's visible label, on its own line above the box. */
+.composer {
+  flex-wrap: wrap;
+}
+
+.composer-label {
+  flex: 0 0 100%;
+  margin: 0 0 -2px 2px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--navy);
 }

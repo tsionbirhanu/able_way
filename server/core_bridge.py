@@ -8,6 +8,7 @@ translates between the two shapes; the answers come from tutor.py, the same as t
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -29,6 +30,7 @@ def ask(question: str, lang: str, channel: str, simple: bool = False) -> dict:
     citations = [{"page": c["url"], "heading": c["title"]} for c in result["citations"]]
     answer = result["answer"]
     if channel in ("sms", "telegram", "lite"):
-        # These channels list the sources themselves, so the [1] markers would be noise.
-        answer = " ".join(answer.replace("[1]", "").replace("[2]", "").replace("[3]", "").split())
+        # The channels list the source themselves: drop the [n] markers and the space they leave.
+        answer = re.sub(r"\s*\[\d+\]", "", answer)
+        answer = re.sub(r"\s+([.,;:!?።፣፤])", r"\1", " ".join(answer.split()))
     return {"answer": answer, "citations": citations, "matched": bool(result["grounded"])}

@@ -27,9 +27,9 @@
     if (!body) return;
     add("out", body, "You");
     text.value = "";
-    fetch("/sms/inbound", {
+    fetch("/sms/inbound", { // asks for JSON; a real gateway gets plain text
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ from: from.value.trim(), text: body })
     })
       .then(function (r) { return r.json(); })

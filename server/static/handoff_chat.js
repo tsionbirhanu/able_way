@@ -17,7 +17,7 @@
     if (m.role === "learner") p.className = "mine";
     var who = document.createElement("span");
     who.className = "who";
-    who.textContent = m.role === "learner" ? S.chat_you : S.chat_tutor;
+    who.textContent = m.role === "learner" ? S.chat_you : m.role === "mimi" ? "Mimi" : S.chat_tutor;
     var body = document.createElement("span");
     body.dir = "auto"; // right-to-left text (Arabic...) displays correctly
     if (ETHIOPIC.test(m.text)) body.lang = "am";
