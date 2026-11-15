@@ -43,3 +43,18 @@ def test_no_model_call_when_course_has_nothing(monkeypatch):
     assert calls == [] and result["grounded"] is False
     tutor.ask("Hello!", "en")  # a greeting needs no source: the model may answer it
     assert len(calls) == 1
+
+
+def test_amharic_question_the_word_list_understands_needs_no_translation_call(monkeypatch):
+    monkeypatch.setenv("ABLEWAY_PROVIDERS", "gemini,offline")
+    monkeypatch.setenv("GEMINI_API_KEYS", "test-key-not-real")
+    from tutor import Tutor
+
+    tutor = Tutor()
+    gemini = next(p for p in tutor.chain if p.name == "gemini")
+    monkeypatch.setattr(gemini, "status", lambda: {"available": True, "detail": ""})
+    systems = []
+    monkeypatch.setattr(gemini, "complete", lambda system, messages, **k: systems.append(system) or "ኮርሱ 7 ቀን ነው [1]።")
+    result = tutor.ask("ኮርሱ ስንት ቀን ነው?", "am")
+    assert result["grounded"] is True
+    assert not any("translate" in s.lower() for s in systems)  # one AI call: the answer only

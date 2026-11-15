@@ -67,6 +67,9 @@ async def create_ticket(request: Request):
     lang = norm_lang(data.get("lang"))
     ticket_id = tickets.create_ticket(channel=channel, lang=lang, topic=str(data.get("topic") or ""))
     summary = conversation_summary(data.get("conversation"))
+    in_short = " ".join(str(data.get("summary") or "").split())[:300]
+    if in_short:
+        summary = f"In short: {in_short}\n\n{summary}" if summary else f"In short: {in_short}"
     if summary:
         tickets.add_message(ticket_id, "mimi", summary)
     webhook.send("ticket.opened", {"ticketId": ticket_id, "channel": channel, "lang": lang})

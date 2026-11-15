@@ -98,6 +98,14 @@ TRANSLATE_PROMPT = (
     "relevant page of their course. Reply with the query only.\n\n{question}"
 )
 
+# "I don't understand", "አልገባኝም": with a model, the earlier question gives the topic and Mimi explains
+# again more simply; without one, she says so and offers a person.
+CONFUSED = re.compile(
+    r"\b(i (still )?(don'?t|do not) (understand|get it)|i'?m confused|confusing|not clear|doesn'?t make sense)\b"
+    r"|አልገባኝም|አልገባኝ|ግራ ገባኝ|ግልጽ አይደለም|ግልፅ አይደለም|አልተረዳሁም",
+    re.I,
+)
+
 # Greetings, thanks and "what can you do": no course source is needed, so the model may answer.
 SMALL_TALK = re.compile(
     r"^\W*(hi|hello|hey|thanks?|thank you|good (morning|afternoon|evening)|bye|goodbye|who are you|"
@@ -109,6 +117,7 @@ TEXT = {
     "en": {
         "not_found": "I could not find that in the course material I can see. You can rephrase the question, or ask a person for help.",
         "offline_quote": "I am working offline, so I can only quote the course material:",
+        "confused": "I am sorry that was not clear. I am working without AI right now, so I cannot explain it in other words, but a tutor can.",
         "related": "Related:",
         "hello": "Hello! Ask me about your course: lessons, deadlines, scores or upcoming events. I answer only from your course pages and show you where each answer comes from.",
         "switched": "Great! I'll assist you in English from now on. Let's start learning!",
@@ -117,6 +126,7 @@ TEXT = {
     "am": {
         "not_found": "ይህን በማየው የኮርስ ይዘት ውስጥ ማግኘት አልቻልኩም። ጥያቄዎን በሌላ መንገድ መጻፍ ወይም ከሰው እርዳታ መጠየቅ ይችላሉ።",
         "offline_quote": "አሁን ያለ ኢንተርኔት እየሠራሁ ስለሆነ የኮርሱን ጽሑፍ በእንግሊዝኛ እንዳለ አቀርባለሁ፦",
+        "confused": "ይቅርታ፣ ግልጽ አልነበረም። አሁን ያለ AI እየሠራሁ ስለሆነ በሌላ መንገድ ማስረዳት አልችልም፤ አስተማሪ ግን ሊረዳዎ ይችላል።",
         "related": "ተዛማጅ፦",
         "hello": "ሰላም! ስለ ኮርስዎ ይጠይቁኝ፦ ትምህርቶች፣ የጊዜ ገደቦች፣ ውጤቶች ወይም መጪ ዝግጅቶች። የምመልሰው ከኮርስ ገጾችዎ ብቻ ነው፤ እያንዳንዱ መልስ ከየት እንደመጣም አሳያለሁ።",
         "switched": "ጥሩ! ከአሁን በኋላ በአማርኛ አግዝሃለሁ። ትምህርቱን እንጀምር!",
@@ -251,7 +261,7 @@ class Tutor:
             question = INTRO_QUESTION.format(lesson=f'"{context["lesson"] or context["course"] or "this page"}"')
         # The same question in the same place gets the same answer: reuse it instead of asking the AI
         # again. Learners repeat questions a lot (see the teacher view), so this saves most of the quota.
-        key = None if history else (normalise(question).strip(), lang, simple, voice, intent, context["page"], context["lesson"])
+        key = None if history else (normalise(question).strip(), lang, simple, voice, intent, context["page"], context["lesson"], context.get("section", ""))
         cached = self._cache.get(key) if key else None
         if cached and time.time() - cached[0] < self.CACHE_SECONDS:
             return {**cached[1], "cached": True}
@@ -263,6 +273,8 @@ class Tutor:
                     result = self._ask_model(provider, question, lang, simple, history, context, intent, voice)
                 elif intent == "lesson_intro":
                     result = self._intro_offline(lang, context)
+                elif intent == "explain":
+                    result = self._explain_offline(question, lang, context)
                 else:
                     result = self._ask_offline(question, lang, simple)
             except ProviderError as e:
@@ -275,6 +287,44 @@ class Tutor:
                     self._cache.pop(next(iter(self._cache)))
             return answer
         raise RuntimeError("No provider could answer; the offline provider should always be in the chain.")
+
+    SUMMARY_PROMPT = (
+        "You help a human tutor who is about to answer a learner. In ONE short English sentence "
+        "(25 words at most), say what the learner needs help with, from their conversation with Mimi, "
+        "a course assistant. Say the topic, and whether Mimi could answer from the course. No names, "
+        "no greeting, no advice."
+    )
+
+    def summarise(self, conversation: list, cloud: bool = True) -> str:
+        """One English sentence for the tutor: what the learner needs. Written by the AI when one is
+        allowed (a cloud AI only with the learner's consent), else from the learner's last question."""
+        lines, learner, mimi_last = [], "", ""
+        for turn in (conversation or [])[-12:]:
+            if not isinstance(turn, dict):
+                continue
+            text = " ".join(str(turn.get("text") or turn.get("content") or "").split())[:500]
+            if not text:
+                continue
+            if turn.get("role") in ("user", "learner"):
+                learner = text
+                lines.append(f"Learner: {text}")
+            else:
+                mimi_last = text
+                lines.append(f"Mimi: {text}")
+        if not learner:
+            return ""
+        for provider in self.chain:
+            if not provider.uses_model or (provider.remote and not cloud) or not provider.status()["available"]:
+                continue
+            try:
+                raw = provider.complete(self.SUMMARY_PROMPT, [{"role": "user", "content": "\n".join(lines)}], max_tokens=200)
+            except ProviderError:
+                continue
+            sentence = " ".join(raw.split())[:240]
+            if sentence:
+                return sentence
+        not_found = any(TEXT[l]["not_found"][:40] in mimi_last for l in TEXT)
+        return f"The learner asked: “{learner[:180]}”" + (" Mimi could not find it in the course." if not_found else "")
 
     def health(self) -> dict:
         return {
@@ -291,7 +341,10 @@ class Tutor:
             page = ""
         on_page = [c for c in self.index.chunks if page and c["url"].split("#")[0] == page]
         course = clean_label(context.get("course")) or (on_page[0].get("course", "") if on_page else "")
-        return {"page": page if on_page else "", "course": course, "lesson": clean_label(context.get("lesson"))}
+        section = str(context.get("section") or "")
+        section = section if re.fullmatch(r"[\w-]{1,120}", section) else ""
+        return {"page": page if on_page else "", "course": course, "lesson": clean_label(context.get("lesson")),
+                "section": section}
 
     # -------------------------------------------------------------- with a model
 
@@ -299,18 +352,28 @@ class Tutor:
         self, provider: Provider, question: str, lang: str, simple: bool, history: list[dict],
         context: dict | None = None, intent: str | None = None, voice: bool = False,
     ) -> dict:
-        context = context or {"page": "", "course": "", "lesson": ""}
+        context = context or {"page": "", "course": "", "lesson": "", "section": ""}
+        if intent == "explain":
+            hits = self._explain_hits(question, context)
+            return self._answer_from(provider, question, lang, simple, history, context, voice, hits)
         if intent == "lesson_intro":
             query = context["lesson"] or context["course"]
         else:
             query = question
             if is_amharic(question):
-                english = provider.complete(
-                    "You translate search queries.",
-                    [{"role": "user", "content": TRANSLATE_PROMPT.format(question=question)}],
-                    max_tokens=2000,
-                )
-                query = f"{english} {expand_amharic(question, self.glossary)}"
+                # The Amharic word list often understands the question already: then search with its
+                # English words and skip the extra AI call (about a second faster, and less quota).
+                words = expand_amharic(question, self.glossary)
+                found = self._search(words, page=context["page"]) if words else []
+                if words and found and coverage(self.index, words, found) >= self.MIN_COVERAGE:
+                    query = words
+                else:
+                    english = provider.complete(
+                        "You translate search queries.",
+                        [{"role": "user", "content": TRANSLATE_PROMPT.format(question=question)}],
+                        max_tokens=2000,
+                    )
+                    query = f"{english} {words}"
             previous = next((m["content"] for m in reversed(history) if m["role"] == "user"), "")
             if previous and len(tokenize(query)) < 4:
                 query = f"{previous} {query}"  # "and what about week 5?" needs the earlier topic
@@ -327,6 +390,10 @@ class Tutor:
                 # (it could only guess, and it would spend quota).
                 return {"answer": TEXT[lang]["not_found"], "grounded": False, "citations": []}
 
+        return self._answer_from(provider, question, lang, simple, history, context, voice, hits)
+
+    def _answer_from(self, provider, question, lang, simple, history, context, voice, hits) -> dict:
+        """Ask the model to answer from these sources only, and check its citations."""
         where = ", ".join(
             f'{label} "{value}"' for label, value in (("course", context["course"]), ("lesson", context["lesson"])) if value
         )
@@ -397,6 +464,25 @@ class Tutor:
         ]
         return found[:k]
 
+    def _explain_hits(self, passage: str, context: dict) -> list[dict]:
+        """The section being explained: by its anchor on this page, else the course text that best
+        matches the passage (never a job listing: the learner is reading the lesson)."""
+        section = context.get("section") or ""
+        if section:
+            own = [dict(c, score=1.0) for c in self.index.chunks if c["url"].split("#", 1)[-1] == section
+                   and (not context["page"] or c["url"].split("#")[0] == context["page"])]
+            if own:
+                return own[:3]
+        return self.index.search(passage, k=2, corpus="course")
+
+    def _explain_offline(self, question: str, lang: str, context: dict) -> dict:
+        """Without a model: the section's own words (English), with its source."""
+        hits = self._explain_hits(question, context)
+        if not hits:
+            return {"answer": TEXT[lang]["not_found"], "grounded": False, "citations": []}
+        quote = best_sentences(hits[0]["text"], question, count=3)
+        return {"answer": f"{TEXT[lang]['offline_quote']}\n\n{quote} [1]", "grounded": True, "citations": [citation(1, hits[0])]}
+
     def _intro_offline(self, lang: str, context: dict) -> dict:
         """Without a model: name the lesson and quote how it starts, in the course's own English."""
         query = context["lesson"] or context["course"]
@@ -415,6 +501,8 @@ class Tutor:
 
     def _ask_offline(self, question: str, lang: str, simple: bool) -> dict:
         text = TEXT[lang]
+        if CONFUSED.search(question) and len(question.split()) <= 8:
+            return {"answer": text["confused"], "grounded": False, "citations": []}
         if normalise(question).strip() in GREETINGS:
             return {"answer": text["hello"], "grounded": False, "citations": []}
 

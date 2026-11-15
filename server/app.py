@@ -67,7 +67,7 @@ mimetypes.add_type("font/woff2", ".woff2")
 tutor = Tutor()
 speech = Speech()
 sessions = Sessions()
-INTENTS = ("lesson_intro",)
+INTENTS = ("lesson_intro", "explain")
 
 
 def validate(body: dict) -> tuple[dict | None, str]:
@@ -248,7 +248,14 @@ class Handler(BaseHTTPRequestHandler):
         lang = next((v for v in (body.get("language"), body.get("lang")) if v in ("en", "am")), "en")
         topic = next((str(t.get("text") or t.get("content") or "") for t in reversed(conversation)
                       if isinstance(t, dict) and t.get("role") in ("user", "learner")), "")
-        payload = json.dumps({"lang": lang, "topic": topic[:200], "channel": "web", "conversation": conversation[-12:]})
+        # One English sentence on top of the ticket, so the tutor knows the problem at a glance. A cloud
+        # AI writes it only if the learner allowed online AI ("cloud": false keeps it on this server).
+        try:
+            summary = tutor.summarise(conversation, cloud=body.get("cloud") is not False)
+        except Exception:  # never block the learner from reaching a person
+            summary = ""
+        payload = json.dumps({"lang": lang, "topic": (summary or topic)[:200], "summary": summary,
+                              "channel": "web", "conversation": conversation[-12:]})
         base = os.environ.get("CHANNELS_URL", "http://localhost:8000").rstrip("/")
         try:
             request = urllib.request.Request(f"{base}/handoff/tickets", data=payload.encode("utf-8"),

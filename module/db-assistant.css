@@ -1786,3 +1786,55 @@ a.cite {
   max-width: 100%;
 }
 
+
+/* "Explain this": appears by text the learner selects in the lesson. Mimi's own layer, over the page. */
+.explain-chip {
+  position: fixed;
+  z-index: 2147483001;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding: 8px 16px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #0f2a47;
+  color: #fff;
+  font: 700 max(1rem, 16px)/1.2 system-ui, "Segoe UI", "Noto Sans Ethiopic", Ebrima, Nyala, sans-serif;
+  box-shadow: 0 4px 16px rgb(15 42 71 / 35%);
+  cursor: pointer;
+}
+
+.explain-chip[hidden] {
+  display: none;
+}
+
+.explain-chip:focus-visible {
+  outline: 3px solid #ffd54f;
+  outline-offset: 2px;
+}
+
+/* "Open the help chat": after "talk to a person" by voice, a large button that already has the focus,
+   so Enter (or a tap) opens the chat; browsers do not let a page open a tab by itself. */
+.open-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 52px;
+  padding: 10px 22px;
+  border: 2px solid var(--brand);
+  border-radius: 12px;
+  background: var(--brand);
+  color: #fff;
+  font-size: max(1.0625rem, 17px);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.open-help:hover {
+  text-decoration: underline;
+}
+
+.open-help:focus-visible {
+  outline: 3px solid #ffd54f;
+  outline-offset: 3px;
+}

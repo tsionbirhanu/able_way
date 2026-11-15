@@ -9,7 +9,7 @@
     "en": "English"
   },
   "intro": "Hello! I am Mimi, your course tutor. I can explain this lesson, answer your questions, tell you about jobs and connect you to a tutor. Shall we continue in English? For Amharic, say “Amharic”.",
-  "introSpoken": "Hello, I am Mimi, your course tutor. Shall we continue in English?",
+  "introSpoken": "Hello, I am Mimi, your course assistant. I can explain this lesson, answer your questions, and connect you with a tutor. Shall we continue in English?",
   "otherLanguageHint": "For English, say “English”, or press 2.",
   "greetingWelcome": "Hello! I am Mimi, your course tutor.",
   "menu": {
@@ -40,6 +40,14 @@
       "chat": {
         "say": "To see the chat and the sources",
         "button": "Chat and sources"
+      },
+      "read": {
+        "say": "To hear this lesson section by section",
+        "button": "Read the lesson to me"
+      },
+      "explain": {
+        "say": "To explain the part you are reading",
+        "button": "Explain what I am reading"
       }
     }
   },
@@ -160,5 +168,22 @@
     "Normal",
     "Large",
     "Extra large"
-  ]
+  ],
+  "explainAsk": "Explain this part of the lesson in simple words: \"{text}\"",
+  "explainShown": "Explain: “{text}”",
+  "explainChip": "Explain this",
+  "explainNothing": "Select a part of the lesson first, or scroll to the part you want explained, then ask again.",
+  "readAsk": "Explain this section of the lesson in simple words, in three or four short sentences: \"{title}. {text}\"",
+  "readShown": "Section {n} of {total}: {title}",
+  "readHint": "Say “next”, “repeat” or “stop”.",
+  "readLast": "That was the last section of this lesson.",
+  "readNone": "I could not find lesson sections on this page.",
+  "readNext": "Next section",
+  "readRepeat": "Repeat",
+  "readStop": "Stop reading",
+  "readStopped": "I stopped reading. You can ask me anything about the lesson.",
+  "escalateSuggest": "This is not in the course either. A tutor can help: press “Talk to a person”, or say {n}.",
+  "thinkingSpoken": "Let me check.",
+  "escalatedPress": "I opened a chat with a person. To open it, press Enter, or tap “Open the help chat”. A tutor will answer you there. If nobody is online right now, the answer may come in the morning, and the chat stays open for you.",
+  "openHelp": "Open the help chat"
 }

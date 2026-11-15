@@ -69,7 +69,7 @@
   const WIDE = () => window.innerWidth >= 1100;
   const PAGE = location.href.startsWith(siteRoot.href) ? location.href.slice(siteRoot.href.length).split(/[?#]/)[0] : '';
 
-  const END_OF_TURN_MS = { en: 1500, am: 1900 }; // silence that ends the learner's turn; shorter pauses are kept
+  const END_OF_TURN_MS = { en: 1200, am: 1500 }; // silence that ends the learner's turn; shorter pauses are kept
   const MAX_QUIET_RESTARTS = 8; // recogniser restarts without hearing anything before listening pauses (~1 min)
   const QUIET_LIMIT_MS = 60000;
   const ECHO_GAP_MS = 700; // after Mimi stops talking, before the microphone opens
@@ -83,12 +83,13 @@
   // module/i18n/<lang>.json under "menu.items.<action>". Add, remove or reorder lines here.
   //   action: lesson | language | question | person | jobs | chat
   const MENU = [
-    { n: 1, action: 'lesson', icon: 'book' },
+    { n: 1, action: 'read', icon: 'speaker' },
     { n: 2, action: 'language', icon: 'globe' },
     { n: 3, action: 'question', icon: 'chat' },
     { n: 4, action: 'person', icon: 'person' },
     { n: 5, action: 'jobs', icon: 'briefcase' },
     { n: 6, action: 'chat', icon: 'list' },
+    { n: 7, action: 'explain', icon: 'book' },
   ];
 
   // Fills {placeholders} in a sentence from a language file.
@@ -190,6 +191,7 @@
     [4, /^(4|four|fourth|አራት|አራተኛ|፬)$/],
     [5, /^(5|five|fifth|አምስት|አምስተኛ|፭)$/],
     [6, /^(6|six|sixth|ስድስት|ስድስተኛ|፮)$/],
+    [7, /^(7|seven|seventh|ሰባት|ሰባተኛ|፯)$/],
   ];
   const NUMBER_FILLER = new Set(['number', 'press', 'say', 'option', 'choose', 'please', 'ቁጥር', 'እባክዎ']);
   function spokenNumber(text) {
@@ -597,6 +599,12 @@
 
   function renderSuggestions() {
     const chips = [];
+    // On a lesson page: read the lesson aloud, or explain the part being read. Always offered.
+    if (state.langChosen && lessonSections().length) {
+      const items = t().menu.items;
+      chips.push(el('button', { type: 'button', class: 'chip', lang: state.lang, text: items.read.button, onclick: () => startReading() }));
+      chips.push(el('button', { type: 'button', class: 'chip', lang: state.lang, text: items.explain.button, onclick: () => explainReading() }));
+    }
     if (state.langChosen && !state.messages.some((m) => m.kind === 'intro' && m.lessonKey === lessonKey())) {
       chips.push(el('button', { type: 'button', class: 'chip', lang: state.lang, text: t().introChip, onclick: () => askTutor('', { intent: 'lesson_intro' }) }));
     }
@@ -642,6 +650,16 @@
     }
     const actions = el('div', { class: 'actions' });
     if (message.error) actions.append(el('button', { type: 'button', class: 'chip', lang: state.lang, text: s.retry, onclick: retry }));
+    if (message.reading && state.reading && message.reading.index === state.reading.index) {
+      if (message.reading.index + 1 < message.reading.total) {
+        actions.append(el('button', { type: 'button', class: 'chip', lang: state.lang, text: s.readNext, onclick: () => readSection(state.reading.index + 1) }));
+      }
+      actions.append(el('button', { type: 'button', class: 'chip', lang: state.lang, text: s.readRepeat, onclick: () => readSection(state.reading.index) }));
+      actions.append(el('button', { type: 'button', class: 'chip', lang: state.lang, text: s.readStop, onclick: () => stopReading() }));
+    }
+    if (message.openUrl) {
+      actions.append(el('a', { class: 'open-help', href: message.openUrl, target: '_blank', rel: 'noopener', lang: state.lang, text: s.openHelp }));
+    }
     if (message.offerPerson) actions.append(el('button', { type: 'button', class: 'chip', lang: state.lang, text: s.talkToPerson, onclick: () => escalateToHuman() }));
     if (!isUser && !message.error && canSpeak()) {
       const button = el('button', { type: 'button', class: 'chip replay', lang: state.lang, 'aria-pressed': 'false', 'aria-label': s.replayLabel }, icon('speaker'), el('span', { text: s.replay }));
@@ -802,16 +820,6 @@
       liveShown = all.slice(0, have + 1).join(' ');
       renderLive();
     }, WORD_MS);
-  }
-
-  // Wait until the words on screen have caught up (at most about a second and a half), so the
-  // learner sees their whole sentence appear before Mimi answers it.
-  function liveCaughtUp() {
-    return new Promise((resolve) => {
-      const started = Date.now();
-      const check = () => (wordsOf(liveShown).length >= wordsOf(liveTarget).length || Date.now() - started > 1500 ? resolve() : setTimeout(check, 60));
-      check();
-    });
   }
 
   function addMessage(message) {
@@ -1586,10 +1594,7 @@
         showLive('');
         return listen();
       }
-      showLive(text); // the last words finish appearing before the sentence becomes a message
-      await liveCaughtUp();
-      if (!listeningState() || state.busy) return;
-      takeTurn(text, 'voice');
+      takeTurn(text, 'voice'); // the whole sentence becomes a message at once: no waiting
     },
     async onAudio(wav) {
       if (!listeningState()) return;
@@ -1607,10 +1612,6 @@
       }
       if (ctl.state !== PROCESSING || state.busy) return; // voice turned off, or the learner typed
       if (text && !isNoise(text) && !isEcho(text)) {
-        // The server hears a whole turn at once: show it word by word all the same.
-        showLive(text);
-        await liveCaughtUp();
-        if (ctl.state !== PROCESSING || state.busy) return;
         return takeTurn(text, 'voice');
       }
       showLive('');
@@ -1943,6 +1944,171 @@
   // "Yes, continue" to "Shall we continue in Amharic?"
   const YES = /^(yes|yeah|ok|okay|sure|አዎ|እሺ|አዎን|ይሁን|ቀጥል|ቀጥዪ|እንቀጥል)[.!። ]*$/i;
 
+  // ------------------------------------------------------------ the lesson, read and explained
+  //
+  // The course is in English; many learners think in Amharic. Mimi can explain any part of the lesson
+  // in the learner's language (the part they selected, or the one they are reading), and read the
+  // whole lesson to them section by section, each explained in a few simple sentences, with "next",
+  // "repeat" and "stop" by voice or button. The lesson's own sections (its headings with anchors) are
+  // used, so every explanation also links to, and outlines, the exact section it explains.
+
+  const READING_COMMANDS = [
+    ['next', /^(next|next section|continue|go on|ቀጥል|ቀጥዪ|ቀጥሉ|ቀጣዩ|ቀጣይ)$/i],
+    ['repeat', /^(repeat|again|say it again|ድገም|ድገሚ|እንደገና)$/i],
+    ['stop', /^(stop|stop reading|enough|አቁም|አቁሚ|በቃ)$/i],
+  ];
+  const PASSAGE_LIMIT = 700; // characters of lesson text sent with one request
+
+  function sectionTextOf(heading) {
+    const level = /^H(\d)$/.test(heading.tagName) ? Number(heading.tagName[1]) : 7;
+    const parts = [];
+    for (let node = heading.nextElementSibling; node && parts.join(' ').length < 1500; node = node.nextElementSibling) {
+      const tag = /^H(\d)$/.exec(node.tagName);
+      if (tag && Number(tag[1]) <= level) break;
+      if (node.matches('script, style, nav, button, [aria-hidden="true"]')) continue;
+      parts.push(node.textContent);
+    }
+    return parts.join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  // The lesson's sections: headings (outside Mimi, menus and dialogs) that carry an anchor.
+  function lessonSections() {
+    const out = [];
+    for (const heading of document.querySelectorAll('h1, h2, h3, h4')) {
+      if (heading.closest('nav, header, footer, dialog, [role="dialog"], .modal, aside')) continue;
+      const anchor = heading.id ? heading : heading.querySelector('[id]');
+      if (!anchor) continue;
+      const text = sectionTextOf(heading);
+      if (text.length < 60) continue;
+      out.push({ id: anchor.id, title: heading.textContent.replace(/\s+/g, ' ').trim(), text });
+    }
+    return out;
+  }
+
+  // The section the learner is reading: the one holding the keyboard focus, else the last one whose
+  // heading has scrolled past the top third of the screen.
+  function currentSection(sections) {
+    // Focus inside Mimi (her own button) says nothing about where the learner is in the lesson.
+    const active = document.activeElement;
+    const focused = active && active !== document.body && active !== host ? active : null;
+    let best = null;
+    for (const section of sections) {
+      const anchor = document.getElementById(section.id);
+      if (!anchor) continue;
+      const heading = anchor.closest('h1, h2, h3, h4') || anchor;
+      if (focused && heading.compareDocumentPosition(focused) & Node.DOCUMENT_POSITION_FOLLOWING) best = section;
+      else if (!focused && heading.getBoundingClientRect().top < window.innerHeight / 3) best = section;
+    }
+    return best || sections[0] || null;
+  }
+
+  const shortQuote = (text) => (text.length > 90 ? `${text.slice(0, 87).replace(/\s+\S*$/, '')}…` : text);
+
+  // The section a piece of selected text belongs to (its heading's anchor), so the explanation cites it.
+  function sectionOf(node) {
+    for (const section of lessonSections().reverse()) {
+      const anchor = document.getElementById(section.id);
+      const heading = anchor && (anchor.closest('h1, h2, h3, h4') || anchor);
+      if (heading && node && heading.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING) return section.id;
+    }
+    return '';
+  }
+
+  async function explainPassage(text, section = '') {
+    if (!state.consent) return setOpen(true); // the consent question first
+    const passage = text.replace(/\s+/g, ' ').trim().slice(0, PASSAGE_LIMIT);
+    if (!passage) return;
+    stopReading(true);
+    await askTutor(fmt(t().explainAsk, { text: passage }), {
+      display: fmt(t().explainShown, { text: shortQuote(passage) }), intent: 'explain', section,
+    });
+  }
+
+  function explainReading() {
+    const selected = (document.getSelection() || '').toString().trim();
+    if (selected.length >= 20) return explainPassage(selected, sectionOf(document.getSelection().anchorNode));
+    const section = currentSection(lessonSections());
+    if (!section) return say(t().explainNothing, state.lang).then(afterSpeech);
+    showInLesson(section.id, section.title);
+    return explainPassage(`${section.title}. ${section.text}`, section.id);
+  }
+
+  function startReading() {
+    const sections = lessonSections();
+    if (!sections.length) {
+      addMessage({ role: 'assistant', kind: 'menu', text: t().readNone, lang: state.lang, citations: [] });
+      return say(t().readNone, state.lang).then(afterSpeech);
+    }
+    state.reading = { sections, index: 0 };
+    return readSection(0);
+  }
+
+  function readSection(index) {
+    if (!state.reading) return startReading();
+    const { sections } = state.reading;
+    if (index >= sections.length) return stopReading();
+    state.reading.index = index;
+    const section = sections[index];
+    showInLesson(section.id, section.title);
+    const question = fmt(t().readAsk, { title: section.title, text: section.text.slice(0, PASSAGE_LIMIT) });
+    const display = fmt(t().readShown, { n: index + 1, total: sections.length, title: section.title });
+    return askTutor(question, { display, reading: { index, total: sections.length }, intent: 'explain', section: section.id });
+  }
+
+  function stopReading(quiet = false) {
+    if (!state.reading) return;
+    state.reading = null;
+    renderMessages(); // the reading buttons go away
+    if (quiet) return;
+    const text = t().readStopped;
+    addMessage({ role: 'assistant', kind: 'menu', text, lang: state.lang, citations: [] });
+    return say(text, state.lang).then(afterSpeech);
+  }
+
+  // "Explain this": a small button by any text the learner selects in the lesson (mouse, touch or
+  // keyboard selection). It lives in Mimi's own layer, over the page; the page itself is not changed.
+  const explainChip = el('button', { type: 'button', class: 'explain-chip', hidden: true });
+  shadow.append(explainChip);
+  let selectionTimer = null;
+  document.addEventListener('selectionchange', () => {
+    clearTimeout(selectionTimer);
+    selectionTimer = setTimeout(() => {
+      const selection = document.getSelection();
+      const text = selection ? selection.toString().trim() : '';
+      if (text.length < 20 || !selection.rangeCount || !state.consent || host.contains(selection.anchorNode)) {
+        explainChip.hidden = true;
+        return;
+      }
+      const box = selection.getRangeAt(0).getBoundingClientRect();
+      if (!box.width && !box.height) {
+        explainChip.hidden = true;
+        return;
+      }
+      explainChip.textContent = t().explainChip;
+      explainChip.hidden = false;
+      const width = explainChip.offsetWidth || 160;
+      explainChip.style.left = `${Math.max(8, Math.min(box.left, window.innerWidth - width - 8))}px`;
+      explainChip.style.top = `${Math.min(box.bottom + 8, window.innerHeight - 56)}px`;
+    }, 250);
+  });
+  explainChip.addEventListener('mousedown', (event) => event.preventDefault()); // keep the selection
+  explainChip.addEventListener('click', () => {
+    const selection = document.getSelection();
+    const text = (selection || '').toString();
+    explainChip.hidden = true;
+    explainPassage(text, selection ? sectionOf(selection.anchorNode) : '');
+  });
+
+  // ------------------------------------------------------------ knowing when a person is needed
+  // After a second question Mimi cannot find in the course, or when the learner says they do not
+  // understand, she offers a person herself, and says it more plainly the second time.
+  const CONFUSED = /\b(i (still )?(don'?t|do not) (understand|get it)|i'?m confused|confusing|not clear|doesn'?t make sense|help me)\b|አልገባኝም|አልገባኝ|ግራ ገባኝ|ግልጽ አይደለም|ግልፅ አይደለም|አልተረዳሁም/i;
+  function noteHelpNeeded(question, reply) {
+    if (reply.offerPerson) ctl.notFound = (ctl.notFound || 0) + 1;
+    else if (reply.citations && reply.citations.length) ctl.notFound = 0;
+    if (!reply.offerPerson && CONFUSED.test(question || '') && !reply.switchLang) reply.offerPerson = true;
+  }
+
   function takeTurn(text, source) {
     const said = text.trim();
     if (!said || state.busy) return;
@@ -1958,6 +2124,17 @@
       if (choice) return chooseLanguage(choice);
       setLanguage(scriptLang(said)); // a question straight away: help in the language it was asked in
       return askTutor(said, { shown: true });
+    }
+    if (state.reading) {
+      const command = READING_COMMANDS.find(([, pattern]) => pattern.test(said.replace(/[.!?።]+$/, '').trim()));
+      if (command) {
+        addMessage({ role: 'user', text: said, lang: scriptLang(said), kind: 'choice' });
+        input.value = '';
+        resizeInput();
+        if (command[0] === 'next') return readSection(state.reading.index + 1);
+        if (command[0] === 'repeat') return readSection(state.reading.index);
+        return stopReading();
+      }
     }
     if (number !== null && (number === 0 || menuItem(number))) {
       addMessage({ role: 'user', text: said, lang: scriptLang(said) });
@@ -1996,6 +2173,8 @@
     const item = menuItem(number);
     switch (item && item.action) {
       case 'lesson': return askTutor('', { intent: 'lesson_intro' });
+      case 'read': return startReading();
+      case 'explain': return explainReading();
       case 'language': return chooseLanguage(state.lang === 'am' ? 'en' : 'am');
       case 'question': return promptQuestion();
       case 'person': return escalateToHuman();
@@ -2042,14 +2221,14 @@
     return { page: PAGE, course: config.course, lesson };
   }
 
-  async function fetchReply(question, { intent = null, history = [] } = {}) {
+  async function fetchReply(question, { intent = null, history = [], section = '' } = {}) {
     const typing = el('li', { class: 'msg msg-bot', 'aria-hidden': 'true' }, el('div', { class: 'bubble typing' }, el('span'), el('span'), el('span')));
     list.append(typing);
     scrollToEnd();
     try {
       const data = await postJSON(
         '/api/ask',
-        { question, lang: state.lang, simple: state.simple, history, session_id: state.sessionId, context: pageContext(), intent, voice: state.voiceOn, detect_switch: !intent, cloud: allowCloud() },
+        { question, lang: state.lang, simple: state.simple, history, session_id: state.sessionId, context: { ...pageContext(), section }, intent, voice: state.voiceOn, detect_switch: !intent, cloud: allowCloud() },
         90000,
       );
       if (!data.session_id && state.sessionId) {
@@ -2074,7 +2253,7 @@
     }
   }
 
-  async function askTutor(question, { intent = null, shown = false } = {}) {
+  async function askTutor(question, { intent = null, shown = false, display = null, reading = null, section = '' } = {}) {
     if (state.busy) return;
     state.busy = true;
     setBusy(true);
@@ -2090,12 +2269,22 @@
       document.dispatchEvent(new CustomEvent('db-assistant:question', {
         bubbles: true, composed: true, detail: { text: question, language: state.lang },
       }));
-      if (!shown) addMessage({ role: 'user', text: question, lang: scriptLang(question) });
+      if (!shown) addMessage({ role: 'user', text: display || question, lang: scriptLang(display || question) });
     }
     input.value = '';
     resizeInput();
-    const reply = await fetchReply(question, { intent, history });
+    // "Let me check." if the answer takes a moment, so the learner knows Mimi heard them. Spoken only (no
+    // message, no caption); the answer's own voice cuts it off. Quick answers come without it.
+    const filler = setTimeout(() => {
+      if (state.busy && my === ctl.turn && state.voiceOn && canSpeak() && ctl.gestured) {
+        Speaker.speak(t().thinkingSpoken, state.lang, { cache: true }).catch(() => {});
+      }
+    }, 500);
+    const reply = await fetchReply(question, { intent, history: intent === 'explain' ? [] : history, section });
+    clearTimeout(filler);
     finishTurn();
+    if (reading && !reply.error && !reply.queued) reply.reading = reading;
+    if (!reply.error && !reply.queued) noteHelpNeeded(question, reply);
     if (my === ctl.turn) await deliver(reply);
   }
 
@@ -2138,7 +2327,15 @@
     }
     if (reply.offerPerson) {
       const person = MENU.find((m) => m.action === 'person');
-      reply.text = `${reply.text}\n\n${fmt(STRINGS[reply.lang || state.lang].offerPerson, { n: person ? person.n : '' })}`;
+      const words = STRINGS[reply.lang || state.lang];
+      // A second question Mimi cannot answer: say plainly that a tutor is the way forward.
+      const offer = ctl.notFound >= 2 ? words.escalateSuggest : words.offerPerson;
+      reply.text = `${reply.text}\n\n${fmt(offer, { n: person ? person.n : '' })}`;
+    }
+    if (reply.reading) {
+      const words = STRINGS[reply.lang || state.lang];
+      const last = reply.reading.index + 1 >= reply.reading.total;
+      reply.text = `${reply.text}\n\n${last ? words.readLast : words.readHint}`;
     }
     addMessage(reply);
     if (!state.voiceOn) caption('mimi', reply.text, reply.lang || state.lang);
@@ -2194,7 +2391,7 @@
       .slice(-12)
       .map((m) => ({ role: m.role, text: m.text }));
     try {
-      const data = await postJSON('/api/v1/escalations', { conversation, language: state.lang }, 15000);
+      const data = await postJSON('/api/v1/escalations', { conversation, language: state.lang, cloud: allowCloud() }, 15000);
       if (!data.chatUrl) throw new Error('no chat');
       setStatus('');
       document.dispatchEvent(new CustomEvent('db-assistant:escalated', {
@@ -2204,12 +2401,20 @@
         tab.opener = null;
         tab.location.href = data.chatUrl;
       }
-      const message = { role: 'assistant', kind: 'menu', text: s.escalated, lang: state.lang, citations: [{ n: 1, title: s.escalateLink, url: data.chatUrl }] };
+      const message = tab
+        ? { role: 'assistant', kind: 'menu', text: s.escalated, lang: state.lang, citations: [{ n: 1, title: s.escalateLink, url: data.chatUrl }] }
+        : { role: 'assistant', kind: 'menu', text: s.escalatedPress, lang: state.lang, citations: [], openUrl: data.chatUrl };
+      if (!tab && !state.open) setOpen(true); // the button must be on screen
       addMessage(message);
+      if (!tab) {
+        const open = [...list.querySelectorAll('.open-help')].pop();
+        if (open) open.focus();
+      }
       if (state.voiceOn) {
         const result = await say(message.text, state.lang);
         if (result === 'superseded') return;
       }
+      if (!tab) return go(state.langChosen ? TEXT : CHOOSING); // stay quiet, focus on the button, until it is used
       afterSpeech();
     } catch {
       if (tab) tab.close();

@@ -130,7 +130,7 @@ Job alerts then go out as real SMS too. Commands a learner can text: `JOBS`, `SU
 
 ```bash
 pip install -r requirements.txt
-python -m pytest server/tests tests     # 96 tests
+python -m pytest server/tests tests     # 100 tests
 python server/evaluate.py               # answer quality: 30 questions, see "Quality" below
 cd tests/a11y && npm install && node axe.mjs http://localhost:8001/demo/blank.html page open
 ```
@@ -323,6 +323,15 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
 
 - The tutor in Amharic and English: sources on every answer, refusals for off-topic questions, no AI
   call when the course has nothing, 30/30 on the evaluation set offline.
+- **Explain what I am reading:** select any part of the lesson and press "Explain this" (or choose
+  "Explain what I am reading"), and Mimi explains that exact passage in the learner's language, citing
+  its section.
+- **Read the lesson to me:** Mimi goes through the lesson's own sections, outlines each one on the
+  page, explains it in a few simple sentences by voice and text, and waits for "next", "repeat" or
+  "stop" (spoken or as buttons).
+- **Knowing when a person is needed:** after "I don't understand", or a second question that is not in
+  the course, Mimi offers a tutor herself; the tutor's ticket starts with a one-sentence summary of
+  the problem (written by the AI only with the learner's consent).
 - Voice in and out, with captions. Consent before anything leaves the host. Silence until the first
   tap on phones.
 - One-click help with the conversation passed on; screen sharing with a visible stop control.
@@ -332,7 +341,7 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
 - Simple mode, teacher view, offline question queue, "Download chat".
 - The pluggable AI layer with an offline mode; the API with `/docs`, OpenAPI and a webhook;
   schema.org JobPosting; Docker Compose.
-- 96 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
+- 100 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
   0 issues on every page, with the chat open and closed.
 
 **Not finished or not yet verified:**

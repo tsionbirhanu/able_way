@@ -90,8 +90,10 @@ class WithModel(unittest.TestCase):
         self.assertNotIn("[", r["answer"])
 
     def test_amharic_question_is_translated_before_search(self):
+        # A question the Amharic word list does not know ("What does that rule say?") is translated
+        # by the model first; one it does know skips that call (tests/test_quality.py).
         model = FakeModel(["late policy deadline WR 100", "መልስ [1]።"])
-        r = Tutor(chain=[model, OfflineProvider()]).ask("የመዘግየት ፖሊሲው ምንድን ነው?", "am", simple=True)
+        r = Tutor(chain=[model, OfflineProvider()]).ask("ያ ደንብ ምን ይላል?", "am", simple=True)
         self.assertEqual(len(model.calls), 2)
         self.assertIn("Amharic", model.calls[1]["system"])
         self.assertIn("simple mode", model.calls[1]["system"])

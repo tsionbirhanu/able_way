@@ -289,6 +289,21 @@ components:
         question: { type: string, maxLength: 1000 }
         language: { type: string, enum: [am, en], description: 'Reply language (alias: lang)' }
         simple: { type: boolean, description: Short sentences and everyday words }
+        intent:
+          type: string
+          enum: [lesson_intro, explain]
+          description: >-
+            lesson_intro: welcome the learner to the lesson in context (no question needed).
+            explain: explain a passage of the lesson in simple words; context.section names its anchor,
+            which becomes the source.
+        context:
+          type: object
+          description: The page the learner is on, so "this lesson" means something.
+          properties:
+            page: { type: string, example: pages/concept-with-navigation.html }
+            course: { type: string }
+            lesson: { type: string }
+            section: { type: string, description: 'Anchor id of the section being explained', example: what-is-shaping-the-future-of-va-work }
         cloud:
           type: boolean
           default: true
