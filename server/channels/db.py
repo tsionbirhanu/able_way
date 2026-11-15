@@ -39,6 +39,11 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
     ticket_id TEXT NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+-- "Always answer me with voice too" (Telegram /voice on). Only the choice is kept.
+CREATE TABLE IF NOT EXISTS voice_prefs (
+    channel TEXT NOT NULL, address TEXT NOT NULL, voice INTEGER NOT NULL,
+    PRIMARY KEY (channel, address)
+);
 -- Anonymous on purpose: no user id, chat id, phone number or IP. Date only, no time.
 CREATE TABLE IF NOT EXISTS question_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,6 +79,23 @@ def get_lang(channel: str, address: str, default: str = "en") -> str:
             "SELECT lang FROM chat_prefs WHERE channel=? AND address=?", (channel, str(address))
         ).fetchone()
     return row["lang"] if row else default
+
+
+def get_voice(channel: str, address: str) -> bool:
+    with connect() as c:
+        row = c.execute(
+            "SELECT voice FROM voice_prefs WHERE channel=? AND address=?", (channel, str(address))
+        ).fetchone()
+    return bool(row and row["voice"])
+
+
+def set_voice(channel: str, address: str, on: bool) -> None:
+    with connect() as c:
+        c.execute(
+            "INSERT INTO voice_prefs (channel, address, voice) VALUES (?,?,?) "
+            "ON CONFLICT(channel, address) DO UPDATE SET voice=excluded.voice",
+            (channel, str(address), int(on)),
+        )
 
 
 def set_lang(channel: str, address: str, lang: str) -> None:

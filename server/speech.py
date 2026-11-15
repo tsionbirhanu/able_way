@@ -274,9 +274,11 @@ class AzureTTS:
             raise SpeechError(f"no connection to Azure Speech: {e}") from e
 
 
-def azure_transcribe(audio: bytes, lang: str | None) -> str:
-    """Azure AI Speech short-audio recognition (official REST API), for a 16 kHz mono WAV turn."""
+def azure_transcribe(audio: bytes, lang: str | None, mime: str = "audio/wav") -> str:
+    """Azure AI Speech short-audio recognition (official REST API), for a 16 kHz mono WAV turn
+    or an OGG/Opus voice note (what Telegram sends)."""
     key, region = azure_settings()
+    content_type = "audio/ogg; codecs=opus" if "ogg" in mime else "audio/wav; codecs=audio/pcm; samplerate=16000"
     locale = {"am": "am-ET", "en": "en-US"}.get(lang or "", "en-US")
     request = urllib.request.Request(
         f"https://{region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1"
@@ -284,7 +286,7 @@ def azure_transcribe(audio: bytes, lang: str | None) -> str:
         data=audio,
         headers={
             "Ocp-Apim-Subscription-Key": key,
-            "Content-Type": "audio/wav; codecs=audio/pcm; samplerate=16000",
+            "Content-Type": content_type,
             "Accept": "application/json",
         },
     )
@@ -407,7 +409,7 @@ class Speech:
         # Azure first when configured: a recogniser made for speech, with a generous free tier.
         if self._azure_stt() and lang in ("am", "en"):
             try:
-                return azure_transcribe(audio, lang)
+                return azure_transcribe(audio, lang, mime)
             except SpeechError as e:
                 self.stt_cooldowns.pause("azure", 60, str(e))
                 print(f"[speech] Azure could not transcribe: {e}", file=sys.stderr)

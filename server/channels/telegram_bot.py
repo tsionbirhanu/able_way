@@ -7,6 +7,9 @@ Privacy: message text and chat ids are never written to the logs.
 """
 import asyncio
 import logging
+import re
+import secrets
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 
 import httpx
@@ -14,10 +17,10 @@ from fastapi import APIRouter
 
 from server.teacher.question_log import log_question
 
-from . import core_client
+from . import core_client, voice
 from .config import log as _base_log
 from .config import telegram_token
-from .db import get_lang, set_lang
+from .db import get_lang, get_voice, set_lang, set_voice
 from .strings import format_citations, norm_lang, t
 
 log = _base_log.getChild("telegram")
@@ -39,20 +42,35 @@ FLOWS = {}
 _interceptors = []
 
 
+_ETHIOPIC = re.compile(r"[ሀ-፿]")
+_LATIN = re.compile(r"[A-Za-z]")
+
+
+def question_lang(text: str) -> str | None:
+    """'am' for a question in Ge'ez script, 'en' for one in Latin letters, None when unclear
+    (numbers, emoji, a single letter)."""
+    if _ETHIOPIC.search(text):
+        return "am"
+    if len(_LATIN.findall(text)) >= 3:
+        return "en"
+    return None
+
+
 def is_running() -> bool:
     return bool(_state["running"])
 
 
-async def send_message(chat_id, text: str) -> bool:
-    """Send a plain-text message. Returns False if the bot is not running or Telegram refused."""
+async def send_message(chat_id, text: str, buttons: list | None = None) -> bool:
+    """Send a plain-text message, optionally with one row of inline buttons [(label, data)].
+    Returns False if the bot is not running or Telegram refused."""
     client, token = _state["client"], telegram_token()
     if not (client and token and _state["running"]):
         return False
+    body = {"chat_id": chat_id, "text": text[:TG_LIMIT], "disable_web_page_preview": True}
+    if buttons:
+        body["reply_markup"] = {"inline_keyboard": [[{"text": label, "callback_data": data} for label, data in buttons]]}
     try:
-        resp = await client.post(
-            API.format(token=token, method="sendMessage"),
-            json={"chat_id": chat_id, "text": text[:TG_LIMIT], "disable_web_page_preview": True},
-        )
+        resp = await client.post(API.format(token=token, method="sendMessage"), json=body)
         return resp.status_code == 200
     except httpx.HTTPError as exc:
         log.warning("sendMessage failed: %s", type(exc).__name__)
@@ -89,6 +107,13 @@ async def handle_message(chat_id, text: str) -> list:
         if replies is not None:
             return replies
 
+    # Answer in the language the question is in, as the web widget does: an English question in
+    # an Amharic chat gets an English answer (and voice), and the chat now continues in English.
+    asked_in = question_lang(text)
+    if asked_in and asked_in != lang:
+        lang = asked_in
+        set_lang("telegram", chat_id, lang)
+
     result = await asyncio.to_thread(core_client.ask, text, lang, "telegram", False)
     log_question(text, lang, "telegram", result["matched"])  # no chat id is passed
     if not result["matched"]:
@@ -114,22 +139,163 @@ async def _cmd_lang(chat_id, arg, lang):
     return [t(lang, "tg_lang_set")]
 
 
-COMMANDS.update({"/start": _cmd_start, "/help": _cmd_help, "/lang": _cmd_lang})
+async def _cmd_voice(chat_id, arg, lang):
+    """/voice on | off: every answer also as a voice message, even for typed questions."""
+    choice = arg.strip().lower()
+    on = choice in ("on", "yes", "1", "አዎ") if choice else not get_voice("telegram", chat_id)
+    set_voice("telegram", chat_id, on)
+    return [t(lang, "tg_voice_on" if on else "tg_voice_off")]
+
+
+COMMANDS.update({"/start": _cmd_start, "/help": _cmd_help, "/lang": _cmd_lang, "/voice": _cmd_voice})
 
 
 # ------------------------------------------------------------------ long polling
 async def _handle_update(update: dict) -> None:
+    if update.get("callback_query"):
+        return await _handle_callback(update["callback_query"])
     message = update.get("message") or {}
     chat_id = (message.get("chat") or {}).get("id")
     if chat_id is None:
         return
+    note = message.get("voice") or message.get("audio")
+    if note and not message.get("text"):
+        return await _handle_voice(chat_id, note)
+    text = message.get("text") or ""
     try:
-        replies = await handle_message(chat_id, message.get("text") or "")
+        replies = await handle_message(chat_id, text)
     except Exception as exc:
         log.error("handler error: %s", type(exc).__name__)
         return
-    for reply in replies:
-        await send_message(chat_id, reply)
+    await _deliver(chat_id, replies, question=bool(text.strip()) and not text.startswith("/"), spoken_input=False)
+
+
+# ------------------------------------------------------------------ answers in voice
+# The text of recent answers, so "🔊 Listen" can speak one later. In memory only, never stored.
+_answers: "OrderedDict[str, tuple[str, str]]" = OrderedDict()
+_ANSWERS_KEPT = 300
+
+
+def _remember_answer(text: str, lang: str) -> str:
+    key = secrets.token_urlsafe(8)
+    _answers[key] = (text, lang)
+    while len(_answers) > _ANSWERS_KEPT:
+        _answers.popitem(last=False)
+    return key
+
+
+async def _deliver(chat_id, replies: list, question: bool, spoken_input: bool) -> None:
+    """Send the replies. For an answer to a question: a "🔊 Listen" button under it, and the
+    answer in voice straight away when the learner spoke, or turned voice answers on (/voice on)."""
+    lang = get_lang("telegram", str(chat_id))  # after the reply: "/lang am" said aloud changes it
+    for i, reply in enumerate(replies):
+        buttons = None
+        if question and i == 0:
+            buttons = [(t(lang, "tg_listen_button"), "listen:" + _remember_answer(reply, lang))]
+        await send_message(chat_id, reply, buttons)
+    if question and replies and (spoken_input or get_voice("telegram", str(chat_id))):
+        await _say(chat_id, replies[0], lang)
+
+
+async def _say(chat_id, text: str, lang: str) -> bool:
+    await _chat_action(chat_id, "record_voice")
+    spoken = await asyncio.to_thread(voice.speak, voice.spoken_part(text, lang), lang)
+    if spoken and await send_voice(chat_id, *spoken):
+        return True
+    await send_message(chat_id, t(lang, "tg_voice_unavailable"))
+    return False
+
+
+async def _handle_callback(query: dict) -> None:
+    client, token = _state["client"], telegram_token()
+    chat_id = ((query.get("message") or {}).get("chat") or {}).get("id")
+    data = query.get("data") or ""
+    if client and token:
+        try:  # stop the button's loading spinner at once
+            await client.post(API.format(token=token, method="answerCallbackQuery"), json={"callback_query_id": query.get("id")})
+        except httpx.HTTPError:
+            pass
+    if chat_id is None or not data.startswith("listen:"):
+        return
+    found = _answers.get(data.split(":", 1)[1])
+    if not found:
+        await send_message(chat_id, t(get_lang("telegram", str(chat_id)), "tg_listen_expired"))
+        return
+    await _say(chat_id, *found)
+
+
+# ------------------------------------------------------------------ voice messages
+async def _chat_action(chat_id, action: str) -> None:
+    client, token = _state["client"], telegram_token()
+    if client and token:
+        try:
+            await client.post(API.format(token=token, method="sendChatAction"), json={"chat_id": chat_id, "action": action})
+        except httpx.HTTPError:
+            pass
+
+
+async def _download(file_id: str) -> bytes | None:
+    client, token = _state["client"], telegram_token()
+    try:
+        resp = await client.get(API.format(token=token, method="getFile"), params={"file_id": file_id})
+        path = resp.json().get("result", {}).get("file_path")
+        if not path:
+            return None
+        resp = await client.get(f"https://api.telegram.org/file/bot{token}/{path}")
+        return resp.content if resp.status_code == 200 and len(resp.content) <= voice.MAX_BYTES else None
+    except (httpx.HTTPError, ValueError) as exc:
+        log.warning("voice download failed: %s", type(exc).__name__)
+        return None
+
+
+async def send_voice(chat_id, audio: bytes, mime: str) -> bool:
+    """A voice reply. Telegram plays MP3 and OGG/Opus as a voice message; other audio as a file."""
+    client, token = _state["client"], telegram_token()
+    if not (client and token and _state["running"]):
+        return False
+    if mime in ("audio/mpeg", "audio/ogg"):
+        attempts = [("sendVoice", "voice", "mimi.ogg" if mime == "audio/ogg" else "mimi.mp3")]
+    else:  # WAV: not a voice message; try as audio, then as a file the learner can still play
+        attempts = [("sendAudio", "audio", "mimi.wav"), ("sendDocument", "document", "mimi.wav")]
+    for method, field, name in attempts:
+        try:
+            resp = await client.post(API.format(token=token, method=method), data={"chat_id": str(chat_id)}, files={field: (name, audio, mime)})
+        except httpx.HTTPError as exc:
+            log.warning("%s failed: %s", method, type(exc).__name__)
+            continue
+        if resp.status_code == 200:
+            return True
+        log.warning("%s refused (HTTP %s)", method, resp.status_code)
+    return False
+
+
+async def _handle_voice(chat_id, note: dict) -> None:
+    """Voice in, text and voice out: the learner sees what Mimi heard, reads the answer and hears it."""
+    lang = get_lang("telegram", str(chat_id))
+    if voice.too_long(note):
+        await send_message(chat_id, t(lang, "tg_voice_too_long"))
+        return
+    await _chat_action(chat_id, "typing")
+    audio = await _download(note.get("file_id", ""))
+    if not audio:
+        await send_message(chat_id, t(lang, "tg_voice_failed"))
+        return
+    try:
+        heard = await asyncio.to_thread(voice.transcribe, audio, note.get("mime_type") or "audio/ogg", lang)
+    except voice.SpeechError as exc:
+        log.warning("voice transcription unavailable: %s", type(exc).__name__)
+        await send_message(chat_id, t(lang, "tg_voice_failed"))
+        return
+    if not heard:
+        await send_message(chat_id, t(lang, "tg_voice_empty"))
+        return
+    await send_message(chat_id, t(question_lang(heard) or lang, "tg_voice_heard", text=heard))
+    try:
+        replies = await handle_message(chat_id, heard)
+    except Exception as exc:
+        log.error("handler error: %s", type(exc).__name__)
+        return
+    await _deliver(chat_id, replies, question=True, spoken_input=True)
 
 
 async def _poll_forever(token: str) -> None:
@@ -149,7 +315,7 @@ async def _poll_forever(token: str) -> None:
     log.info("Telegram bot @%s is polling.", _state["username"])
     while True:
         try:
-            params = {"timeout": 25, "allowed_updates": '["message"]'}
+            params = {"timeout": 25, "allowed_updates": '["message", "callback_query"]'}
             if offset is not None:
                 params["offset"] = offset
             resp = await client.get(API.format(token=token, method="getUpdates"), params=params)

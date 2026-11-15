@@ -13,6 +13,9 @@ JOBS_FILE = REPO_ROOT / "data" / "jobs.json"
 try:  # .env is optional; load the project's server config regardless of launch directory
     from dotenv import load_dotenv
 
+    # The one settings file is .env at the project root (as for the tutor server, server/app.py);
+    # server/.env is the older location, still read. Neither overrides a real environment variable.
+    load_dotenv(dotenv_path=REPO_ROOT / ".env")
     load_dotenv(dotenv_path=SERVER_DIR / ".env")
 except Exception:  # pragma: no cover
     pass

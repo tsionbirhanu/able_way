@@ -175,9 +175,10 @@ No feature depends on a paid service: every AI and voice provider can be swapped
 
 **Finished and tested:** the tutor in Amharic and English with sources and refusals; voice in and out,
 with captions; one-click help with the conversation passed on; screen sharing with a visible stop
-control; Telegram, SMS (plain text, 160 characters) and `/lite`; job answers, job alerts and interview
+control; Telegram (typed questions and voice messages: Mimi shows what she heard, answers in text with a "🔊 Listen" button, or always in voice too with `/voice on`, and
+replies with a voice message), SMS (plain text, 160 characters) and `/lite`; job answers, job alerts and interview
 accommodation requests; simple mode; teacher view; the pluggable AI layer with an offline mode; the
-API with `/docs`, OpenAPI and a webhook; schema.org JobPosting; Docker Compose; 63 automated tests
+API with `/docs`, OpenAPI and a webhook; schema.org JobPosting; Docker Compose; 74 automated tests
 (`pytest server/tests tests`) and an axe-core check (`tests/a11y`), currently clean.
 
 **Not finished or not yet verified:**

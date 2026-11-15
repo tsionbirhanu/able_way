@@ -89,8 +89,9 @@ STRINGS = {
     },
     "tg_help": {
         "en": (
-            "Type any question and I will answer from the course pages.\n\n"
+            "Type a question, or send a voice message, and I will answer from the course pages.\n\n"
             "/lang - choose Amharic or English\n"
+            "/voice on - get every answer as a voice message too (/voice off to stop)\n"
             "/jobs - newest virtual assistant jobs\n"
             "/subscribe <word> - get job alerts (for example /subscribe calendar)\n"
             "/unsubscribe - stop job alerts\n"
@@ -99,8 +100,9 @@ STRINGS = {
             "/cancel - stop what you are doing"
         ),
         "am": (
-            "ማንኛውንም ጥያቄ ይጻፉ፤ ከትምህርቱ ገጾች እመልሳለሁ።\n\n"
+            "ማንኛውንም ጥያቄ ይጻፉ ወይም የድምፅ መልእክት ይላኩ፤ ከትምህርቱ ገጾች እመልሳለሁ።\n\n"
             "/lang - አማርኛ ወይም እንግሊዝኛ ይምረጡ\n"
+            "/voice on - እያንዳንዱን መልስ በድምፅም ያግኙ (ለማቆም /voice off)\n"
             "/jobs - አዳዲስ የቨርቹዋል ረዳት ስራዎች\n"
             "/subscribe <ቃል> - የስራ ማሳወቂያ ያግኙ (ለምሳሌ /subscribe calendar)\n"
             "/unsubscribe - የስራ ማሳወቂያ ያቁሙ\n"
@@ -130,8 +132,39 @@ STRINGS = {
     "tg_cancelled": {"en": "Cancelled.", "am": "ተሰርዟል።"},
     "tg_nothing_to_cancel": {"en": "Nothing to cancel.", "am": "የሚሰረዝ ነገር የለም።"},
     "tg_text_only": {
-        "en": "I can only read text messages for now.",
-        "am": "ለጊዜው የጽሑፍ መልእክት ብቻ ነው ማንበብ የምችለው።",
+        "en": "Please send a text or a voice message.",
+        "am": "እባክዎ የጽሑፍ ወይም የድምፅ መልእክት ይላኩ።",
+    },
+    # ---- voice messages ----
+    "tg_voice_heard": {"en": "🎤 I heard: {text}", "am": "🎤 የሰማሁት፦ {text}"},
+    "tg_voice_empty": {
+        "en": "I could not hear any words in that voice message. Please try again, or type your question.",
+        "am": "በድምፅ መልእክቱ ውስጥ ቃላት መስማት አልቻልኩም። እባክዎ እንደገና ይሞክሩ ወይም ጥያቄዎን ይጻፉ።",
+    },
+    "tg_voice_failed": {
+        "en": "I cannot listen to voice messages right now. Please type your question.",
+        "am": "አሁን የድምፅ መልእክት ማዳመጥ አልችልም። እባክዎ ጥያቄዎን ይጻፉ።",
+    },
+    "tg_listen_button": {"en": "🔊 Listen", "am": "🔊 ያዳምጡ"},
+    "tg_listen_expired": {
+        "en": "That answer is no longer available to play. Please ask again.",
+        "am": "ያ መልስ ለማዳመጥ አይገኝም። እባክዎ እንደገና ይጠይቁ።",
+    },
+    "tg_voice_unavailable": {
+        "en": "I cannot speak right now. The answer is in the text above.",
+        "am": "አሁን መናገር አልችልም። መልሱ ከላይ በጽሑፍ አለ።",
+    },
+    "tg_voice_on": {
+        "en": "Voice answers are on: I will send every answer as text and as a voice message. Send /voice off to stop.",
+        "am": "የድምፅ መልስ በርቷል፦ እያንዳንዱን መልስ በጽሑፍና በድምፅ እልካለሁ። ለማቆም /voice off ይላኩ።",
+    },
+    "tg_voice_off": {
+        "en": "Voice answers are off. Press 🔊 Listen under any answer to hear it, or send /voice on.",
+        "am": "የድምፅ መልስ ጠፍቷል። ማንኛውንም መልስ ለመስማት ከሱ በታች ያለውን 🔊 ያዳምጡ ይጫኑ፣ ወይም /voice on ይላኩ።",
+    },
+    "tg_voice_too_long": {
+        "en": "That voice message is too long. Please keep it under two minutes.",
+        "am": "የድምፅ መልእክቱ በጣም ረጅም ነው። እባክዎ ከሁለት ደቂቃ በታች ያድርጉት።",
     },
     # ---- accommodation ----
     "acc_title": {"en": "Interview support request", "am": "የቃለ መጠይቅ ድጋፍ መጠየቂያ"},
