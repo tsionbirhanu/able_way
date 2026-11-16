@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Ableway multilingual assistant (Mimi)
   version: 1.0.0
-  summary: Track 3 module, Digital Bridge Accessibility Hackathon 2026.
+  summary: Mimi, a multilingual course tutor (Amharic and English) with live help.
   description: |
     A course tutor that answers in Amharic and English only from course content, with sources, plus
     one-click help from a person, an SMS route and a webhook.

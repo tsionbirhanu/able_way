@@ -1,6 +1,6 @@
 # WCAG 2.2 AA conformance report: Mimi (`<db-assistant>`)
 
-**Scope.** The Track 3 module only: `module/db-assistant.js`, its stylesheet and language files, as it
+**Scope.** The Mimi module only: `module/db-assistant.js`, its stylesheet and language files, as it
 runs on the three Savanna starter pages, `pages/jobs.html` and the plain page `demo/blank.html`. Also
 the learner pages of the help desk (`/handoff/chat`) and the no-JavaScript `/lite` page. The Savanna
 starter pages themselves are out of scope; their own defects are listed at the end because some
@@ -16,7 +16,7 @@ affect learners reaching Mimi.
 - Scripted keyboard runs in Microsoft Edge (Enter, Escape, Tab, number keys) with focus checked after
   each step.
 - 320 px wide and the 200 % zoom equivalent (640 px), with and without the WCAG 1.4.12 text spacing.
-- Not yet done: NVDA, TalkBack and the co-designer's own device. Statuses that depend on them say so.
+- Not yet done: NVDA, TalkBack and a disabled learner's own device. Statuses that depend on them say so.
 
 | WCAG 2.2 criterion | Level | Status | Notes |
 |---|---|---|---|
@@ -112,5 +112,5 @@ Not fixed, because the guide says not to change the host's files. Listed so the 
 |---|---|---|
 | Team, automated | Windows 11, Microsoft Edge (headless): axe-core 4.10.2, scripted keyboard runs, 320 px and 640 px widths, text spacing, Slow 3G | As in the table above |
 | Team, by hand | *To fill in: device, browser, keyboard only / screen reader* | *To fill in* |
-| Co-designer | *To fill in: their own phone and screen reader (for example Android, TalkBack)* | *To fill in: what they completed alone, and what they could not do* |
+| Learner tester | *To fill in: their own phone and screen reader (for example Android, TalkBack)* | *To fill in: what they completed alone, and what they could not do* |
 | NVDA | *To fill in after testing* | *To fill in* |

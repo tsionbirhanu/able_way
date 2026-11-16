@@ -447,7 +447,7 @@
 
   // The controls sit wherever the learner is looking: in the chat when it is open, else the card.
   function placeVoiceBar() {
-    // "Larger text" and "Listen automatically" go with the learner too: the co-designer could not
+    // "Larger text" and "Listen automatically" go with the learner too: a tester could not
     // find them once the chat was open, because they stayed on the (hidden) card.
     if (state.open) {
       panel.insertBefore(controls, form);
@@ -1844,7 +1844,7 @@
   // one sentence in English, so a learner who does not understand Amharic still knows what to press.
   // Spoken: a short introduction (about five seconds, so it does not talk over a screen reader for
   // long), then one sentence in the other language. Shown in the chat: the full introduction.
-  // Co-designer tests: hearing one text and reading another was confusing, a greeting that switched
+  // User tests: hearing one text and reading another was confusing, a greeting that switched
   // language mid-sentence was confusing, and an English speaker could not follow "how to switch to
   // English" said in Amharic. So: the greeting whole in the page's language, then ONE separate
   // sentence in the other language, in that language's voice ("For English, say English, or press

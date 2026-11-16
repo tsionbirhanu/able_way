@@ -1397,7 +1397,7 @@ textarea::placeholder {
 }
 
 /* ------------------------------------------------------------------------------------------------
-   Readable for everyone (co-designer feedback and WCAG 1.4.4 / 1.4.12 / 2.5.8): no text under 15 px,
+   Readable for everyone (user testing and WCAG 1.4.4 / 1.4.12 / 2.5.8): no text under 15 px,
    conversation text at 18 px with generous line spacing (more for Amharic), and every control at
    least 44 px high. Each size is max(rem, px): it grows with the learner's own text size, and a host
    page that shrinks its base size (Savanna uses 14 px) cannot make Mimi's text smaller.
@@ -1550,7 +1550,7 @@ a.cite {
 }
 
 /* ------------------------------------------------------------------------------------------------
-   Co-designer round 2: three text sizes, "Press to talk" as the main button, a calm listening colour,
+   User testing, round 2: three text sizes, "Press to talk" as the main button, a calm listening colour,
    dark mode, and the host's own brand colour when it is readable.
    ------------------------------------------------------------------------------------------------ */
 

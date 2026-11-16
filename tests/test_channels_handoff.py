@@ -165,7 +165,7 @@ def test_server_starts_without_telegram_token(client):
 
 
 def test_sms_reply_is_plain_text_by_default(client):
-    """The Track 3 brief: POST /sms/inbound {from, text} returns the reply as plain text, at most 160."""
+    """The SMS route: POST /sms/inbound {from, text} returns the reply as plain text, at most 160."""
     resp = client.post("/sms/inbound", json={"from": "0911000009", "text": "is AI the future? " * 30})
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/plain")

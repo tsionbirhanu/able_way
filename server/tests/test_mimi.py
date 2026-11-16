@@ -288,7 +288,7 @@ class HttpApi(unittest.TestCase):
         with urllib.request.urlopen(self.base + "/data/jobs.json") as r:  # the one public file in data/
             self.assertEqual(r.status, 200)
 
-    def test_track3_contract_routes(self):
+    def test_api_contract_routes(self):
         status, _, body = self.post("/api/v1/ask", {"question": "Is the VA profession shrinking?", "lang": "en"})
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(body)["sources"][0]["url"], "pages/concept-with-navigation.html")

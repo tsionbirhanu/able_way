@@ -89,7 +89,7 @@ def validate(body: dict) -> tuple[dict | None, str]:
     context = body.get("context") if isinstance(body.get("context"), dict) else None
     return {
         "question": question,
-        # "language" is the Track 3 contract's name for it; "lang" is what the widget sends.
+        # "language" is the API contract's name for it; "lang" is what the widget sends.
         "lang": next((v for v in (body.get("language"), body.get("lang")) if v in ("en", "am")), None),
         "simple": body.get("simple") is True,
         "history": history,
@@ -207,7 +207,7 @@ class Handler(BaseHTTPRequestHandler):
         self._json(200, {**result, "session_id": session_id})
 
     def _add_content(self):
-        """Track 3 data contract: POST /api/v1/content indexes extra lessons ({"chunks": [...]})."""
+        """API contract: POST /api/v1/content indexes extra lessons ({"chunks": [...]})."""
         body = self._read_json()
         if body is None:
             return None
@@ -237,7 +237,7 @@ class Handler(BaseHTTPRequestHandler):
         self._json(201 if added else 200, {"status": "indexed", "added": len(added), "total_chunks": len(tutor.index.chunks)})
 
     def _escalation(self):
-        """Track 3 data contract: POST /api/v1/escalations {conversation, language} -> {ticketId}.
+        """API contract: POST /api/v1/escalations {conversation, language} -> {ticketId}.
 
         Opens a real ticket on the help desk (server/main.py, /handoff), with the conversation so far,
         so the tutor in the console sees what the learner already asked."""

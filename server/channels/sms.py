@@ -22,7 +22,7 @@ from .web import render
 
 router = APIRouter(prefix="/sms", tags=["sms"])
 
-SMS_LIMIT = 160  # one SMS, as the Track 3 brief requires: replies are at most this long
+SMS_LIMIT = 160  # one SMS, as the SMS route requires: replies are at most this long
 
 
 def fit_sms(text: str, limit: int = SMS_LIMIT) -> str:
