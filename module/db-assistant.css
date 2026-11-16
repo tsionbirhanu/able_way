@@ -571,9 +571,10 @@ textarea::placeholder {
 .lang-badge {
   display: inline-block;
   margin-top: 6px;
-  padding: 1px 8px;
+  padding: 1px 10px;
   border: 1px solid #dbe6f2;
-  border-radius: 999px;
+  /* Not a full pill: on a narrow phone, at large text, the label wraps, and a pill shape would cut it. */
+  border-radius: 12px;
   font-size: 0.8125rem;
   font-weight: 600;
 }

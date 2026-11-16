@@ -7,6 +7,8 @@
   - Tsion Birhanu: AI engineer and DevOps
   - Dagmawit Negash: full-stack developer
   - Hermela Kassahun: project manager
+- **Try it on Telegram:** [@mimi_tutor_liveBot](https://t.me/mimi_tutor_liveBot) (the free server
+  sleeps when idle, so the first reply can take up to a minute)
 
 ## What it does
 
@@ -22,6 +24,120 @@ Learners who get stuck in English, and learners who are blind, Deaf, have low vi
 keyboard. For example: a blind learner on a low-cost Android phone asks in Amharic, by voice, what the
 late policy of their course is, hears the answer with its source, and reaches a tutor when the answer
 is not enough, with nobody helping.
+
+## A tour of every feature
+
+### 1. She asks before anything leaves the website
+
+On the first visit Mimi asks, in Amharic and English, whether she may use online AI and voice. Until
+the learner answers, nothing is spoken, sent or recorded. "No, text only" keeps every answer on the
+host's own server.
+
+![Mimi asks for consent in Amharic and English before starting](docs/screenshots/consent.png)
+
+### 2. A greeting in Amharic, and one sentence to switch
+
+Mimi greets the learner in the page's language and says, in the other language's own voice, how to
+switch ("For English, say "English", or press 2"). The two big buttons do the same.
+
+![Mimi's greeting in Amharic, with the English switch hint](docs/screenshots/greeting-amharic.png)
+
+### 3. Press to talk, and see your words as you speak
+
+One large "Press to talk" button. While listening it turns green; the learner's words appear as they
+speak (on the right), and Mimi's answer appears word by word as she says it (on the left), so Deaf and
+hard-of-hearing learners read exactly what is spoken. The lesson section she is talking about is
+outlined on the page.
+
+![Listening: green Press to talk button, the answer with sources, the section outlined on the page](docs/screenshots/listening.png)
+
+### 4. Every answer shows where it comes from
+
+Each sentence about the course carries a number like [1], and the sources list links straight to the
+section of the lesson. A learner can always check the answer.
+
+![An answer with three numbered sources linking to the lesson](docs/screenshots/answer-sources.png)
+
+### 5. "I don't know" instead of a made-up answer
+
+A question that is not in the course (here "Who won the World Cup?") is not sent to the AI at all.
+Mimi says so plainly and offers a person: press "Talk to a person", or just say "4". Shown here in
+dark mode, on a plain page with no Savanna styles: Mimi works on any website.
+
+![Off-topic question: Mimi says it is not in the course and offers a person, dark mode](docs/screenshots/dark-off-topic.png)
+
+### 6. Explain this: select any text
+
+Select any part of the lesson and an "Explain this" button appears next to it. Mimi explains that exact
+passage in simple words, in the learner's language, citing its section.
+
+![The Explain this button next to selected lesson text](docs/screenshots/explain-chip.png)
+
+### 7. Read the lesson to me
+
+Mimi goes through the lesson section by section: she outlines the section on the page, explains it in a
+few simple sentences, and waits for "next", "repeat" or "stop" (spoken, or as buttons).
+
+![Read the lesson to me: the section outlined, with Next section, Repeat and Stop reading buttons](docs/screenshots/read-lesson.png)
+
+### 8. Settings the learner controls
+
+Language, simple words, online AI and voice on or off, three text sizes, listen automatically, download
+the chat, clear the chat. The choices are remembered on the learner's own device.
+
+![The settings: language, simple words, online AI, text size, listen automatically](docs/screenshots/settings.png)
+
+### 9. On a phone
+
+On a phone the chat fills the visible screen, with large text and 44-pixel controls, even on host pages
+that are wider than the phone. Tested at 320, 360, 390 and 412 pixels wide, at every text size.
+
+<img src="docs/screenshots/phone-chat.png" alt="Mimi on a 390 pixel wide phone: an answer with its source" width="320">
+
+### 10. A real person, one click away
+
+"Talk to a person" opens a live chat with a tutor. The tutor sees the conversation with Mimi so far, so
+the learner does not have to repeat anything. The learner can also share their screen, with a visible
+stop button.
+
+![The learner's help chat, with the conversation passed on](docs/screenshots/help-chat.png)
+
+![The tutor console: open tickets and the conversation before the hand-off](docs/screenshots/tutor-console.png)
+
+### 11. Telegram, by text or by voice
+
+The same tutor on Telegram. Send a voice message in Amharic or English: Mimi shows what she heard,
+answers in text with sources, and replies by voice. Every answer has a "🔊 Listen" button. Off-topic
+questions get "I don't know" and `/human` connects to a tutor in the same console.
+
+![Telegram: an Amharic voice question, the consent buttons, and the answer](docs/screenshots/telegram-voice.png)
+
+![Telegram: the answer with sources, a voice reply, and /human connecting to a tutor](docs/screenshots/telegram-human.png)
+
+### 12. SMS and a no-JavaScript page, for the slowest phones
+
+By SMS, answers fit in one message (160 characters). `/lite` is a plain HTML form with no JavaScript at
+all, for very slow connections.
+
+![The SMS simulator: HELP, a question, and a 134-character answer](docs/screenshots/sms-simulator.png)
+
+![The lite page: a plain form with the answer and its source](docs/screenshots/lite.png)
+
+### 13. Jobs, with accessibility built in
+
+The job board lists remote jobs in English and Amharic, each with "Listen to summary" and "Request
+accommodation" (handled privately by a person, never shown to the employer). Every job is described
+in schema.org JobPosting.
+
+![The job board with Mimi open](docs/screenshots/jobs.png)
+
+### 14. What learners ask, with no names
+
+The teacher view shows the most-asked questions and the ones Mimi could not answer (the gaps in the
+course), by language and channel. Only the question text, language, channel and date are kept: no
+names, phone numbers or chat ids.
+
+![The teacher view: most asked questions, by language, by channel, and the questions that got I don't know](docs/screenshots/teacher-view.png)
 
 ## Run it
 
@@ -114,21 +230,27 @@ For "Talk to a person" on the phone, run a second tunnel for port 8000 and put i
 
 ### Deploy online (Render, free plan)
 
-[render.yaml](render.yaml) describes two web services from this repository: **ableway-tutor** (the
-pages, Mimi and the AI) and **ableway-channels** (talk to a person, Telegram, SMS, `/lite`). In
-Render, create a Blueprint from the repository, then set these in each service's **Environment** tab:
+The project runs as **two web services** from this one repository: the **tutor** (the pages, Mimi and
+the AI) and the **help desk** (talk to a person, Telegram, SMS, `/lite`, teacher view). Either create a
+Blueprint from [render.yaml](render.yaml), which sets up both, or create them by hand with
+**New → Web Service**, language **Python 3** (not Docker), build command
+`pip install -r requirements.txt`, and:
 
-| Service | Setting | Value |
+| | Tutor (for example `mimi-tutor`) | Help desk (for example `mimi-helpdesk`) |
 |---|---|---|
-| ableway-tutor | `GEMINI_API_KEY` | your key |
-| ableway-tutor | `CHANNELS_URL` | the channels service's address, e.g. `https://ableway-channels.onrender.com` |
-| ableway-channels | `PUBLIC_BASE_URL` | the same address (its own) |
-| ableway-channels | `GEMINI_API_KEY` | the same key, so Telegram and SMS answers use the AI too |
-| ableway-channels | `TELEGRAM_BOT_TOKEN` | a bot made for the hosted server (keep a separate bot for your laptop) |
+| Start command | `ABLEWAY_HOST=0.0.0.0 ABLEWAY_PORT=$PORT python server/app.py` | `uvicorn server.main:app --host 0.0.0.0 --port $PORT` |
+| Health check path | `/api/health` | `/telegram/status` |
+| `GEMINI_API_KEY` | your key | the same key, so Telegram and SMS answers use the AI too |
+| `ABLEWAY_PROVIDERS`, `ABLEWAY_GEMINI_MODEL` | `gemini,offline`, `gemini-3.5-flash-lite` | the same |
+| `CHANNELS_URL` | the help desk's address, e.g. `https://mimi-helpdesk.onrender.com` | |
+| `PUBLIC_BASE_URL` | | its own address, the same as above |
+| `CORE_ASK_IMPORT` | | `server.core_bridge:ask` |
+| `TUTOR_PASSWORD` | | a strong password for the tutor console |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODE` | | a bot made for the hosted server (keep a separate bot for your laptop), `webhook` |
 
-`TUTOR_PASSWORD` is generated by Render (see the channels service's Environment tab), and
-`TELEGRAM_MODE=webhook` is already set: Telegram then sends each message to the server, which also
-wakes it. On the free plan a service sleeps after 15 minutes without visits; the first request after
+Addresses have no `/` at the end. With `TELEGRAM_MODE=webhook`, Telegram sends each message to the
+server, which also wakes it; `https://<help desk>/telegram/status` should then show
+`"running": true, "mode": "webhook"`. On the free plan a service sleeps after 15 minutes without visits; the first request after
 that (a page, "Talk to a person", a Telegram message) takes up to about a minute. Open both addresses
 once before a demo. Data in SQLite is reset when a free service restarts.
 
@@ -244,25 +366,73 @@ at all. A new provider is one class in `server/providers.py`.
   the LMS would pass the course and lesson as launch claims, which map to the `course` and `lesson`
   attributes. No learner identity is needed for answers.
 
-## How Mimi answers (RAG) and its quality
+## The AI: grounded RAG, built for Amharic
 
-Mimi is a retrieval-augmented tutor:
+Mimi is a **retrieval-augmented generation (RAG)** tutor. The AI never answers from what it happens
+to know: every answer is built from the learner's own course pages, every claim is tied to a numbered
+source, and a question the course does not cover never reaches the AI at all.
 
-1. **Retrieve.** The course pages are split by their headings (`server/extract.py`), and each question
-   is matched against them with BM25 keyword search (`server/retrieval.py`). Amharic questions are
-   turned into English search words with a word list (`server/data/glossary_am.json`) and, with AI,
-   a translation.
-2. **Check.** If more than half of the question's words are not in the matched course text, it is not
-   a course question: Mimi says so and offers a person, **without calling the AI at all**.
-3. **Generate.** Only the matched sections go to the AI, which must answer from them in the learner's
-   language and cite them `[1]`. An answer without a real citation is not shown as sourced.
-4. **No AI:** the matched course text is quoted directly, with the same sources.
+```mermaid
+flowchart LR
+    Q["Question<br/>(Amharic or English,<br/>typed or spoken)"] --> N["Normalise Amharic<br/>same-sound letters,<br/>consonant skeleton"]
+    N --> X["Expand<br/>Amharic course-term list<br/>(AI translation only if needed)"]
+    X --> R["Retrieve<br/>BM25 over 61 course sections<br/>and job listings"]
+    R --> G{"Coverage gate<br/>over half the words<br/>in the course?"}
+    G -- no --> NF["I don't know +<br/>offer a person<br/>(no AI call)"]
+    G -- yes --> L["Generate<br/>Gemini Flash-Lite, local model,<br/>or offline quote"]
+    L --> V["Verify citations<br/>drop invented source numbers"]
+    V --> A["Answer with [1] [2]<br/>sources, text and voice"]
+```
 
-**Built for Amharic.** Letters that sound the same are treated as one (ሥራ = ስራ, ፀ = ጸ, ሐ = ኀ = ሀ,
-ዐ = አ), and words are also compared by their consonants only, so a vowel that speech recognition gets
-wrong (ማሰረከቢያ for ማስረከቢያ) still finds the right section. The AI uses a fixed list of Amharic
-course terms, so the learner always hears the same word for "deadline" or "assignment", and the
-voice reads abbreviations correctly (AI → ኤ አይ, 85% → 85 በመቶ).
+**The pipeline, step by step:**
+
+1. **Split the course by its headings** (`server/extract.py`). Each of the 61 sections keeps its title
+   and its anchor on the page, so a citation links to the exact place in the lesson.
+2. **Normalise Amharic** (`server/retrieval.py`). Letters that sound the same are treated as one
+   (ሥራ = ስራ, ፀ = ጸ, ሐ = ኀ = ሀ, ዐ = አ), and every word is also compared by its consonants only, so a
+   vowel that speech recognition gets wrong (ማሰረከቢያ for ማስረከቢያ) still finds the right section.
+3. **Expand the question.** Amharic questions are turned into English search words with a 78-term
+   course word list (`server/data/glossary_am.json`). Only when the list does not understand enough of
+   the question does an AI translation step run, which keeps spoken turns fast.
+4. **Retrieve with BM25,** a proven ranking method that rewards rare, specific words like "resubmission"
+   or "deadline". Course sections come first; job listings join only for job questions.
+5. **Coverage gate.** If more than half of the question's words are not in the matched course text, it
+   is not a course question: Mimi says so and offers a person, **without calling the AI**. This stops
+   made-up answers and saves cost.
+6. **Generate, grounded.** Only the matched sections go to the AI, with a tutor prompt: answer only from
+   these sources, cite each sentence `[n]`, reply in the learner's language, plain words, no Markdown
+   (it may be spoken). Course text is treated as content, never as instructions, which protects against
+   prompt injection hidden in a page.
+7. **Verify the citations** (`parse_answer` in `server/tutor.py`). A source number the AI invented is
+   removed, the rest are renumbered, and an answer with no real citation is not shown as sourced.
+8. **Cache.** Identical questions on the same section reuse the answer for a day, so popular questions
+   cost nothing after the first time.
+
+**Three ways to answer, one switch.** `ABLEWAY_PROVIDERS` lists the AI providers in order of
+preference: `gemini` (Gemini Flash-Lite in the cloud, free tier), `local` (an open model such as
+Gemma through Ollama, with no internet) and `offline` (no AI: the best-matching course sentences are
+quoted directly, with the same sources). If one fails or runs out of quota, the next answers, so Mimi
+keeps working with no AI budget at all. The learner's consent decides whether cloud providers may be
+used.
+
+**Beyond questions and answers.** The same retrieval powers "Explain this" (the selected passage and
+its section), "Read the lesson to me" (section by section), and the smart hand-off: after "I don't
+understand" or a second question the course cannot answer, Mimi offers a tutor, and the AI writes a
+one-sentence summary of the problem for the tutor (only with consent).
+
+**Why keyword retrieval (BM25) and not a vector database?** For a course of this size it is the
+better choice: course questions use the course's own words ("resubmission", "85%", "WR 100"), which
+keyword search matches exactly; good embedding models for Amharic are scarce, while our Amharic
+normalisation and word list are built for the language; it runs with no GPU and no internet, so the
+offline mode works; and every match can be explained. The retriever is one class, so a vector or
+hybrid search can be added later without changing anything else.
+
+**Voice.** Spoken answers use Microsoft Edge's natural Amharic voice (Mekdes) and English voices in the
+browser, or Azure Speech and Gemini on the server. Before speaking, abbreviations and numbers are
+rewritten so they sound right (AI → ኤ አይ, 85% → 85 በመቶ).
+
+**Consistent Amharic.** The AI uses a fixed list of Amharic course terms, so the learner always hears
+the same word for "deadline" or "assignment", whichever question they ask.
 
 **Measured.** `python server/evaluate.py` asks 30 questions (15 English, 10 Amharic including a
 misspelled one, 5 off-topic) and checks the cited section:
@@ -402,18 +572,26 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
 | `run.py` | Starts both servers in one terminal |
 | `docker-compose.yml`, `Dockerfile`, `render.yaml` | Run with Docker; deploy on Render |
 | `open-demo.bat` | Opens Edge with sound allowed, for demos |
+| `docs/screenshots/` | The screenshots in this README |
+| `LICENSE` | The MIT licence |
 
 ## Libraries
 
-| Library | Used for |
-|---|---|
-| FastAPI, Uvicorn | Channels server |
-| Jinja2, python-multipart, httpx, python-dotenv | Channels server |
-| pytest | Tests |
-| Swagger UI 5.17.14 (from jsDelivr, on `/docs` only) | API documentation page |
-| axe-core 4.10.2 (tests only) | Accessibility check |
-| lameenc (optional, not installed by default) | Converts Gemini's voice to MP3 for Telegram voice messages |
+| Library | Used for | Licence |
+|---|---|---|
+| FastAPI, Uvicorn | Help desk server | MIT, BSD-3-Clause |
+| Jinja2, python-multipart, httpx, python-dotenv | Help desk server | BSD-3-Clause, Apache-2.0, BSD-3-Clause, BSD-3-Clause |
+| pytest | Tests | MIT |
+| Swagger UI 5.17.14 (from jsDelivr, on `/docs` only) | API documentation page | Apache-2.0 |
+| axe-core 4.10.2 (tests only) | Accessibility check | MPL-2.0 |
+| lameenc (optional, not installed by default) | Converts Gemini's voice to MP3 for Telegram voice messages | LGPL-3.0 |
 
 The tutor server and the module itself use only the Python standard library and plain JavaScript.
-The Savanna starter pages and assets belong to ALX (see [docs/SAVANNA_STARTER.md](docs/SAVANNA_STARTER.md));
-we added only the two lines that load Mimi to each page.
+
+## Licence
+
+Mimi (the module, the servers, the tests and this documentation) is released under the
+[MIT licence](LICENSE). The Savanna starter pages and assets belong to ALX (see
+[docs/SAVANNA_STARTER.md](docs/SAVANNA_STARTER.md)) and are not covered by it; we added only the two
+lines that load Mimi to each page. The third-party files in `assets/` (Bootstrap, Popper, Font
+Awesome and others) keep their own licences, written at the top of each file.
