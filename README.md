@@ -1,6 +1,6 @@
 # Mimi: multilingual course tutor and live help (`<db-assistant>`)
 
-** Multilingual assistant and live help. **
+**A course tutor in Amharic and English, by voice and text, with a real person one click away.**
 
 - **Team:**
   - Hara Dejene: frontend developer
@@ -16,11 +16,12 @@ answer comes from, and says plainly when something is not in the course. One but
 learner to a person (with screen sharing the learner controls), and the same tutor answers on
 Telegram, by SMS and on a no-JavaScript page.
 
-## The main task we tested
+## Who it is for
 
-*To fill in with the co-designer.* Our working sentence: "A blind learner on a low-cost Android phone
-asks in Amharic, by voice, what the late policy of their course is, hears the answer with its source,
-and reaches a tutor when the answer is not enough, with nobody helping."
+Learners who get stuck in English, and learners who are blind, Deaf, have low vision or use only a
+keyboard. For example: a blind learner on a low-cost Android phone asks in Amharic, by voice, what the
+late policy of their course is, hears the answer with its source, and reaches a tutor when the answer
+is not enough, with nobody helping.
 
 ## Run it
 
@@ -29,8 +30,8 @@ and reaches a tutor when the answer is not enough, with nobody helping."
 You need [Git](https://git-scm.com/downloads) and [Docker Desktop](https://www.docker.com/products/docker-desktop/) (running).
 
 ```bash
-git clone https://github.com/tsionbirhanu/able_way.git
-cd able_way
+git clone https://github.com/tsionbirhanu/mimi-tutor.git
+cd mimi-tutor
 cp .env.example .env          # Windows PowerShell: copy .env.example .env
 docker compose up --build
 ```
@@ -59,7 +60,7 @@ You need **Python 3.11 or newer** ([python.org](https://www.python.org/downloads
 
 ```bash
 git clone https://github.com/tsionbirhanu/mimi-tutor.git
-cd able_way
+cd mimi-tutor
 python -m venv .venv
 # Windows:      .venv\Scripts\activate
 # macOS/Linux:  source .venv/bin/activate
@@ -133,7 +134,7 @@ once before a demo. Data in SQLite is reset when a free service restarts.
 
 ### Real SMS, free for development
 
-There is no SMS gateway at the hackathon, so `POST /sms/inbound` returns the reply as plain text (at
+Without an SMS gateway, `POST /sms/inbound` returns the reply as plain text (at
 most 160 characters) and `/sms/simulator` plays the phone. To send and receive real SMS:
 
 - **SMS Gateway for Android** (free, open source): install the app from https://sms-gate.app on an
@@ -292,8 +293,7 @@ form (`09…`, `07…`, `+251…`) are stored as `+251…`.
 - Measured on Chrome's "Slow 3G" setting (2 s latency, about 400 kbit/s), cache off: Mimi appears after
   **7.5 s** on the plain page (measured 16 November 2026). On the Savanna lesson page it is about 21 s,
   because the browser first loads Savanna's own 1.5 MB of stylesheets.
-- The module is **53 KB** compressed (script 37 KB, stylesheet 9 KB, two language files 7 KB), well
-  under the guide's 500 KB.
+- The module is **53 KB** compressed (script 37 KB, stylesheet 9 KB, two language files 7 KB).
 - **No signal on the phone:** a question is kept on the phone, Mimi says "Saved on this phone. It will
   send when you are online.", and sends it by itself when the connection is back.
 - With no internet on the server, answers still come from the offline search and FAQ.
@@ -377,7 +377,7 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
 
 **Not finished or not yet verified:**
 
-- Not yet tested by our co-designer with NVDA and TalkBack (see [CONFORMANCE.md](CONFORMANCE.md)).
+- Not yet tested by blind users with NVDA and TalkBack (see [CONFORMANCE.md](CONFORMANCE.md)).
 - The local model (Ollama) path is built and covered by tests, but not yet run with Ollama installed.
 - Amharic speech recognition is good but not perfect; names and places are often wrong. Mimi always
   shows what she heard, so the learner can correct it or type instead.
@@ -403,17 +403,17 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
 | `docker-compose.yml`, `Dockerfile`, `render.yaml` | Run with Docker; deploy on Render |
 | `open-demo.bat` | Opens Edge with sound allowed, for demos |
 
-## Libraries and their licences
+## Libraries
 
-| Library | Used for | Licence |
-|---|---|---|
-| FastAPI, Uvicorn | Channels server | MIT, BSD-3-Clause |
-| Jinja2, python-multipart, httpx, python-dotenv | Channels server | BSD-3-Clause, Apache-2.0, BSD-3-Clause, BSD-3-Clause |
-| pytest | Tests | MIT |
-| Swagger UI 5.17.14 (from jsDelivr, on `/docs` only) | API documentation page | Apache-2.0 |
-| axe-core 4.10.2 (tests only) | Accessibility check | MPL-2.0 |
-| lameenc (optional, not installed by default) | Converts Gemini's voice to MP3 for Telegram voice messages | LGPL-3.0 |
+| Library | Used for |
+|---|---|
+| FastAPI, Uvicorn | Channels server |
+| Jinja2, python-multipart, httpx, python-dotenv | Channels server |
+| pytest | Tests |
+| Swagger UI 5.17.14 (from jsDelivr, on `/docs` only) | API documentation page |
+| axe-core 4.10.2 (tests only) | Accessibility check |
+| lameenc (optional, not installed by default) | Converts Gemini's voice to MP3 for Telegram voice messages |
 
 The tutor server and the module itself use only the Python standard library and plain JavaScript.
 The Savanna starter pages and assets belong to ALX (see [docs/SAVANNA_STARTER.md](docs/SAVANNA_STARTER.md));
-we added only the two lines that load Mimi to each page. Our code: see [LICENSE](LICENSE).
+we added only the two lines that load Mimi to each page.
