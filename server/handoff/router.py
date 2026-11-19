@@ -9,6 +9,7 @@ from fastapi import APIRouter, Form, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 from server.channels.config import STATIC_DIR, public_base_url, tutor_password
+from server.channels.db import connect
 from server.channels.strings import STRINGS, norm_lang
 from server.channels.web import render
 
@@ -93,6 +94,15 @@ async def start_submit(lang: str = Form("en")):
     lang = norm_lang(lang)
     ticket_id = tickets.create_ticket(channel="web", lang=lang)
     return RedirectResponse("/handoff/chat/{}?lang={}".format(ticket_id, lang), status_code=303)
+
+
+@router.get("/chat")
+@router.get("/chat/")
+async def chat_direct(request: Request, lang: str = "en", topic: str = ""):
+    """Direct URL navigation or assistant redirection to live chat without an existing ticket ID."""
+    lang = norm_lang(lang)
+    ticket_id = tickets.create_ticket(channel="web", lang=lang, topic=topic)
+    return RedirectResponse(f"/handoff/chat/{ticket_id}?lang={lang}", status_code=303)
 
 
 @router.get("/chat/{ticket_id}")
@@ -189,6 +199,95 @@ async def api_tickets(request: Request):
     if not is_tutor(request.cookies):
         return JSONResponse({"error": "tutor login required"}, status_code=401)
     return {"tickets": tickets.list_open()}
+
+
+@router.get("/api/dashboard")
+async def api_dashboard(request: Request):
+    """Return questions log + open help-request tickets + teacher analytics + accommodation requests."""
+    if not is_tutor(request.cookies):
+        return JSONResponse({"error": "tutor login required"}, status_code=401)
+
+    from server.channels.accommodation import list_requests as list_accommodations
+    from server.teacher.router import stats as teacher_stats
+
+    with connect() as c:
+        c.executescript("""
+            CREATE TABLE IF NOT EXISTS question_tutor_status (
+                question_id INTEGER PRIMARY KEY,
+                answered INTEGER NOT NULL DEFAULT 1
+            );
+            CREATE TABLE IF NOT EXISTS ticket_schedules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id TEXT NOT NULL UNIQUE,
+                method TEXT NOT NULL DEFAULT 'chat',
+                note TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+        """)
+        questions = c.execute(
+            "SELECT q.id, q.question, q.lang, q.channel, q.matched, q.asked_on, "
+            "COALESCE(s.answered, q.matched) AS answered "
+            "FROM question_log q "
+            "LEFT JOIN question_tutor_status s ON s.question_id = q.id "
+            "ORDER BY q.id DESC LIMIT 100"
+        ).fetchall()
+        open_tickets = c.execute(
+            "SELECT t.id, t.channel, t.lang, t.topic, t.created_at, "
+            "(SELECT COUNT(*) FROM ticket_messages m WHERE m.ticket_id=t.id) AS message_count, "
+            "(SELECT text FROM ticket_messages m WHERE m.ticket_id=t.id ORDER BY m.id DESC LIMIT 1) AS last_message, "
+            "s.method AS schedule_method, s.note AS schedule_note "
+            "FROM tickets t "
+            "LEFT JOIN ticket_schedules s ON s.ticket_id = t.id "
+            "WHERE t.status='open' ORDER BY t.created_at"
+        ).fetchall()
+        total_q = c.execute("SELECT COUNT(*) AS n FROM question_log").fetchone()["n"]
+        ans_count = c.execute(
+            "SELECT COUNT(*) AS n FROM question_log q "
+            "LEFT JOIN question_tutor_status s ON s.question_id = q.id "
+            "WHERE COALESCE(s.answered, q.matched) = 1"
+        ).fetchone()["n"]
+        stats = {
+            "total_questions": total_q,
+            "answered": ans_count,
+            "unanswered": total_q - ans_count,
+            "open_tickets": c.execute("SELECT COUNT(*) AS n FROM tickets WHERE status='open'").fetchone()["n"],
+        }
+    return {
+        "stats": stats,
+        "questions": [dict(q) for q in questions],
+        "tickets": [dict(t) for t in open_tickets],
+        "teacher": teacher_stats(),
+        "accommodations": list_accommodations(),
+    }
+
+
+@router.post("/api/questions/{question_id}/mark")
+async def mark_question(request: Request, question_id: int, answered: int = Form(1)):
+    """Toggle answered/unanswered on a question log entry."""
+    if not is_tutor(request.cookies):
+        return JSONResponse({"error": "tutor login required"}, status_code=401)
+    with connect() as c:
+        c.execute(
+            "INSERT INTO question_tutor_status (question_id, answered) VALUES (?, ?) "
+            "ON CONFLICT(question_id) DO UPDATE SET answered=excluded.answered",
+            (question_id, answered),
+        )
+    return {"ok": True, "id": question_id, "answered": answered}
+
+
+@router.post("/api/tickets/{ticket_id}/schedule")
+async def schedule_help(request: Request, ticket_id: str,
+                        method: str = Form("chat"), note: str = Form("")):
+    """Record how the tutor plans to help: chat / telegram / phone / other."""
+    if not is_tutor(request.cookies):
+        return JSONResponse({"error": "tutor login required"}, status_code=401)
+    with connect() as c:
+        c.execute(
+            "INSERT INTO ticket_schedules (ticket_id, method, note) VALUES (?,?,?) "
+            "ON CONFLICT(ticket_id) DO UPDATE SET method=excluded.method, note=excluded.note",
+            (ticket_id, method[:20], note[:300])
+        )
+    return {"ok": True}
 
 
 # ------------------------------------------------------------------ static files of this feature

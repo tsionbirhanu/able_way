@@ -12,7 +12,7 @@
   var banner = document.getElementById("share-banner");
   var status = document.getElementById("share-status");
   var ICE = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
-  var stream = null, pc = null;
+  var stream = null, pc = null, pendingCandidates = [];
 
   section.hidden = false;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.RTCPeerConnection) {
@@ -24,7 +24,20 @@
   function signal(data) { chat.send({ type: "signal", data: data }); }
 
   function closePeer() {
-    if (pc) { pc.onicecandidate = null; pc.close(); pc = null; }
+    pendingCandidates = [];
+    if (pc) {
+      try {
+        pc.onicecandidate = null;
+        pc.close();
+      } catch (e) {}
+      pc = null;
+    }
+  }
+
+  function drainCandidates() {
+    while (pendingCandidates.length && pc && pc.remoteDescription) {
+      pc.addIceCandidate(pendingCandidates.shift()).catch(function () {});
+    }
   }
 
   // (Re)send the current stream to the tutor. Only ever called while the learner is sharing.
@@ -59,7 +72,10 @@
       .then(function (s) {
         stream = s;
         // Fires when the learner uses the browser's own "Stop sharing" control.
-        s.getVideoTracks()[0].onended = function () { stop(); };
+        var videoTrack = s.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.onended = function () { stop(); };
+        }
         banner.hidden = false;
         startBtn.disabled = true;
         chat.send({ type: "share", state: "started" });
@@ -78,9 +94,19 @@
     var d = m.data || {};
     if (d.request === "offer") { offer(); return; } // tutor (re)joined: no-op unless already sharing
     if (!pc) return;
-    if (d.description && d.description.type === "answer") pc.setRemoteDescription(d.description).catch(function () {});
-    else if (d.candidate) pc.addIceCandidate(d.candidate).catch(function () {});
+    if (d.description && d.description.type === "answer") {
+      pc.setRemoteDescription(d.description)
+        .then(drainCandidates)
+        .catch(function () {});
+    } else if (d.candidate) {
+      if (pc.remoteDescription) {
+        pc.addIceCandidate(d.candidate).catch(function () {});
+      } else {
+        pendingCandidates.push(d.candidate);
+      }
+    }
   });
+
   chat.on("open", function () { if (stream) { chat.send({ type: "share", state: "started" }); offer(); } });
   chat.on("closed", function () { stop(); startBtn.disabled = true; });
   window.addEventListener("pagehide", function () { stop(); });

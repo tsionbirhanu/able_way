@@ -57,6 +57,17 @@ CREATE TABLE IF NOT EXISTS question_log (
     lang TEXT NOT NULL, channel TEXT NOT NULL, matched INTEGER NOT NULL,
     asked_on TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS question_tutor_status (
+    question_id INTEGER PRIMARY KEY,
+    answered INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS ticket_schedules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id TEXT NOT NULL UNIQUE,
+    method TEXT NOT NULL DEFAULT 'chat',
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 _initialised = set()

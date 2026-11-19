@@ -190,3 +190,45 @@ def test_job_deadline_in_ethiopian_calendar_for_amharic():
     from server.channels.ethiopian import format_date
     assert format_date("2026-11-14", "am") == "5 ኅዳር 2019 ዓ.ም."
     assert format_date("2026-11-14", "en") == "14 November 2026"
+
+
+def test_tutor_dashboard_api(client):
+    # Unauthenticated requests are rejected
+    assert client.get("/handoff/api/dashboard").status_code == 401
+    assert client.post("/handoff/api/questions/1/mark", data={"answered": 0}).status_code == 401
+    assert client.post("/handoff/api/tickets/abc/schedule", data={"method": "chat", "note": ""}).status_code == 401
+
+    # Login as tutor
+    client.post("/handoff/console/login", data={"password": "test-password"})
+
+    # Create a ticket and a question
+    ticket = client.post("/handoff/tickets", json={"lang": "en", "topic": "Dashboard test"}).json()
+    tid = ticket["ticket_id"]
+    client.post("/sms/inbound", headers={"Accept": "application/json"}, json={"from": "+251911000099", "text": "Is attendance mandatory?"})
+
+    # Fetch dashboard data
+    dash = client.get("/handoff/api/dashboard")
+    assert dash.status_code == 200
+    data = dash.json()
+    assert "stats" in data and "questions" in data and "tickets" in data
+    assert "teacher" in data and "accommodations" in data
+    assert any(t["id"] == tid for t in data["tickets"])
+    q = next(item for item in data["questions"] if "attendance" in item["question"])
+    qid = q["id"]
+
+    # Mark question as unanswered (0)
+    mark_res = client.post(f"/handoff/api/questions/{qid}/mark", data={"answered": 0})
+    assert mark_res.status_code == 200 and mark_res.json()["ok"] is True
+
+    # Schedule help for the ticket
+    sched_res = client.post(f"/handoff/api/tickets/{tid}/schedule", data={"method": "telegram", "note": "Call via Telegram bot"})
+    assert sched_res.status_code == 200 and sched_res.json()["ok"] is True
+
+    # Re-fetch dashboard and verify changes
+    updated = client.get("/handoff/api/dashboard").json()
+    q_updated = next(item for item in updated["questions"] if item["id"] == qid)
+    assert q_updated["answered"] == 0
+    t_updated = next(item for item in updated["tickets"] if item["id"] == tid)
+    assert t_updated["schedule_method"] == "telegram"
+    assert t_updated["schedule_note"] == "Call via Telegram bot"
+

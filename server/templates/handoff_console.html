@@ -3,55 +3,1521 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tutor console</title>
-{% include "_p34_style.html" %}
-{% include "_p34_chat_style.html" %}
+<title>Tutor Console · ALX Savanna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-body{max-width:64rem}
-.cols{display:grid;grid-template-columns:18rem 1fr;gap:1rem}
-@media (max-width:48rem){.cols{grid-template-columns:1fr}}
-#tickets{list-style:none;padding:0;margin:0}
-#tickets button{width:100%;text-align:start;background:#fff;color:#111;border-color:#999;margin:0 0 .4rem}
-#tickets button[aria-current=true]{border-color:#0b3d91;background:#dbe7ff}
-#tickets small{display:block;color:#444;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-video{width:100%;max-height:28rem;background:#000;border-radius:4px}
-.top{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+/* ── Savanna Design System (ALX Intranet Theme) ───────────────────── */
+:root {
+  --alx-red:         #db3e3e;
+  --alx-red-dark:    #b82e2e;
+  --alx-red-light:   #fdf2f2;
+  --alx-red-border:  #fecaca;
+  --alx-red-text:    #991b1b;
+
+  --navy-dark:       #111827;
+  --navy-mid:        #1f2937;
+  --gray-bg:         #f8f9fa;
+  --gray-surface:    #ffffff;
+  --gray-border:     #e5e7eb;
+  --gray-border-subtle: #f3f4f6;
+  --text-main:       #1f2937;
+  --text-muted:      #6b7280;
+  --text-light:      #9ca3af;
+
+  --green-bg:        #f0fdf4;
+  --green-border:    #bbf7d0;
+  --green-text:      #166534;
+  --green-dot:       #22c55e;
+
+  --blue-bg:         #f0f9ff;
+  --blue-border:     #bae6fd;
+  --blue-text:       #0369a1;
+
+  --amber-bg:        #fffbeb;
+  --amber-border:    #fde68a;
+  --amber-text:      #92400e;
+
+  --radius-sm:       4px;
+  --radius-md:       8px;
+  --radius-lg:       12px;
+  --shadow-sm:       0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md:       0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg:       0 10px 15px -3px rgba(0, 0, 0, 0.08);
+
+  --font-sans:       'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Ethiopic", sans-serif;
+  --font-mono:       'JetBrains Mono', monospace;
+  --transition:      150ms ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  background-color: var(--gray-bg);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Focus & Accessibility ───────────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--alx-red); outline-offset: 2px; }
+.skip { position: absolute; left: -999px; top: auto; }
+.skip:focus {
+  left: 1rem; top: 1rem; z-index: 9999;
+  background: var(--alx-red); color: #fff;
+  padding: 0.5rem 1rem; border-radius: var(--radius-sm);
+  font-weight: 600; text-decoration: none;
+}
+
+/* ── Savanna Top Header ─────────────────────────────────────────── */
+.savanna-header {
+  background: var(--gray-surface);
+  border-bottom: 1px solid var(--gray-border);
+  box-shadow: var(--shadow-sm);
+  position: sticky; top: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.65rem 1.75rem;
+  height: 60px;
+}
+.header-brand {
+  display: flex; align-items: center; gap: 0.85rem;
+  text-decoration: none; color: inherit;
+}
+.brand-badge {
+  background: var(--alx-red);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--radius-sm);
+}
+.brand-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.brand-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  border-left: 1px solid var(--gray-border);
+  padding-left: 0.65rem;
+}
+
+.btn-signout {
+  background: transparent;
+  color: var(--alx-red);
+  border: 1px solid var(--alx-red-border);
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-signout:hover {
+  background: var(--alx-red);
+  color: #fff;
+  border-color: var(--alx-red);
+}
+
+/* ── Main App Layout ────────────────────────────────────────────── */
+.savanna-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  flex: 1;
+  min-height: calc(100vh - 60px);
+}
+@media (max-width: 980px) {
+  .savanna-layout { grid-template-columns: 1fr; }
+  .savanna-sidebar { border-right: none; border-bottom: 1px solid var(--gray-border); }
+}
+
+/* ── Savanna Left Sidebar: Navigation & Help Requests ───────────── */
+.savanna-sidebar {
+  background: var(--gray-surface);
+  border-right: 1px solid var(--gray-border);
+  display: flex; flex-direction: column;
+  max-height: calc(100vh - 60px);
+  position: sticky; top: 60px;
+}
+
+/* Sidebar Nav Links */
+.sidebar-nav-section {
+  padding: 0.85rem 0.85rem 0.4rem;
+}
+.sidebar-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 0.2rem 0.5rem 0.45rem;
+}
+.sidebar-nav-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sidebar-nav-btn {
+  width: 100%; text-align: start; background: none; border: none;
+  display: flex; align-items: center; gap: 0.65rem;
+  padding: 0.55rem 0.75rem; border-radius: var(--radius-sm);
+  color: var(--navy-dark); cursor: pointer;
+  font-family: var(--font-sans); font-size: 0.88rem; font-weight: 500;
+  transition: all var(--transition);
+}
+.sidebar-nav-btn:hover {
+  background: #fdf2f2;
+  color: var(--alx-red);
+}
+.sidebar-nav-btn.active {
+  background: var(--alx-red-light);
+  color: var(--alx-red-text);
+  font-weight: 600;
+  border-left: 3px solid var(--alx-red);
+}
+.sidebar-nav-btn .nav-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color var(--transition);
+}
+.sidebar-nav-btn:hover .nav-icon,
+.sidebar-nav-btn.active .nav-icon {
+  color: var(--alx-red);
+}
+
+.sidebar-external-link {
+  display: flex; align-items: center; gap: 0.65rem;
+  padding: 0.55rem 0.75rem; border-radius: var(--radius-sm);
+  color: var(--navy-dark); text-decoration: none;
+  font-size: 0.88rem; font-weight: 500;
+  transition: all var(--transition);
+}
+.sidebar-external-link:hover {
+  background: #fdf2f2;
+  color: var(--alx-red);
+}
+.sidebar-external-link .nav-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.sidebar-external-link:hover .nav-icon {
+  color: var(--alx-red);
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--gray-border);
+  margin: 0.4rem 0.85rem 0.5rem;
+}
+
+.sidebar-top {
+  padding: 0.4rem 1.25rem 0.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ticket-pill-count {
+  background: var(--alx-red-light);
+  color: var(--alx-red-text);
+  border: 1px solid var(--alx-red-border);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+}
+
+.ticket-items {
+  overflow-y: auto; flex: 1;
+  list-style: none; padding: 0.65rem;
+  display: flex; flex-direction: column; gap: 0.65rem;
+}
+.ticket-items::-webkit-scrollbar { width: 5px; }
+.ticket-items::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+
+.ticket-card {
+  background: var(--gray-surface);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+  overflow: hidden;
+  border-left: 3px solid transparent;
+}
+.ticket-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-md);
+}
+.ticket-card[aria-current="true"],
+.ticket-card.active {
+  border-color: var(--gray-border);
+  border-left: 3px solid var(--alx-red);
+  background: #fffafa;
+}
+
+.ticket-header-btn {
+  width: 100%; text-align: start; background: none; border: none;
+  padding: 0.8rem 0.95rem; cursor: pointer; color: inherit; font: inherit;
+  display: flex; flex-direction: column; gap: 0.35rem;
+}
+.ticket-meta-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+}
+.meta-badges { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+.badge {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-size: 0.72rem; font-weight: 600; padding: 0.12rem 0.48rem;
+  border-radius: var(--radius-sm); border: 1px solid;
+}
+.badge-web      { background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue-text); }
+.badge-telegram { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.badge-sms      { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber-text); }
+.badge-lang     { background: #f3f4f6; border-color: #e5e7eb; color: #374151; font-family: var(--font-mono); }
+.badge-plan     { background: var(--green-bg); border-color: var(--green-border); color: var(--green-text); }
+
+.ticket-time {
+  font-size: 0.72rem; color: var(--text-light); font-family: var(--font-mono);
+}
+.ticket-summary {
+  font-size: 0.86rem; color: var(--navy-dark); font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px;
+}
+
+/* Schedule / Action Panel inside card */
+.ticket-actions-box {
+  padding: 0.65rem 0.95rem 0.85rem;
+  border-top: 1px solid var(--gray-border-subtle);
+  background: #fafbfc;
+  display: flex; flex-direction: column; gap: 0.45rem;
+}
+.field-label {
+  font-size: 0.76rem; font-weight: 600; color: var(--text-muted);
+}
+.savanna-select, .savanna-textarea {
+  width: 100%; font: 0.82rem var(--font-sans); padding: 0.35rem 0.55rem;
+  background: #fff; color: var(--text-main); border: 1px solid var(--gray-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition);
+}
+.savanna-select:focus, .savanna-textarea:focus { border-color: var(--alx-red); }
+.savanna-textarea { resize: vertical; min-height: 52px; }
+
+.action-btns-row { display: flex; gap: 0.4rem; margin-top: 0.2rem; }
+.btn-savanna-primary {
+  flex: 1;
+  background: var(--alx-red); color: #fff; border: 1px solid var(--alx-red);
+  padding: 0.4rem 0.75rem; border-radius: var(--radius-sm);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; text-align: center;
+  transition: all var(--transition);
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
+}
+.btn-savanna-primary:hover { background: var(--alx-red-dark); border-color: var(--alx-red-dark); }
+
+.btn-savanna-secondary {
+  background: #fff; color: var(--text-main); border: 1px solid var(--gray-border);
+  padding: 0.4rem 0.75rem; border-radius: var(--radius-sm);
+  font-size: 0.8rem; font-weight: 500; cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-savanna-secondary:hover { background: var(--gray-border-subtle); }
+
+.empty-tickets-view {
+  padding: 3rem 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;
+}
+
+/* ── Main Workspace ─────────────────────────────────────────────── */
+.savanna-main {
+  display: flex; flex-direction: column; overflow: hidden;
+  padding: 1.25rem 1.75rem; gap: 1.25rem;
+}
+
+/* ── Top Metric Banner Cards ────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+@media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.metric-card {
+  background: var(--gray-surface);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.2rem;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; justify-content: space-between;
+  border-top: 3px solid transparent;
+}
+.metric-card.red   { border-top-color: var(--alx-red); }
+.metric-card.green { border-top-color: var(--green-dot); }
+.metric-card.blue  { border-top-color: var(--blue-text); }
+.metric-card.amber { border-top-color: #f59e0b; }
+
+.metric-label {
+  font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
+  color: var(--text-muted); letter-spacing: 0.04em;
+}
+.metric-num {
+  font-size: 2rem; font-weight: 700; color: var(--navy-dark);
+  font-family: var(--font-mono); margin-top: 0.15rem;
+}
+.metric-card.red .metric-num   { color: var(--alx-red); }
+.metric-card.green .metric-num { color: var(--green-text); }
+
+/* ── Tab Panels ─────────────────────────────────────────────────── */
+.savanna-tab-panel {
+  display: none; flex: 1; flex-direction: column;
+}
+.savanna-tab-panel.active { display: flex; }
+
+/* ── Live Chat + WebRTC Screen Share Workspace ──────────────────── */
+.chat-workspace {
+  background: var(--gray-surface);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column;
+  flex: 1;
+  min-height: 520px;
+  overflow: hidden;
+}
+.chat-workspace-header {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--gray-border);
+  background: #fafbfc;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.chat-header-title {
+  display: flex; align-items: center; gap: 0.65rem;
+}
+.chat-header-title h2 { font-size: 1.05rem; font-weight: 700; color: var(--navy-dark); }
+.presence-indicator {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.8rem; font-weight: 500; color: var(--text-muted);
+}
+.pulse-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--text-light); flex-shrink: 0;
+}
+.pulse-dot.online {
+  background: var(--green-dot);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+  animation: pulse-ring 2s infinite;
+}
+@keyframes pulse-ring { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.chat-header-tools { display: flex; align-items: center; gap: 0.5rem; }
+.btn-close-ticket {
+  background: #fff; color: var(--alx-red); border: 1px solid var(--alx-red-border);
+  padding: 0.35rem 0.8rem; border-radius: var(--radius-sm);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-close-ticket:hover { background: var(--alx-red-light); }
+
+/* ── WebRTC Screen Share Box (Savanna Live Classroom Style) ─────── */
+#screen {
+  background: #0f172a;
+  border-bottom: 1px solid var(--gray-border);
+  position: relative;
+  padding: 0.75rem;
+}
+#screen[hidden] {
+  display: none !important;
+}
+.screen-header-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  color: #fff; padding: 0.2rem 0.5rem 0.6rem;
+}
+.live-stream-badge {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: #dc2626; color: #fff;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 0.15rem 0.5rem; border-radius: var(--radius-sm);
+}
+.screen-actions { display: flex; gap: 0.5rem; }
+.btn-fullscreen {
+  background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25);
+  font-size: 0.75rem; font-weight: 500; padding: 0.2rem 0.6rem; border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.btn-fullscreen:hover { background: rgba(255,255,255,0.3); }
+
+video {
+  width: 100%;
+  max-height: 28rem;
+  background: #000;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+/* ── Chat Messages Container ────────────────────────────────────── */
+.chat-messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  background: #fdfdfd;
+}
+.chat-messages-area::-webkit-scrollbar { width: 6px; }
+.chat-messages-area::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+.chat-bubble-wrap {
+  display: flex; flex-direction: column; max-width: 78%;
+  gap: 0.2rem;
+}
+.chat-bubble-wrap.mine { align-self: flex-end; align-items: flex-end; }
+.chat-bubble-wrap.learner { align-self: flex-start; align-items: flex-start; }
+.chat-bubble-wrap.mimi { align-self: center; align-items: center; max-width: 90%; }
+
+.chat-sender-label {
+  font-size: 0.72rem; font-weight: 600; color: var(--text-muted); padding: 0 0.35rem;
+}
+.chat-bubble {
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  word-break: break-word;
+}
+.chat-bubble-wrap.mine .chat-bubble {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  border-bottom-right-radius: 2px;
+}
+.chat-bubble-wrap.learner .chat-bubble {
+  background: #ffffff;
+  border: 1px solid var(--gray-border);
+  color: var(--navy-dark);
+  border-bottom-left-radius: 2px;
+}
+.chat-bubble-wrap.mimi .chat-bubble {
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+  color: #78350f;
+  font-size: 0.85rem;
+}
+
+/* Quick reply chips */
+.quick-replies-bar {
+  padding: 0.5rem 1.25rem 0.25rem;
+  display: flex; gap: 0.4rem; overflow-x: auto;
+  border-top: 1px solid var(--gray-border-subtle);
+  background: #fafbfc;
+}
+.quick-replies-bar::-webkit-scrollbar { height: 3px; }
+.quick-chip {
+  white-space: nowrap; font-size: 0.76rem; font-weight: 500;
+  padding: 0.25rem 0.65rem; border-radius: 999px;
+  background: #fff; border: 1px solid var(--gray-border);
+  color: var(--text-muted); cursor: pointer;
+  transition: all var(--transition);
+}
+.quick-chip:hover {
+  background: var(--alx-red-light);
+  border-color: var(--alx-red-border);
+  color: var(--alx-red-text);
+}
+
+/* Chat Input Bar */
+.chat-composer-bar {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--gray-border);
+  background: var(--gray-surface);
+  display: flex; gap: 0.65rem; align-items: center;
+}
+.composer-input {
+  flex: 1; font: 0.92rem var(--font-sans);
+  padding: 0.55rem 0.95rem;
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-md);
+  outline: none; transition: border-color var(--transition);
+}
+.composer-input:focus { border-color: var(--alx-red); }
+.btn-send-reply {
+  background: var(--alx-red); color: #fff; border: 1px solid var(--alx-red);
+  padding: 0.55rem 1.25rem; border-radius: var(--radius-md);
+  font-weight: 600; font-size: 0.88rem; cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-send-reply:hover { background: var(--alx-red-dark); }
+
+.no-ticket-selected {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--text-muted); gap: 0.75rem; padding: 3rem; text-align: center;
+}
+.no-ticket-selected svg { stroke: var(--text-light); }
+
+/* ── Common Card & Table Styling (Savanna Gradebook Style) ───────── */
+.savanna-card {
+  background: var(--gray-surface);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.card-header-bar {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--gray-border);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  background: #fafbfc;
+}
+.card-header-bar h2 {
+  font-size: 1rem; font-weight: 700; color: var(--navy-dark);
+}
+.card-header-note {
+  font-size: 0.82rem; color: var(--text-muted);
+}
+
+.table-responsive { overflow-x: auto; flex: 1; }
+.savanna-table {
+  width: 100%; border-collapse: collapse; text-align: start; font-size: 0.88rem;
+}
+.savanna-table th {
+  background: #f8fafc;
+  color: var(--text-muted);
+  font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 0.75rem 1rem; border-bottom: 1px solid var(--gray-border);
+}
+.savanna-table td {
+  padding: 0.75rem 1rem; border-bottom: 1px solid var(--gray-border-subtle);
+  vertical-align: middle;
+}
+.savanna-table tbody tr:hover td { background: #fafbfc; }
+.savanna-table td.n, .savanna-table th.n { text-align: end; }
+
+/* Custom Checkbox */
+.checkbox-cell { text-align: center; width: 50px; }
+.savanna-checkbox {
+  width: 18px; height: 18px; cursor: pointer; accent-color: var(--alx-red);
+}
+
+.status-badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+}
+.status-badge.answered   { background: var(--green-bg); color: var(--green-text); border: 1px solid var(--green-border); }
+.status-badge.unanswered { background: var(--alx-red-light); color: var(--alx-red-text); border: 1px solid var(--alx-red-border); }
+
+/* Filter & Search Bar */
+.filter-btn-group { display: flex; gap: 0.35rem; }
+.filter-btn {
+  font: 500 0.82rem var(--font-sans);
+  padding: 0.3rem 0.85rem; border-radius: var(--radius-sm);
+  border: 1px solid var(--gray-border); background: #fff;
+  color: var(--text-muted); cursor: pointer; transition: all var(--transition);
+}
+.filter-btn:hover { background: var(--gray-border-subtle); color: var(--navy-dark); }
+.filter-btn.active {
+  background: var(--alx-red-light);
+  border-color: var(--alx-red-border);
+  color: var(--alx-red-text);
+  font-weight: 600;
+}
+.search-input {
+  font: 0.86rem var(--font-sans);
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-sm);
+  min-width: 220px;
+}
+.search-input:focus { border-color: var(--alx-red); }
+
+/* Two-column analytics grid */
+.analytics-pair-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+}
+@media (max-width: 800px) { .analytics-pair-grid { grid-template-columns: 1fr; } }
+
+/* Accommodations Cards Grid */
+.accommodations-grid {
+  display: grid; grid-template-columns: 1fr; gap: 1rem;
+}
+.accommodation-card {
+  background: var(--gray-surface);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.accommodation-card h3 {
+  font-size: 0.95rem; font-weight: 700; color: var(--navy-dark);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.accommodation-dl {
+  display: grid; grid-template-columns: 140px 1fr; gap: 0.4rem 1rem;
+  font-size: 0.88rem;
+}
+.accommodation-dl dt { font-weight: 600; color: var(--text-muted); }
+.accommodation-dl dd { margin: 0; color: var(--navy-dark); word-break: break-word; }
+
+.btn-handle-request {
+  align-self: flex-start;
+  background: #fff; color: var(--green-text); border: 1px solid var(--green-border);
+  padding: 0.45rem 1rem; border-radius: var(--radius-sm);
+  font-size: 0.84rem; font-weight: 600; cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-handle-request:hover {
+  background: var(--green-bg);
+}
+
+/* ── Toast Notifications ─────────────────────────────────────────── */
+#toast-container {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 99999;
+  display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none;
+}
+.savanna-toast {
+  background: #ffffff;
+  border: 1px solid var(--gray-border);
+  border-left: 4px solid var(--alx-red);
+  box-shadow: var(--shadow-lg);
+  padding: 0.65rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem; font-weight: 500;
+  color: var(--navy-dark);
+  pointer-events: auto;
+  animation: toastIn 0.2s ease forwards;
+  transition: opacity 0.3s ease;
+}
+.savanna-toast.success { border-left-color: var(--green-dot); }
+@keyframes toastIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 </style>
 </head>
 <body>
-<header class="top">
-  <h1>Tutor console</h1>
-  <p><a href="/accommodation/requests">Interview accommodation requests</a></p>
-  <form method="post" action="/handoff/console/logout"><button type="submit" class="secondary">Sign out</button></form>
-</header>
-<main class="cols">
-  <nav aria-labelledby="tickets-h">
-    <h2 id="tickets-h">Open tickets</h2>
-    <p id="tickets-status" role="status" class="note">Loading…</p>
-    <ul id="tickets"></ul>
-  </nav>
-  <section aria-labelledby="chat-h">
-    <h2 id="chat-h" tabindex="-1">Choose a ticket</h2>
-    <div id="chat" hidden>
-      <p id="status" role="status" class="note"></p>
-      <div id="screen" hidden>
-        <h3 id="screen-h">Learner's screen (view only)</h3>
-        <video id="screen-video" autoplay playsinline muted controls aria-labelledby="screen-h"></video>
-      </div>
-      <h3 id="log-h">Messages</h3>
-      <div id="log" class="log" role="log" aria-live="polite" aria-labelledby="log-h" tabindex="0"></div>
-      <form id="chat-form">
-        <label for="message">Reply to the learner</label>
-        <div class="row">
-          <input type="text" id="message" maxlength="2000" autocomplete="off" dir="auto" required>
-          <button type="submit">Send</button>
-        </div>
-      </form>
-      <button type="button" id="close-ticket" class="secondary">Close ticket</button>
+<a href="#main" class="skip">Skip to main content</a>
+
+<!-- ── Savanna Top Header ───────────────────────────────────────── -->
+<header class="savanna-header">
+  <a href="/handoff/console" class="header-brand">
+    <span class="brand-badge">ALX</span>
+    <span class="brand-title">
+      Savanna Tutor Console
+      <span class="brand-subtitle">Multilingual Live Help & Screen Share</span>
+    </span>
+  </a>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <div style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem">
+      <span class="pulse-dot online" aria-hidden="true"></span>
+      <span>Live Desk</span>
     </div>
-  </section>
-</main>
-<script src="/handoff/static/handoff_console.js"></script>
+    <form method="post" action="/handoff/console/logout" style="margin:0">
+      <button type="submit" class="btn-signout">Sign Out</button>
+    </form>
+  </div>
+</header>
+
+<!-- ── Main Layout ──────────────────────────────────────────────── -->
+<div class="savanna-layout">
+
+  <!-- ── Left Sidebar: Navigation & Help Requests ────────────────── -->
+  <aside class="savanna-sidebar" aria-label="Console Navigation and Help Requests">
+    
+    <!-- Savanna Embedded Views Switcher -->
+    <nav class="sidebar-nav-section" aria-label="Console Views">
+      <div class="sidebar-section-title">Views</div>
+      <ul class="sidebar-nav-links">
+        <li>
+          <button type="button" class="sidebar-nav-btn active" data-view="chat">
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <span>Live Chat & Screen</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidebar-nav-btn" data-view="questions">
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <span>Questions Log</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidebar-nav-btn" data-view="analytics">
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+            <span>Teacher Analytics</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidebar-nav-btn" data-view="accommodations">
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="m19 8 2 2 4-4"></path></svg>
+            <span>Accommodations</span>
+            <span class="badge badge-plan" id="accom-badge" style="margin-left:auto">0</span>
+          </button>
+        </li>
+        <li>
+          <a href="http://localhost:8001/pages/concept-with-navigation.html" target="_blank" rel="noopener" class="sidebar-external-link">
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+            <span>Preview Lesson</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-left:auto;color:var(--text-light)">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Live Help Requests -->
+    <div class="sidebar-top">
+      <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);font-weight:700">Help Requests</h2>
+      <span class="ticket-pill-count" id="ticket-badge" role="status">0</span>
+    </div>
+    <ul class="ticket-items" id="ticket-list" aria-label="Open tickets list">
+      <li class="empty-tickets-view">Loading requests…</li>
+    </ul>
+  </aside>
+
+  <!-- ── Main Workspace Area ────────────────────────────────────── -->
+  <main class="savanna-main" id="main">
+
+    <!-- Metrics Cards Strip -->
+    <section class="stats-grid" aria-label="Overview statistics">
+      <div class="metric-card red">
+        <span class="metric-label">Open Help Requests</span>
+        <span class="metric-num" id="stat-tickets">0</span>
+      </div>
+      <div class="metric-card blue">
+        <span class="metric-label">Total Questions Logged</span>
+        <span class="metric-num" id="stat-total">0</span>
+      </div>
+      <div class="metric-card green">
+        <span class="metric-label">Answered by AI/Tutor</span>
+        <span class="metric-num" id="stat-answered">0</span>
+      </div>
+      <div class="metric-card amber">
+        <span class="metric-label">Unanswered / Gaps</span>
+        <span class="metric-num" id="stat-unanswered">0</span>
+      </div>
+    </section>
+
+    <!-- ── View 1: Live Chat & WebRTC Screen Share ────────────────── -->
+    <div class="savanna-tab-panel active" role="tabpanel" id="view-chat">
+      <div class="chat-workspace">
+
+        <!-- When no ticket is open -->
+        <div class="no-ticket-selected" id="chat-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <p style="font-weight:600;color:var(--navy-dark)">Select a student help request from the sidebar</p>
+          <p style="font-size:0.84rem">You will be connected to the student via live WebSocket chat and can view their shared screen in real-time.</p>
+        </div>
+
+        <!-- When ticket is selected -->
+        <div id="chat-active" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+          <div class="chat-workspace-header">
+            <div class="chat-header-title">
+              <h2 id="active-ticket-title">Ticket —</h2>
+              <div class="presence-indicator">
+                <span class="pulse-dot" id="presence-dot" aria-hidden="true"></span>
+                <span id="presence-text">Checking status…</span>
+              </div>
+            </div>
+            <div class="chat-header-tools">
+              <button type="button" class="btn-close-ticket" id="btn-close-session">Close Ticket</button>
+            </div>
+          </div>
+
+          <!-- WebRTC Screen Sharing Container (Built-in) -->
+          <div id="screen" hidden>
+            <div class="screen-header-bar">
+              <span class="live-stream-badge">🔴 Live Screen Share (Learner)</span>
+              <div class="screen-actions">
+                <button type="button" class="btn-fullscreen" id="btn-screen-fs">Maximize</button>
+              </div>
+            </div>
+            <video id="screen-video" autoplay playsinline muted controls aria-label="Learner shared screen"></video>
+          </div>
+
+          <!-- Chat Messages Area -->
+          <div class="chat-messages-area" id="chat-log" role="log" aria-live="polite" aria-label="Conversation history">
+            <!-- Messages populated via JS -->
+          </div>
+
+          <!-- Quick Response Chips -->
+          <div class="quick-replies-bar">
+            <button type="button" class="quick-chip" data-reply="Hello! How can I assist you with this lesson?">👋 Hello! How can I help?</button>
+            <button type="button" class="quick-chip" data-reply="I see your screen now. Let's look at this step together.">🖥️ I see your screen</button>
+            <button type="button" class="quick-chip" data-reply="Could you point to where you're stuck?">❓ Where are you stuck?</button>
+            <button type="button" class="quick-chip" data-reply="ሰላም! እንዴት ልርዳዎት እችላለሁ?">🇪🇹 ሰላም! (Amharic)</button>
+            <button type="button" class="quick-chip" data-reply="Great job! You've got it right now.">✅ Great job!</button>
+          </div>
+
+          <!-- Composer Bar -->
+          <form class="chat-composer-bar" id="chat-form">
+            <label for="chat-text" class="skip">Reply message</label>
+            <input type="text" id="chat-text" class="composer-input" placeholder="Type a message to the student (Amharic or English)…" maxlength="2000" autocomplete="off" dir="auto" required>
+            <button type="submit" class="btn-send-reply">Send Reply</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── View 2: Student Questions Log ─────────────────────────── -->
+    <div class="savanna-tab-panel" role="tabpanel" id="view-questions">
+      <div class="savanna-card">
+        <div class="card-header-bar">
+          <div class="filter-btn-group" role="group" aria-label="Filter questions by status">
+            <button type="button" class="filter-btn active" data-filter="all">All Questions</button>
+            <button type="button" class="filter-btn" data-filter="answered">Answered</button>
+            <button type="button" class="filter-btn" data-filter="unanswered">Unanswered</button>
+          </div>
+          <input type="search" id="q-search-input" class="search-input" placeholder="Search questions…" aria-label="Search questions">
+        </div>
+        <div class="table-responsive">
+          <table class="savanna-table">
+            <thead>
+              <tr>
+                <th scope="col" class="checkbox-cell">Done</th>
+                <th scope="col">Student Question</th>
+                <th scope="col">Language</th>
+                <th scope="col">Channel</th>
+                <th scope="col">Date</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody id="questions-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted)">Loading questions…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── View 3: Teacher Analytics (Embedded Inside Dashboard) ─── -->
+    <div class="savanna-tab-panel" role="tabpanel" id="view-analytics">
+      
+      <!-- Most Asked Questions Card -->
+      <div class="savanna-card">
+        <div class="card-header-bar">
+          <div>
+            <h2>Most Asked Questions</h2>
+            <p class="card-header-note">Anonymous question log: only question text, language, channel and date are stored.</p>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="savanna-table">
+            <thead>
+              <tr>
+                <th scope="col">Question</th>
+                <th scope="col" class="n">Times Asked</th>
+                <th scope="col" class="n">Got "I don't know"</th>
+                <th scope="col">Last Asked</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-top-tbody">
+              <tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-muted)">Loading top questions…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Language & Channel Distribution Cards (Side-by-side) -->
+      <div class="analytics-pair-grid">
+        <div class="savanna-card">
+          <div class="card-header-bar">
+            <h2>Questions by Language</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="savanna-table">
+              <thead><tr><th scope="col">Language</th><th scope="col" class="n">Questions</th></tr></thead>
+              <tbody id="analytics-lang-tbody">
+                <tr><td colspan="2" style="text-align:center;padding:1rem;color:var(--text-muted)">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="savanna-card">
+          <div class="card-header-bar">
+            <h2>Questions by Channel</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="savanna-table">
+              <thead><tr><th scope="col">Channel</th><th scope="col" class="n">Questions</th></tr></thead>
+              <tbody id="analytics-channel-tbody">
+                <tr><td colspan="2" style="text-align:center;padding:1rem;color:var(--text-muted)">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Course Gaps: Unknown Questions Card -->
+      <div class="savanna-card">
+        <div class="card-header-bar">
+          <div>
+            <h2>Course Content Gaps (Questions that got "I don't know")</h2>
+            <p class="card-header-note">These questions reveal concepts or terms not yet covered in the current course materials.</p>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="savanna-table">
+            <thead>
+              <tr>
+                <th scope="col">Question</th>
+                <th scope="col">Language</th>
+                <th scope="col" class="n">Times Asked</th>
+                <th scope="col">Last Asked</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-unknown-tbody">
+              <tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-muted)">Loading gaps…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── View 4: Accommodations (Embedded Inside Dashboard) ─────── -->
+    <div class="savanna-tab-panel" role="tabpanel" id="view-accommodations">
+      <div class="savanna-card">
+        <div class="card-header-bar">
+          <div>
+            <h2>Interview Accommodation Requests</h2>
+            <p class="card-header-note">Private: only signed-in tutors and staff see this. Contact the learner, arrange support with the employer without naming any disability, then mark as handled.</p>
+          </div>
+          <span class="status-badge answered" id="accom-count-indicator">0 Requests Waiting</span>
+        </div>
+        <div style="padding:1.25rem">
+          <div class="accommodations-grid" id="accommodations-container">
+            <p style="text-align:center;color:var(--text-muted);padding:2rem">Loading accommodation requests…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast notifications container -->
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var ETHIOPIC = /[ሀ-፿]/;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function showToast(msg, kind) {
+    var c = $('toast-container');
+    var el = document.createElement('div');
+    el.className = 'savanna-toast ' + (kind || '');
+    el.textContent = msg;
+    c.appendChild(el);
+    setTimeout(function () {
+      el.style.opacity = '0';
+      setTimeout(function () { el.remove(); }, 300);
+    }, 3200);
+  }
+
+  function formatTimeAgo(iso) {
+    if (!iso) return '';
+    var diff = (Date.now() - new Date(iso + 'Z').getTime()) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ── State ───────────────────────────────────────────────────── */
+  var allQuestions     = [];
+  var allTickets       = [];
+  var allAccommodations = [];
+  var teacherStats     = null;
+  var currentFilter    = 'all';
+  var activeTicketId   = null;
+  var ws               = null;
+  var listeners        = {};
+
+  /* ── Global TutorConsole bus for handoff_console_screen.js ───── */
+  function emit(type, payload) {
+    (listeners[type] || []).forEach(function (fn) { fn(payload); });
+  }
+
+  window.TutorConsole = {
+    send: function (obj) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(obj));
+        return true;
+      }
+      return false;
+    },
+    on: function (type, fn) {
+      (listeners[type] = listeners[type] || []).push(fn);
+    }
+  };
+
+  /* ── Sidebar View Switcher ───────────────────────────────────── */
+  var views = ['chat', 'questions', 'analytics', 'accommodations'];
+
+  function switchView(targetView) {
+    views.forEach(function (v) {
+      var panel = $('view-' + v);
+      var sideBtn = document.querySelector('.sidebar-nav-btn[data-view="' + v + '"]');
+      var isActive = (v === targetView);
+
+      if (panel) panel.classList.toggle('active', isActive);
+      if (sideBtn) sideBtn.classList.toggle('active', isActive);
+    });
+  }
+
+  // Sidebar navigation click
+  document.querySelectorAll('.sidebar-nav-btn[data-view]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      switchView(btn.dataset.view);
+    });
+  });
+
+  /* ── Questions Rendering & Toggle ────────────────────────────── */
+  var qTbody = $('questions-tbody');
+  var qSearch = $('q-search-input');
+
+  function renderQuestions() {
+    var search = (qSearch.value || '').toLowerCase().trim();
+    var filtered = allQuestions.filter(function (q) {
+      if (currentFilter === 'answered' && !q.answered) return false;
+      if (currentFilter === 'unanswered' && q.answered) return false;
+      if (search && q.question.toLowerCase().indexOf(search) === -1) return false;
+      return true;
+    });
+
+    if (!filtered.length) {
+      qTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--text-muted)">No student questions match the current filter.</td></tr>';
+      return;
+    }
+
+    qTbody.innerHTML = filtered.map(function (q) {
+      var isAns = !!q.answered;
+      var statusBadge = isAns
+        ? '<span class="status-badge answered">Answered</span>'
+        : '<span class="status-badge unanswered">Unanswered</span>';
+      var checked = isAns ? 'checked' : '';
+      var langClass = (q.lang === 'am') ? 'style="font-family:Noto Sans Ethiopic,sans-serif"' : '';
+
+      return '<tr>' +
+        '<td class="checkbox-cell"><input type="checkbox" class="savanna-checkbox q-toggle" data-qid="' + q.id + '" ' + checked + ' aria-label="Mark answered"></td>' +
+        '<td><span dir="auto" ' + langClass + ' style="font-weight:500;color:var(--navy-dark)">' + esc(q.question) + '</span></td>' +
+        '<td><span class="badge badge-lang">' + esc(q.lang || 'en') + '</span></td>' +
+        '<td><span class="badge badge-' + (q.channel === 'telegram' ? 'telegram' : q.channel === 'sms' ? 'sms' : 'web') + '">' + esc(q.channel || 'web') + '</span></td>' +
+        '<td style="color:var(--text-muted);font-size:0.8rem;font-family:var(--font-mono)">' + esc(q.asked_on || '') + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '</tr>';
+    }).join('');
+
+    qTbody.querySelectorAll('.q-toggle').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var qid = parseInt(cb.dataset.qid, 10);
+        var newVal = cb.checked ? 1 : 0;
+        var fd = new FormData();
+        fd.append('answered', newVal);
+        fetch('/handoff/api/questions/' + qid + '/mark', { method: 'POST', credentials: 'same-origin', body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (d.ok) {
+              var found = allQuestions.find(function (item) { return item.id === qid; });
+              if (found) found.answered = newVal;
+              renderQuestions();
+              updateMetricsLocally();
+              showToast(newVal ? 'Question marked as answered' : 'Question marked as unanswered', 'success');
+            }
+          })
+          .catch(function () {
+            cb.checked = !cb.checked;
+            showToast('Failed to update question status', 'error');
+          });
+      });
+    });
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      renderQuestions();
+    });
+  });
+  qSearch.addEventListener('input', renderQuestions);
+
+  /* ── Teacher Analytics Rendering ─────────────────────────────── */
+  var topTbody     = $('analytics-top-tbody');
+  var langTbody    = $('analytics-lang-tbody');
+  var channelTbody = $('analytics-channel-tbody');
+  var unknownTbody = $('analytics-unknown-tbody');
+
+  function renderTeacherAnalytics() {
+    if (!teacherStats) return;
+
+    // Top questions
+    if (teacherStats.top && teacherStats.top.length) {
+      topTbody.innerHTML = teacherStats.top.map(function (r) {
+        return '<tr>' +
+          '<td dir="auto" style="font-weight:500">' + esc(r.example) + '</td>' +
+          '<td class="n" style="font-weight:600">' + r.n + '</td>' +
+          '<td class="n">' + (r.unknown || 0) + '</td>' +
+          '<td style="font-family:var(--font-mono);font-size:0.8rem">' + esc(r.last_asked || '') + '</td>' +
+          '</tr>';
+      }).join('');
+    } else {
+      topTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-muted)">No question data recorded yet.</td></tr>';
+    }
+
+    // By language
+    if (teacherStats.by_lang && teacherStats.by_lang.length) {
+      langTbody.innerHTML = teacherStats.by_lang.map(function (r) {
+        var label = r.lang === 'am' ? 'Amharic (አማርኛ)' : r.lang === 'en' ? 'English' : r.lang;
+        return '<tr><td>' + esc(label) + '</td><td class="n" style="font-weight:600">' + r.n + '</td></tr>';
+      }).join('');
+    } else {
+      langTbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:1rem;color:var(--text-muted)">No data</td></tr>';
+    }
+
+    // By channel
+    if (teacherStats.by_channel && teacherStats.by_channel.length) {
+      channelTbody.innerHTML = teacherStats.by_channel.map(function (r) {
+        return '<tr><td><span class="badge badge-' + (r.channel === 'telegram' ? 'telegram' : r.channel === 'sms' ? 'sms' : 'web') + '">' + esc(r.channel) + '</span></td><td class="n" style="font-weight:600">' + r.n + '</td></tr>';
+      }).join('');
+    } else {
+      channelTbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:1rem;color:var(--text-muted)">No data</td></tr>';
+    }
+
+    // Gaps / Unknown
+    if (teacherStats.unknown && teacherStats.unknown.length) {
+      unknownTbody.innerHTML = teacherStats.unknown.map(function (r) {
+        var langStyle = (r.lang === 'am') ? 'style="font-family:Noto Sans Ethiopic,sans-serif"' : '';
+        return '<tr>' +
+          '<td dir="auto" ' + langStyle + ' style="font-weight:500;color:var(--alx-red-text)">' + esc(r.example) + '</td>' +
+          '<td><span class="badge badge-lang">' + esc(r.lang) + '</span></td>' +
+          '<td class="n" style="font-weight:600">' + r.n + '</td>' +
+          '<td style="font-family:var(--font-mono);font-size:0.8rem">' + esc(r.last_asked || '') + '</td>' +
+          '</tr>';
+      }).join('');
+    } else {
+      unknownTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-muted)">No course gaps recorded.</td></tr>';
+    }
+  }
+
+  /* ── Accommodations Rendering ────────────────────────────────── */
+  var accomContainer = $('accommodations-container');
+  var accomBadge     = $('accom-badge');
+  var accomIndicator = $('accom-count-indicator');
+
+  function renderAccommodations() {
+    var count = allAccommodations.length;
+    accomBadge.textContent = count;
+    accomIndicator.textContent = count + ' Requests Waiting';
+
+    if (!count) {
+      accomContainer.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:2.5rem">No accommodation requests are waiting.</p>';
+      return;
+    }
+
+    accomContainer.innerHTML = allAccommodations.map(function (r) {
+      var langStyle = (r.lang === 'am') ? 'style="font-family:Noto Sans Ethiopic,sans-serif"' : '';
+      return '<div class="accommodation-card">' +
+        '<h3>' +
+          '<span>Request #' + r.id + '</span>' +
+          '<span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);font-family:var(--font-mono)">' + esc(r.created_at || '') + ' UTC</span>' +
+        '</h3>' +
+        '<dl class="accommodation-dl">' +
+          '<dt>Job Opportunity</dt><dd dir="auto" style="font-weight:600">' + esc(r.job) + '</dd>' +
+          '<dt>Support Needed</dt><dd dir="auto" ' + langStyle + ' style="background:#fffafa;padding:0.4rem 0.6rem;border-radius:4px;border:1px solid #fecaca">' + esc(r.support) + '</dd>' +
+          '<dt>Student Contact</dt><dd dir="auto" style="font-family:var(--font-mono)">' + esc(r.contact) + '</dd>' +
+          '<dt>Channel & Lang</dt><dd><span class="badge badge-lang">' + esc(r.lang) + '</span> <span class="badge badge-' + (r.channel === 'telegram' ? 'telegram' : r.channel === 'sms' ? 'sms' : 'web') + '">' + esc(r.channel) + '</span></dd>' +
+        '</dl>' +
+        '<button type="button" class="btn-handle-request" data-aid="' + r.id + '">✓ Mark as Handled (Deletes Request)</button>' +
+        '</div>';
+    }).join('');
+
+    accomContainer.querySelectorAll('.btn-handle-request').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var aid = btn.dataset.aid;
+        btn.disabled = true;
+        btn.textContent = 'Updating…';
+
+        fetch('/accommodation/requests/' + aid + '/done', { method: 'POST', credentials: 'same-origin' })
+          .then(function () {
+            showToast('Accommodation request #' + aid + ' marked as handled ✓', 'success');
+            refreshDashboardData();
+          })
+          .catch(function () {
+            btn.disabled = false;
+            btn.textContent = '✓ Mark as Handled';
+            showToast('Failed to mark request as handled', 'error');
+          });
+      });
+    });
+  }
+
+  /* ── Sidebar Tickets Rendering ───────────────────────────────── */
+  var ticketListEl = $('ticket-list');
+  var ticketBadgeEl = $('ticket-badge');
+
+  function renderTickets() {
+    ticketBadgeEl.textContent = allTickets.length;
+    if (!allTickets.length) {
+      ticketListEl.innerHTML = '<li class="empty-tickets-view">No active help requests from students right now.</li>';
+      return;
+    }
+
+    ticketListEl.innerHTML = '';
+    allTickets.forEach(function (t) {
+      var li = document.createElement('li');
+      li.className = 'ticket-card' + (t.id === activeTicketId ? ' active' : '');
+      li.setAttribute('aria-current', t.id === activeTicketId ? 'true' : 'false');
+
+      var channelBadge = '<span class="badge badge-' + (t.channel === 'telegram' ? 'telegram' : t.channel === 'sms' ? 'sms' : 'web') + '">' + esc(t.channel) + '</span>';
+      var langBadge = '<span class="badge badge-lang">' + esc(t.lang) + '</span>';
+      var planBadge = t.schedule_method ? '<span class="badge badge-plan">Plan: ' + esc(t.schedule_method) + '</span>' : '';
+
+      li.innerHTML =
+        '<button type="button" class="ticket-header-btn">' +
+          '<div class="ticket-meta-row">' +
+            '<div class="meta-badges">' + channelBadge + langBadge + planBadge + '</div>' +
+            '<span class="ticket-time">' + formatTimeAgo(t.created_at) + '</span>' +
+          '</div>' +
+          '<div class="ticket-summary" dir="auto">' + esc(t.last_message || t.topic || 'New Help Request') + '</div>' +
+        '</button>' +
+        '<div class="ticket-actions-box">' +
+          '<label class="field-label" for="method-' + t.id + '">Assistance Scenario:</label>' +
+          '<select id="method-' + t.id + '" class="savanna-select" data-tid="' + t.id + '">' +
+            '<option value="chat"' + (t.schedule_method === 'chat' || !t.schedule_method ? ' selected' : '') + '>💬 In-App Live Chat (Instant)</option>' +
+            '<option value="telegram"' + (t.schedule_method === 'telegram' ? ' selected' : '') + '>✈️ Telegram Voice/Text Follow-up</option>' +
+            '<option value="phone"' + (t.schedule_method === 'phone' ? ' selected' : '') + '>📞 Phone Call Consultation</option>' +
+            '<option value="other"' + (t.schedule_method === 'other' ? ' selected' : '') + '>⋯ Other Scenario</option>' +
+          '</select>' +
+          '<textarea id="note-' + t.id + '" class="savanna-textarea" placeholder="Tutor note or meeting details…" data-tid="' + t.id + '">' + esc(t.schedule_note || '') + '</textarea>' +
+          '<div class="action-btns-row">' +
+            '<button type="button" class="btn-savanna-secondary" data-action="save-plan" data-tid="' + t.id + '">Save Plan</button>' +
+            '<button type="button" class="btn-savanna-primary" data-action="open-chat" data-tid="' + t.id + '">Open Live Chat →</button>' +
+          '</div>' +
+        '</div>';
+
+      li.querySelector('.ticket-header-btn').addEventListener('click', function () { openTicketChat(t.id); });
+      li.querySelector('[data-action="open-chat"]').addEventListener('click', function () { openTicketChat(t.id); });
+      li.querySelector('[data-action="save-plan"]').addEventListener('click', function () { saveSchedulePlan(t.id); });
+      ticketListEl.appendChild(li);
+    });
+  }
+
+  function saveSchedulePlan(tid) {
+    var method = document.querySelector('select[data-tid="' + tid + '"]').value;
+    var note   = document.querySelector('textarea[data-tid="' + tid + '"]').value.trim();
+    var fd = new FormData();
+    fd.append('method', method);
+    fd.append('note', note);
+
+    fetch('/handoff/api/tickets/' + encodeURIComponent(tid) + '/schedule', { method: 'POST', credentials: 'same-origin', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.ok) {
+          var t = allTickets.find(function (x) { return x.id === tid; });
+          if (t) { t.schedule_method = method; t.schedule_note = note; }
+          renderTickets();
+          showToast('Assistance scenario saved ✓', 'success');
+        }
+      })
+      .catch(function () { showToast('Could not save plan', 'error'); });
+  }
+
+  /* ── Live Chat & WebRTC Screen Share Management ──────────────── */
+  var chatEmpty = $('chat-empty');
+  var chatActive = $('chat-active');
+  var chatLog = $('chat-log');
+  var chatInput = $('chat-text');
+  var ticketTitle = $('active-ticket-title');
+  var presenceDot = $('presence-dot');
+  var presenceText = $('presence-text');
+  var screenBox = $('screen');
+  var screenVideo = $('screen-video');
+  var fsBtn = $('btn-screen-fs');
+
+  fsBtn.addEventListener('click', function () {
+    if (screenVideo.requestFullscreen) {
+      screenVideo.requestFullscreen();
+    } else if (screenVideo.webkitRequestFullscreen) {
+      screenVideo.webkitRequestFullscreen();
+    }
+  });
+
+  function openTicketChat(id) {
+    switchView('chat'); // Switch to Chat tab
+
+    if (ws) { ws.onclose = null; ws.close(); }
+    emit('leave');
+    activeTicketId = id;
+    renderTickets();
+
+    chatEmpty.style.display = 'none';
+    chatActive.style.display = 'flex';
+    ticketTitle.textContent = 'Ticket #' + id.slice(0, 8);
+    chatLog.innerHTML = '';
+    chatInput.disabled = false;
+    presenceDot.className = 'pulse-dot';
+    presenceText.textContent = 'Connecting to student…';
+
+    var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    ws = new WebSocket(proto + location.host + '/handoff/ws/' + encodeURIComponent(id) + '?role=tutor');
+
+    ws.onopen = function () {
+      emit('open');
+    };
+
+    ws.onmessage = function (e) {
+      var m = JSON.parse(e.data);
+      if (m.type === 'history') {
+        chatLog.innerHTML = '';
+        (m.messages || []).forEach(appendMessage);
+      } else if (m.type === 'chat') {
+        appendMessage(m);
+      } else if (m.type === 'presence') {
+        var online = !!m.learner;
+        presenceDot.className = 'pulse-dot' + (online ? ' online' : '');
+        presenceText.textContent = online ? 'Student is in chat' : 'Student is not connected';
+      } else if (m.type === 'closed') {
+        presenceText.textContent = 'Ticket closed';
+        chatInput.disabled = true;
+        refreshDashboardData();
+      }
+      emit(m.type, m);
+    };
+
+    ws.onclose = function () {
+      if (activeTicketId === id && !chatInput.disabled) {
+        presenceDot.className = 'pulse-dot';
+        presenceText.textContent = 'Disconnected (click ticket to reconnect)';
+      }
+      emit('leave');
+    };
+
+    refreshDashboardData();
+  }
+
+  function appendMessage(m) {
+    var wrap = document.createElement('div');
+    var isMine = (m.role === 'tutor');
+    var isMimi = (m.role === 'mimi');
+
+    wrap.className = 'chat-bubble-wrap ' + (isMine ? 'mine' : isMimi ? 'mimi' : 'learner');
+
+    var sender = document.createElement('span');
+    sender.className = 'chat-sender-label';
+    sender.textContent = isMine ? 'You (Tutor)' : isMimi ? 'Mimi Assistant (Context)' : 'Student';
+
+    var bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.dir = 'auto';
+    if (ETHIOPIC.test(m.text)) bubble.style.fontFamily = 'Noto Sans Ethiopic, sans-serif';
+    bubble.textContent = m.text;
+
+    wrap.appendChild(sender);
+    wrap.appendChild(bubble);
+    chatLog.appendChild(wrap);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  $('chat-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var text = chatInput.value.trim();
+    if (text && TutorConsole.send({ type: 'chat', text: text })) {
+      chatInput.value = '';
+    }
+    chatInput.focus();
+  });
+
+  // Quick chips click
+  document.querySelectorAll('.quick-chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.dataset.reply;
+      if (text && TutorConsole.send({ type: 'chat', text: text })) {
+        chatInput.focus();
+      }
+    });
+  });
+
+  // Close ticket button
+  $('btn-close-session').addEventListener('click', function () {
+    if (!activeTicketId || !confirm('Close this ticket? The student will be notified that the help session has completed.')) return;
+    fetch('/handoff/tickets/' + encodeURIComponent(activeTicketId) + '/close', { method: 'POST', credentials: 'same-origin' })
+      .then(function () {
+        showToast('Ticket closed successfully', 'success');
+        chatActive.style.display = 'none';
+        chatEmpty.style.display = 'flex';
+        activeTicketId = null;
+        refreshDashboardData();
+      });
+  });
+
+  /* ── Local Metric Sync ───────────────────────────────────────── */
+  function updateMetricsLocally() {
+    var total = allQuestions.length;
+    var ans = allQuestions.filter(function (q) { return q.answered; }).length;
+    $('stat-total').textContent = total;
+    $('stat-answered').textContent = ans;
+    $('stat-unanswered').textContent = (total - ans);
+    $('stat-tickets').textContent = allTickets.length;
+  }
+
+  /* ── Polling Dashboard Data ──────────────────────────────────── */
+  function refreshDashboardData() {
+    fetch('/handoff/api/dashboard', { credentials: 'same-origin' })
+      .then(function (r) {
+        if (r.status === 401) { location.reload(); throw new Error('Unauthorized'); }
+        return r.json();
+      })
+      .then(function (data) {
+        allQuestions      = data.questions || [];
+        allTickets        = data.tickets   || [];
+        allAccommodations = data.accommodations || [];
+        teacherStats      = data.teacher   || null;
+
+        if (data.stats) {
+          $('stat-total').textContent      = data.stats.total_questions;
+          $('stat-answered').textContent   = data.stats.answered;
+          $('stat-unanswered').textContent = data.stats.unanswered;
+          $('stat-tickets').textContent    = data.stats.open_tickets;
+        }
+
+        renderQuestions();
+        renderTickets();
+        renderTeacherAnalytics();
+        renderAccommodations();
+      })
+      .catch(function () {});
+  }
+
+  refreshDashboardData();
+  setInterval(refreshDashboardData, 5000);
+})();
+</script>
+<!-- Screen share WebRTC controller (Built-in) -->
 <script src="/handoff/static/handoff_console_screen.js"></script>
 </body>
 </html>
