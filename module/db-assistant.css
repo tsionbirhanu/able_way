@@ -472,6 +472,11 @@ a.cite {
   background: var(--bot);
 }
 
+/* A suggestion that opens a page (interview support), shown like the others. */
+a.chip {
+  text-decoration: none;
+}
+
 .chip svg {
   width: 18px;
   height: 18px;

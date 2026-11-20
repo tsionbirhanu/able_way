@@ -1,6 +1,6 @@
 /* Human handoff hook for the web widget.
  *
- *   <script src="http://localhost:8000/handoff/static/handoff.js"></script>
+ *   <script src="https://your-mimi-server/handoff/static/handoff.js"></script>
  *   <button onclick="AssistantHandoff.open()">Talk to a person</button>
  *
  * AssistantHandoff.open({lang: "am", topic: "last question the learner asked"})

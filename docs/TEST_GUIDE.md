@@ -193,8 +193,11 @@ Open **@mimi_tutor_liveBot** (https://t.me/mimi_tutor_liveBot).
 ## 13. Jobs, accommodation and the teacher view (3 minutes)
 
 - ☐ https://able-way.onrender.com/pages/jobs.html: jobs in English and Amharic, **Listen to summary** works.
+- ☐ Open Mimi on the job board: she offers **"Ask for support in a job interview"** (also after any answer
+  about a job). It opens the same private form, in the learner's language.
 - ☐ **Request accommodation** opens the private form; send one (test data only).
-- ☐ In the tutor console, **Interview accommodation requests** shows it; **Mark as handled** deletes it.
+- ☐ Signed in as the **coordinator**, **Accommodations** shows it; **Mark as handled** deletes it. A **tutor**
+  cannot see it (not in the menu, and /accommodation/requests sends them back to the console).
 - ☐ https://able-way.onrender.com/teacher: the most-asked questions and the **questions that got
   "I don't know"** (the gaps in the course). No names, no phone numbers.
 - ☐ The tutor console **dashboard** shows questions, open tickets and statistics.

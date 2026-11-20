@@ -300,7 +300,7 @@ Job alerts then go out as real SMS too. Commands a learner can text: `JOBS`, `SU
 
 ```bash
 pip install -r requirements.txt
-python -m pytest server/tests tests     # 153 tests
+python -m pytest server/tests tests     # 155 tests
 python server/evaluate.py               # answer quality: 30 questions, see "Quality" below
 cd tests/a11y && npm install && node axe.mjs http://localhost:8000/demo/blank.html page open
 ```
@@ -566,7 +566,7 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
   skip the extra AI step, and "Let me check." when an answer takes a moment.
 - The pluggable AI layer with an offline mode; the API with `/docs`, OpenAPI and a webhook;
   schema.org JobPosting; Docker Compose; a Render blueprint, with Telegram by webhook when hosted.
-- 153 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
+- 155 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
   0 issues on every page, with the chat open and closed.
 
 **Not finished or not yet verified:**

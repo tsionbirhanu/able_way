@@ -21,7 +21,7 @@
     bar.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;" +
       "border-bottom:1px solid #d0d7de;background:#f0f7ff;color:#0b2545;font-size:0.95rem";
     bar.innerHTML =
-      '<span id="voice-state" role="status">🎙️ Voice: the learner has not started a voice call.</span>' +
+      '<span id="voice-state" role="status">🎙️ No voice call</span>' +
       '<button type="button" id="voice-mic" style="min-height:40px;padding:6px 12px;border-radius:8px;border:2px solid #0b2545;background:#fff;color:#0b2545;font-weight:700;cursor:pointer">🎤 Turn on my microphone</button>' +
       '<audio id="voice-learner" autoplay controls aria-label="The learner\'s voice" style="height:32px;max-width:240px"></audio>';
     anchor.parentNode.insertBefore(bar, anchor);
@@ -62,8 +62,8 @@
       pc.onicecandidate = function (e) { if (e.candidate) signal({ candidate: e.candidate }); };
       inCall = true;
       state.textContent = myMic
-        ? "🎙️ Voice call on: you and the learner can hear each other."
-        : "🎙️ Voice call on: you can hear the learner. Turn on your microphone to answer by voice.";
+        ? "🎙️ Voice call on"
+        : "🎙️ You can hear the learner";
       queue = mine.setRemoteDescription(description)
         .then(function () { return mine.createAnswer(); })
         .then(function (a) { return mine.setLocalDescription(a); })
@@ -88,16 +88,16 @@
           myMic = stream;
           renderMic();
           if (inCall) signal({ request: "offer" }); // the learner's page sends a new offer; we answer with our voice
-          else state.textContent = "🎤 Your microphone is ready. The learner will hear you when they start a voice call.";
+          else state.textContent = "🎤 Microphone ready";
         })
-        .catch(function () { state.textContent = "Your microphone is blocked. Allow it in the browser (the icon in the address bar)."; });
+        .catch(function () { state.textContent = "Microphone blocked: allow it in the address bar"; });
     });
 
     tutor.on("open", function () { signal({ request: "offer" }); }); // a call already on reaches a tutor who (re)joins
     tutor.on("signal", function (m) {
       var d = m.data || {};
       if (d.channel !== "voice") return; // screen sharing has its own connection
-      if (d.end) { teardown("🎙️ The learner ended the voice call."); return; }
+      if (d.end) { teardown("🎙️ Voice call ended"); return; }
       if (d.description && d.description.type === "offer") {
         onOffer(d.description);
       } else if (d.candidate && pc) {
@@ -105,8 +105,8 @@
         queue = queue.then(function () { return mine.addIceCandidate(d.candidate); }).catch(function () {});
       }
     });
-    tutor.on("closed", function () { teardown("🎙️ Voice: the ticket is closed."); });
-    tutor.on("leave", function () { teardown("🎙️ Voice: the learner has not started a voice call."); });
+    tutor.on("closed", function () { teardown("🎙️ No voice call"); });
+    tutor.on("leave", function () { teardown("🎙️ No voice call"); });
     renderMic();
   }
 

@@ -375,13 +375,8 @@ body {
     <span class="brand-badge">ALX</span>
     <div class="brand-details">
       <span class="brand-title">Savanna Tutor Portal</span>
-      <span class="brand-subtitle">Ableway Multilingual Classroom</span>
     </div>
   </a>
-  <div class="header-badge-live">
-    <span class="pulse-dot" aria-hidden="true"></span>
-    <span>Live Support Desk</span>
-  </div>
 </header>
 
 <!-- ── Main Card ───────────────────────────────────────────────── -->
@@ -396,7 +391,6 @@ body {
         </svg>
       </div>
       <h1>Tutor Console</h1>
-      <p>Authorized access for course instructors, live tutors, and accommodation coordinators.</p>
     </div>
 
     {% if error %}
@@ -436,7 +430,7 @@ body {
             id="password" 
             name="password" 
             class="auth-input" 
-            placeholder="Enter tutor console password…"
+            placeholder="Password"
             required 
             autocomplete="current-password">
           <button 
@@ -451,7 +445,6 @@ body {
             </svg>
           </button>
         </div>
-        <span class="field-help">Tutors: your own password (TUTORS setting). Coordinator: the coordinator password (ADMIN_PASSWORD).</span>
       </div>
 
       <button type="submit" class="btn-submit-login">
@@ -464,23 +457,14 @@ body {
     </form>
 
     <div class="auth-card-footer">
-      <div class="security-note">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-        </svg>
-        <span>Secure HTTP-only session authenticated</span>
-      </div>
-      <a href="http://localhost:8001/pages/concept-with-navigation.html" class="back-link">
-        <span>← Return to Ableway Course Hub</span>
+      <a href="/pages/concept-with-navigation.html" class="back-link">
+        <span>← Back to the course</span>
       </a>
     </div>
 
   </div>
 </main>
 
-<footer class="savanna-footer">
-  &copy; Ableway & ALX Savanna Learning Management Platform. All rights reserved.
-</footer>
 
 <script>
 (function () {

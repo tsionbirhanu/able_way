@@ -666,6 +666,14 @@
     if (state.langChosen && !state.messages.some((m) => m.role === 'user' && m.kind !== 'choice')) {
       chips.push(...t().suggestions.map((q) => el('button', { type: 'button', class: 'chip', lang: state.lang, text: q, onclick: () => takeTurn(q, 'text') })));
     }
+    // Interview support (an accommodation) for a job: on the job board, and after an answer about a job.
+    // The request goes privately to the coordinator, never to the employer.
+    const lastAnswer = [...state.messages].reverse().find((m) => m.role === 'assistant' && (m.citations || []).length);
+    const aboutJobs = /jobs/.test(PAGE) || (lastAnswer && lastAnswer.citations.some((c) => /jobs/.test(c.url || '')));
+    if (state.langChosen && aboutJobs && t().accommodationChip) {
+      chips.push(el('a', { class: 'chip', lang: state.lang, href: `${API}/accommodation?lang=${state.lang}`, target: '_blank', rel: 'noopener' },
+        t().accommodationChip));
+    }
     suggestions.replaceChildren(...chips);
   }
 

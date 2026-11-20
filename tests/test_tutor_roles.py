@@ -107,3 +107,20 @@ def test_without_tutor_accounts_the_shared_password_still_works(client):  # noqa
     reply = client.post("/handoff/console/login", data={"password": "test-password"}, follow_redirects=False)
     assert reply.status_code == 303
     assert client.get("/handoff/api/me").json() == {"role": "admin", "name": "Coordinator"}
+
+
+def test_console_links_never_point_at_a_laptop():
+    from pathlib import Path
+
+    for name in ("handoff_console.html", "handoff_login.html"):
+        assert "localhost" not in (Path(__file__).resolve().parents[1] / "server" / "templates" / name).read_text(encoding="utf-8")
+
+
+def test_mimi_offers_interview_support_about_jobs():
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "module"
+    assert "accommodation?lang=" in (root / "db-assistant.js").read_text(encoding="utf-8")
+    for code in ("en", "am", "om"):
+        assert json.loads((root / "i18n" / f"{code}.json").read_text(encoding="utf-8"))["accommodationChip"]

@@ -289,9 +289,22 @@ body {
   font-size: 0.72rem; color: var(--text-light); font-family: var(--font-mono);
 }
 .ticket-summary {
-  font-size: 0.86rem; color: var(--navy-dark); font-weight: 500;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px;
+  font-size: 0.92rem; color: var(--navy-dark); font-weight: 600; line-height: 1.35;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
+.ticket-sub {
+  font-size: 0.8rem; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ticket-plan summary {
+  cursor: pointer; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); padding: 0.2rem 0;
+}
+.ticket-plan[open] { display: flex; flex-direction: column; gap: 0.4rem; }
+.ticket-plan[open] summary { margin-bottom: 0.1rem; }
+.ticket-id-small {
+  font-size: 0.75rem; font-weight: 500; color: var(--text-light); font-family: var(--font-mono); margin-left: 0.35rem;
+}
+#active-ticket-title { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 /* Schedule / Action Panel inside card */
 .ticket-actions-box {
@@ -713,14 +726,9 @@ video {
     <span class="brand-badge">ALX</span>
     <span class="brand-title">
       Savanna Tutor Console
-      <span class="brand-subtitle">Multilingual Live Help & Screen Share</span>
     </span>
   </a>
   <div style="display:flex;align-items:center;gap:1rem">
-    <div style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem">
-      <span class="pulse-dot online" aria-hidden="true"></span>
-      <span>Live Desk</span>
-    </div>
     <span id="me-label" style="font-size:0.85rem;font-weight:600;color:var(--text-muted)" aria-live="polite"></span>
     <form method="post" action="/handoff/console/logout" style="margin:0">
       <button type="submit" class="btn-signout">Sign Out</button>
@@ -764,7 +772,7 @@ video {
           </button>
         </li>
         <li>
-          <a href="http://localhost:8001/pages/concept-with-navigation.html" target="_blank" rel="noopener" class="sidebar-external-link">
+          <a href="/pages/concept-with-navigation.html" target="_blank" rel="noopener" class="sidebar-external-link">
             <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
             <span>Preview Lesson</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-left:auto;color:var(--text-light)">
@@ -821,8 +829,7 @@ video {
             <line x1="8" y1="21" x2="16" y2="21"></line>
             <line x1="12" y1="17" x2="12" y2="21"></line>
           </svg>
-          <p style="font-weight:600;color:var(--navy-dark)">Select a student help request from the sidebar</p>
-          <p style="font-size:0.84rem">You will be connected to the student via live WebSocket chat and can view their shared screen in real-time.</p>
+          <p style="font-weight:600;color:var(--navy-dark)">Choose a help request on the left.</p>
         </div>
 
         <!-- When ticket is selected -->
@@ -843,7 +850,7 @@ video {
           <!-- WebRTC Screen Sharing Container (Built-in) -->
           <div id="screen" hidden>
             <div class="screen-header-bar">
-              <span class="live-stream-badge">🔴 Live Screen Share (Learner)</span>
+              <span class="live-stream-badge">🔴 Learner's screen</span>
               <div class="screen-actions">
                 <button type="button" class="btn-fullscreen" id="btn-screen-fs">Maximize</button>
               </div>
@@ -892,7 +899,7 @@ video {
             <thead>
               <tr>
                 <th scope="col" class="checkbox-cell">Done</th>
-                <th scope="col">Student Question</th>
+                <th scope="col">Question</th>
                 <th scope="col">Language</th>
                 <th scope="col">Channel</th>
                 <th scope="col">Date</th>
@@ -915,7 +922,6 @@ video {
         <div class="card-header-bar">
           <div>
             <h2>Most Asked Questions</h2>
-            <p class="card-header-note">Anonymous question log: only question text, language, channel and date are stored.</p>
           </div>
         </div>
         <div class="table-responsive">
@@ -970,8 +976,7 @@ video {
       <div class="savanna-card">
         <div class="card-header-bar">
           <div>
-            <h2>Course Content Gaps (Questions that got "I don't know")</h2>
-            <p class="card-header-note">These questions reveal concepts or terms not yet covered in the current course materials.</p>
+            <h2>Course Gaps: Questions Mimi Could Not Answer</h2>
           </div>
         </div>
         <div class="table-responsive">
@@ -999,7 +1004,7 @@ video {
         <div class="card-header-bar">
           <div>
             <h2>Interview Accommodation Requests</h2>
-            <p class="card-header-note">Private: only signed-in tutors and staff see this. Contact the learner, arrange support with the employer without naming any disability, then mark as handled.</p>
+            <p class="card-header-note">Arrange the support with the employer without naming any disability.</p>
           </div>
           <span class="status-badge answered" id="accom-count-indicator">0 Requests Waiting</span>
         </div>
@@ -1284,10 +1289,16 @@ video {
   var ticketListEl = $('ticket-list');
   var ticketBadgeEl = $('ticket-badge');
 
+  var LANGUAGE_NAMES = { en: 'English', am: 'Amharic', om: 'Afaan Oromo' };
+  // "The learner asked: “Can I…?”" -> "Can I…?" (the short summary Mimi writes for the tutor).
+  function shortQuestion(topic) {
+    return String(topic || '').replace(/^The learner asked:\s*/i, '').replace(/^[“"]|[”"]\.?$/g, '').trim();
+  }
+
   function renderTickets() {
     ticketBadgeEl.textContent = allTickets.length;
     if (!allTickets.length) {
-      ticketListEl.innerHTML = '<li class="empty-tickets-view">No active help requests from students right now.</li>';
+      ticketListEl.innerHTML = '<li class="empty-tickets-view">No help requests right now.</li>';
       return;
     }
 
@@ -1298,7 +1309,7 @@ video {
       li.setAttribute('aria-current', t.id === activeTicketId ? 'true' : 'false');
 
       var channelBadge = '<span class="badge badge-' + (t.channel === 'telegram' ? 'telegram' : t.channel === 'sms' ? 'sms' : 'web') + '">' + esc(t.channel) + '</span>';
-      var langBadge = '<span class="badge badge-lang">' + esc(t.lang) + '</span>';
+      var langBadge = '<span class="badge badge-lang" lang="en">' + esc(LANGUAGE_NAMES[t.lang] || t.lang) + '</span>';
       var planBadge = t.schedule_method ? '<span class="badge badge-plan">Plan: ' + esc(t.schedule_method) + '</span>' : '';
       // Who is helping: one tutor per learner. "Take this request" when nobody has it yet.
       var owner = t.tutor_name || '';
@@ -1312,27 +1323,37 @@ video {
         : esc(owner) + ' is helping';
       var openDisabled = owner && !mine && !(me && me.role === 'admin');
 
+      // Labelled by what the learner needs (their question), not by an id: Mimi keeps no names.
+      var title = shortQuestion(t.topic) || 'Help request';
+      // Under the question: where the learner is (from Mimi's note), or the latest message.
+      var lastText = t.last_message || '';
+      var where = /^Learner is on: ([^(\n]+)/.exec(lastText);
+      var last = where ? '📍 ' + where[1].trim()
+        : lastText && lastText !== t.topic && !/^Conversation with Mimi|^In short:/.test(lastText) ? 'Last: ' + lastText : '';
       li.innerHTML =
-        '<button type="button" class="ticket-header-btn">' +
+        '<button type="button" class="ticket-header-btn"' + (openDisabled ? ' aria-disabled="true"' : '') + '>' +
           '<div class="ticket-meta-row">' +
             '<div class="meta-badges">' + channelBadge + langBadge + ownerBadge + planBadge + '</div>' +
             '<span class="ticket-time">' + formatTimeAgo(t.created_at) + '</span>' +
           '</div>' +
-          '<div class="ticket-summary" dir="auto">' + esc(t.last_message || t.topic || 'New Help Request') + '</div>' +
+          '<div class="ticket-summary" dir="auto">' + esc(title) + '</div>' +
+          (last ? '<div class="ticket-sub" dir="auto">' + esc(last) + '</div>' : '') +
         '</button>' +
         '<div class="ticket-actions-box">' +
-          '<label class="field-label" for="method-' + t.id + '">Assistance Scenario:</label>' +
-          '<select id="method-' + t.id + '" class="savanna-select" data-tid="' + t.id + '">' +
-            '<option value="chat"' + (t.schedule_method === 'chat' || !t.schedule_method ? ' selected' : '') + '>💬 In-App Live Chat (Instant)</option>' +
-            '<option value="telegram"' + (t.schedule_method === 'telegram' ? ' selected' : '') + '>✈️ Telegram Voice/Text Follow-up</option>' +
-            '<option value="phone"' + (t.schedule_method === 'phone' ? ' selected' : '') + '>📞 Phone Call Consultation</option>' +
-            '<option value="other"' + (t.schedule_method === 'other' ? ' selected' : '') + '>⋯ Other Scenario</option>' +
-          '</select>' +
-          '<textarea id="note-' + t.id + '" class="savanna-textarea" placeholder="Tutor note or meeting details…" data-tid="' + t.id + '">' + esc(t.schedule_note || '') + '</textarea>' +
-          '<div class="action-btns-row">' +
-            '<button type="button" class="btn-savanna-secondary" data-action="save-plan" data-tid="' + t.id + '">Save Plan</button>' +
-            '<button type="button" class="btn-savanna-primary" data-action="open-chat" data-tid="' + t.id + '"' + (openDisabled ? ' disabled' : '') + '>' + openLabel + '</button>' +
-          '</div>' +
+          '<button type="button" class="btn-savanna-primary" data-action="open-chat" data-tid="' + t.id + '"' + (openDisabled ? ' disabled' : '') + '>' + openLabel + '</button>' +
+          '<details class="ticket-plan"' + (t.schedule_method ? ' open' : '') + '>' +
+            '<summary>Plan (optional)</summary>' +
+            '<label class="field-label" for="method-' + t.id + '">How you will help</label>' +
+            '<select id="method-' + t.id + '" class="savanna-select" data-tid="' + t.id + '">' +
+              '<option value="chat"' + (t.schedule_method === 'chat' || !t.schedule_method ? ' selected' : '') + '>💬 Live chat now</option>' +
+              '<option value="telegram"' + (t.schedule_method === 'telegram' ? ' selected' : '') + '>✈️ Telegram follow-up</option>' +
+              '<option value="phone"' + (t.schedule_method === 'phone' ? ' selected' : '') + '>📞 Phone call</option>' +
+              '<option value="other"' + (t.schedule_method === 'other' ? ' selected' : '') + '>⋯ Other</option>' +
+            '</select>' +
+            '<label class="field-label" for="note-' + t.id + '">Note</label>' +
+            '<textarea id="note-' + t.id + '" class="savanna-textarea" placeholder="For example: call at 3 pm" data-tid="' + t.id + '">' + esc(t.schedule_note || '') + '</textarea>' +
+            '<button type="button" class="btn-savanna-secondary" data-action="save-plan" data-tid="' + t.id + '">Save plan</button>' +
+          '</details>' +
         '</div>';
 
       li.querySelector('.ticket-header-btn').addEventListener('click', function () { if (!openDisabled) takeAndOpen(t); });
@@ -1384,7 +1405,7 @@ video {
           var t = allTickets.find(function (x) { return x.id === tid; });
           if (t) { t.schedule_method = method; t.schedule_note = note; }
           renderTickets();
-          showToast('Assistance scenario saved ✓', 'success');
+          showToast('Plan saved ✓', 'success');
         }
       })
       .catch(function () { showToast('Could not save plan', 'error'); });
@@ -1420,7 +1441,10 @@ video {
 
     chatEmpty.style.display = 'none';
     chatActive.style.display = 'flex';
-    ticketTitle.textContent = 'Ticket #' + id.slice(0, 8);
+    var info = allTickets.filter(function (x) { return x.id === id; })[0] || {};
+    ticketTitle.innerHTML = esc(shortQuestion(info.topic) || 'Help request') +
+      ' <small class="ticket-id-small">#' + esc(id.slice(0, 8)) + (info.lang ? ' · ' + esc(LANGUAGE_NAMES[info.lang] || info.lang) : '') +
+      (info.channel ? ' · ' + esc(info.channel) : '') + '</small>';
     chatLog.innerHTML = '';
     chatInput.disabled = false;
     presenceDot.className = 'pulse-dot';
@@ -1479,13 +1503,14 @@ video {
 
     var sender = document.createElement('span');
     sender.className = 'chat-sender-label';
-    sender.textContent = isMine ? 'You (Tutor)' : isMimi ? 'Mimi Assistant (Context)' : 'Student';
+    sender.textContent = isMine ? 'You' : isMimi ? 'Mimi' : 'Learner';
 
     var bubble = document.createElement('div');
     bubble.className = 'chat-bubble';
     bubble.dir = 'auto';
     if (ETHIOPIC.test(m.text)) bubble.style.fontFamily = 'Noto Sans Ethiopic, sans-serif';
     bubble.textContent = m.text;
+    bubble.style.whiteSpace = 'pre-line'; // the context note has one line each: where, in short, the conversation
 
     wrap.appendChild(sender);
     wrap.appendChild(bubble);
