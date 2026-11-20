@@ -40,7 +40,7 @@ host's own server.
 Mimi greets the learner in the page's language and says, in the other language's own voice, how to
 switch ("For English, say "English", or press 2"). The two big buttons do the same.
 
-![Mimi's greeting in Amharic, with the English switch hint](docs/screenshots/greeting-amharic.png)
+![Mimi's greeting in Amharic, with the three language choices: 1 Amharic, 2 English, 3 Afaan Oromoo](docs/screenshots/greeting-amharic.png)
 
 ### 3. Press to talk, and see your words as you speak
 
@@ -56,7 +56,9 @@ outlined on the page.
 Each sentence about the course carries a number like [1], and the sources list links straight to the
 section of the lesson. A learner can always check the answer.
 
-![An answer with three numbered sources linking to the lesson](docs/screenshots/answer-sources.png)
+![An answer with its numbered source linking to the lesson](docs/screenshots/answer-sources.png)
+
+![After clicking the source: the lesson section the answer came from, ringed on the page](docs/screenshots/source-ring.png)
 
 ### 5. "I don't know" instead of a made-up answer
 
@@ -86,7 +88,7 @@ Language, **answer level** (Simple, Standard or Detailed: the same sources at ev
 and voice on or off, three text sizes, listen automatically, download the chat, clear the chat. The
 choices are remembered on the learner's own device.
 
-![The settings: language, simple words, online AI, text size, listen automatically](docs/screenshots/settings.png)
+![The settings: three languages, answer level, online AI, text size, listen automatically](docs/screenshots/settings.png)
 
 ### 9. On a phone
 
@@ -101,9 +103,9 @@ that are wider than the phone. Tested at 320, 360, 390 and 412 pixels wide, at e
 the learner does not have to repeat anything. The learner can also share their screen, with a visible
 stop button.
 
-![The learner's help chat, with the conversation passed on](docs/screenshots/help-chat.png)
+![The learner's help chat: the conversation passed on, and the tutor's reply](docs/screenshots/help-chat.png)
 
-![The tutor console: open tickets and the conversation before the hand-off](docs/screenshots/tutor-console.png)
+![The tutor console: the request taken by the tutor, the voice call button, and the conversation before the hand-off](docs/screenshots/tutor-console.png)
 
 ### 11. Telegram, by text or by voice
 
@@ -138,7 +140,7 @@ The teacher view shows the most-asked questions and the ones Mimi could not answ
 course), by language and channel. Only the question text, language, channel and date are kept: no
 names, phone numbers or chat ids.
 
-![The teacher view: most asked questions, by language, by channel, and the questions that got I don't know](docs/screenshots/teacher-view.png)
+![The teacher view: most asked questions in English, Amharic and Afaan Oromoo, by language, by channel, and the questions that got I don't know](docs/screenshots/teacher-view.png)
 
 ## Run it
 
@@ -300,8 +302,9 @@ Job alerts then go out as real SMS too. Commands a learner can text: `JOBS`, `SU
 
 ```bash
 pip install -r requirements.txt
-python -m pytest server/tests tests     # 155 tests
+python -m pytest server/tests tests     # 159 tests
 python server/evaluate.py               # answer quality: 30 questions, see "Quality" below
+python server/consistency.py            # the same questions in Amharic, English and Afaan Oromo (real AI)
 cd tests/a11y && npm install && node axe.mjs http://localhost:8000/demo/blank.html page open
 ```
 
@@ -566,7 +569,7 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
   skip the extra AI step, and "Let me check." when an answer takes a moment.
 - The pluggable AI layer with an offline mode; the API with `/docs`, OpenAPI and a webhook;
   schema.org JobPosting; Docker Compose; a Render blueprint, with Telegram by webhook when hosted.
-- 155 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
+- 159 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
   0 issues on every page, with the chat open and closed.
 
 **Not finished or not yet verified:**

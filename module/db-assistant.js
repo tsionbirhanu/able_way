@@ -32,7 +32,7 @@
 (() => {
   'use strict';
 
-  const script = document.currentScript;
+  const script = document.currentScript || document.querySelector('script[src*="db-assistant"], script[src*="assistant"]') || { src: location.href, dataset: {} };
   // Settings come from the host's <db-assistant> tag:
   //   <db-assistant lang="am" api="https://tutor.example" content="/content.json"></db-assistant>
   // and, for older pages, from data- attributes on the script tag (data-lang, data-api, ...).
@@ -544,31 +544,45 @@
   ring.className = 'mimi-source-ring';
   ring.setAttribute('aria-hidden', 'true');
   ring.hidden = true;
-  // Inject the ring's styles into the host document once (idempotent).
-  if (!document.getElementById('mimi-ring-style')) {
-    const ringStyle = document.createElement('style');
-    ringStyle.id = 'mimi-ring-style';
-    ringStyle.textContent = [
-      '.mimi-source-ring {',
-      '  position: fixed;',
-      '  z-index: 2147483647;',
-      '  pointer-events: none;',
-      '  border: 4px solid #ffb703;',
-      '  border-radius: 12px;',
-      '  box-shadow: 0 0 0 4px rgb(15 42 71 / 85%), 0 0 0 9999px rgb(15 42 71 / 18%);',
-      '  transition: top 0.1s, left 0.1s, width 0.1s, height 0.1s;',
-      '}',
-      '@media (prefers-reduced-motion: reduce) {',
-      '  .mimi-source-ring { transition: none; }',
-      '}',
-      '@media (forced-colors: active) {',
-      '  .mimi-source-ring { border-color: Highlight; box-shadow: none; }',
-      '}',
-      '.mimi-source-ring[hidden] { display: none !important; }',
-    ].join('\n');
-    document.head.appendChild(ringStyle);
+
+  function ensureRingInDocument() {
+    if (!document.getElementById('mimi-ring-style')) {
+      const ringStyle = document.createElement('style');
+      ringStyle.id = 'mimi-ring-style';
+      ringStyle.textContent = [
+        '.mimi-source-ring {',
+        '  position: fixed;',
+        '  z-index: 2147482999;', // just under Mimi's panel (db-assistant.css): the ring never covers her answer
+        '  pointer-events: none;',
+        '  border: 4px solid #ffb703;',
+        '  border-radius: 12px;',
+        '  box-shadow: 0 0 0 4px rgb(15 42 71 / 85%), 0 0 0 9999px rgb(15 42 71 / 18%);',
+        '  transition: top 0.08s ease-out, left 0.08s ease-out, width 0.08s ease-out, height 0.08s ease-out;',
+        '}',
+        // "Zoom to the source": the ring closes in on the section while the rest of the page dims.
+        '.mimi-source-ring.zoom {',
+        '  animation: mimi-source-zoom 0.7s cubic-bezier(.2,.8,.2,1);',
+        '  box-shadow: 0 0 0 4px rgb(15 42 71 / 85%), 0 0 0 9999px rgb(15 42 71 / 45%);',
+        '}',
+        '@keyframes mimi-source-zoom {',
+        '  from { transform: scale(1.35); opacity: 0; box-shadow: 0 0 0 4px rgb(15 42 71 / 0%), 0 0 0 9999px rgb(15 42 71 / 0%); }',
+        '  to { transform: scale(1); opacity: 1; }',
+        '}',
+        '@media (prefers-reduced-motion: reduce) {',
+        '  .mimi-source-ring, .mimi-source-ring.zoom { transition: none; animation: none; }',
+        '}',
+        '@media (forced-colors: active) {',
+        '  .mimi-source-ring { border-color: Highlight; box-shadow: none; }',
+        '}',
+        '.mimi-source-ring[hidden] { display: none !important; }',
+      ].join('\n');
+      (document.head || document.documentElement).appendChild(ringStyle);
+    }
+    if (document.body && !document.body.contains(ring)) {
+      document.body.appendChild(ring);
+    }
   }
-  document.body.appendChild(ring);
+  ensureRingInDocument();
   // Where the right edge of the screen is. A host page that is wider than the phone (it scrolls
   // sideways) would otherwise push Mimi partly off screen: she is placed by the visible area instead.
   const edgeProbe = el('div', { class: 'edge-probe', 'aria-hidden': 'true' });
@@ -779,89 +793,242 @@
   }
 
   function sourceLink(citation, text, isMarker = false) {
-    const url = new URL(citation.url, siteRoot);
-    const samePage = url.pathname === location.pathname ||
-      location.pathname.endsWith(url.pathname.split('/').pop()) ||
-      url.pathname.endsWith(location.pathname.split('/').pop());
-    const hash = url.hash ? decodeURIComponent(url.hash.slice(1)) : '';
-    const link = el('a', { href: samePage ? (url.hash || '#') : url.href, text, lang: isMarker ? null : 'en' });
+    const citationUrl = citation.url || '';
+    const hash = citationUrl.includes('#') ? decodeURIComponent(citationUrl.split('#')[1]) : '';
+
+    const link = el('a', {
+      href: '#',
+      text,
+      lang: isMarker ? null : 'en',
+      title: citation.title || text,
+    });
     if (isMarker) {
       link.className = 'cite';
       link.setAttribute('aria-label', `${t().source} ${citation.n}: ${citation.title}`);
     }
-    if (samePage) {
-      link.addEventListener('click', (event) => {
-        event.preventDefault();
-        showInLesson(hash, citation.title);
-      });
-    } else {
-      link.target = '_blank';
-      link.rel = 'noopener';
-      if (!isMarker) link.append(el('span', { class: 'sr-only', lang: state.lang, text: ` (${t().newTab})` }));
-    }
+    // A source on this page: zoom to its section. On another page: go there in this tab (the
+    // conversation with Mimi is kept) and zoom to the section once it has loaded.
+    const sourcePage = citationUrl.split('#')[0];
+    const elsewhere = sourcePage && sourcePage !== PAGE && /\.html?$/.test(sourcePage);
+    if (elsewhere) link.href = new URL(citationUrl, siteRoot).href;
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (elsewhere) {
+        session.set('show-source', { id: hash, title: citation.title, snippet: citation.snippet || '' });
+        location.href = new URL(sourcePage + (hash ? '#' + encodeURIComponent(hash) : ''), siteRoot).href;
+        return;
+      }
+      showInLesson(hash, citation.title, citation.snippet || '', false, true);
+    });
     return link;
   }
 
   function findSectionElement(id, title) {
+    // 1. Direct ID lookup in document
     if (id) {
-      const byId = document.getElementById(id) || document.querySelector(`[name="${id}"]`);
+      const byId = document.getElementById(id) || document.querySelector(`[name="${id}"]`) || document.querySelector(`[id*="${id}"]`);
       if (byId) return byId;
     }
-    const cleanTitle = (title || '').replace(/^.*?[-—–]\s*/, '').trim().toLowerCase();
+
+    // 2. Lookup by title keywords / headings
+    const rawTitle = (title || '').replace(/^.*?[-—–]\s*/, '').trim();
+    const cleanTitle = rawTitle.toLowerCase();
     if (cleanTitle) {
-      const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+      // Lesson headings only: not the top bar, menus or closed pop-up windows.
+      const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6, .anchor'))
+        .filter((h) => !h.closest('header, nav, [role="banner"], [role="navigation"], .navbar, .modal, aside') && h.getClientRects().length);
       for (const h of headings) {
-        const text = h.textContent.trim().toLowerCase();
+        const text = (h.textContent || '').trim().toLowerCase();
         if (text && (text.includes(cleanTitle) || cleanTitle.includes(text))) {
           return h;
         }
       }
-      const idSlug = cleanTitle.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      if (idSlug) {
-        const bySlug = document.getElementById(idSlug) || document.querySelector(`[id*="${idSlug}"]`);
+      // Word-overlap match
+      const words = cleanTitle.split(/[^a-z0-9]+/).filter((w) => w.length >= 4);
+      if (words.length) {
+        for (const h of headings) {
+          const text = (h.textContent || '').trim().toLowerCase();
+          const matches = words.filter((w) => text.includes(w));
+          if (matches.length >= Math.min(2, words.length)) {
+            return h;
+          }
+        }
+      }
+      // Try by slugified title
+      const slug = cleanTitle.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      if (slug) {
+        const bySlug = document.getElementById(slug) || document.querySelector(`[id*="${slug}"]`);
         if (bySlug) return bySlug;
       }
     }
-    if (!id || /intro/i.test(title || '')) {
-      return document.querySelector('#curriculum_navigation_content h1, main h1, h1');
+
+    // 3. An introduction (or a source with no section) is the top of the lesson. Anything else that is
+    // not on this page is not shown at all: a ring on the wrong place would mislead the learner.
+    if (!cleanTitle || /introduction$/.test(cleanTitle)) {
+      // The lesson's own title, inside the lesson content: never a heading in the top bar or a menu.
+      const tops = document.querySelectorAll('#curriculum_navigation_content h1, main h1, article h1, .formatted-content h1, h1');
+      for (const h of tops) {
+        if (!h.closest('header, nav, [role="banner"], [role="navigation"], .navbar, aside') && h.getClientRects().length) return h;
+      }
     }
     return null;
   }
+
+  // On the page and visible (not inside a hidden template, a closed panel or a collapsed part).
+  const isShown = (element) => !!element && !element.closest('template, [hidden]') && element.getClientRects().length > 0;
 
   // "Where did this answer come from?" A source on this page: scroll the lesson to that section and
   // ring it, so the learner (and a judge) can read the exact words the answer is based on. The ring
   // is drawn by the widget over the page; the host's own elements are not changed.
   let ringTimer = null;
+
+  // The boxes around a section that cut off what does not fit (the dashboard shows each week's lesson
+  // in a short preview box, overflow hidden). Innermost first.
+  function clipBoxes(node) {
+    const boxes = [];
+    for (let p = node.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+      if (getComputedStyle(p).overflowY !== 'visible') boxes.push(p);
+    }
+    return boxes;
+  }
+
+  // Scroll such a box to the section, so the ringed words are really on screen, not cut off below.
+  function revealInBoxes(heading) {
+    for (const box of clipBoxes(heading)) {
+      if (box.scrollHeight <= box.clientHeight + 1) continue;
+      const offset = heading.getBoundingClientRect().top - box.getBoundingClientRect().top;
+      box.scrollTop = Math.max(0, box.scrollTop + offset - 8);
+    }
+  }
+
+  // The ring never reaches past the box the section is shown in.
   function sectionRect(anchor) {
+    const r = sectionArea(anchor);
+    let top = r.top, left = r.left, right = r.left + r.width, bottom = r.top + r.height;
+    for (const box of clipBoxes(anchor)) {
+      const b = box.getBoundingClientRect();
+      if (!b.height || !b.width) continue;
+      top = Math.max(top, b.top);
+      left = Math.max(left, b.left);
+      right = Math.min(right, b.right);
+      bottom = Math.min(bottom, b.bottom);
+    }
+    if (bottom - top < 24 || right - left < 60) return r; // clipped away entirely: keep the plain area
+    return { top, left, width: right - left, height: bottom - top };
+  }
+
+  function sectionArea(anchor) {
     const heading = anchor.closest('h1, h2, h3, h4, h5, h6') || anchor;
     let rect = heading.getBoundingClientRect();
     let top = rect.top, left = rect.left, right = rect.right, bottom = rect.bottom;
-    // The heading and what follows it, up to the next heading of the same or a higher level, or an HR.
+
+    // Special handling when anchor is H1 (Introduction or page top):
+    if (heading.tagName === 'H1') {
+      const content = document.querySelector('.savanna-styles, .formatted-content, #curriculum_navigation_content');
+      if (content) {
+        const firstBreak = content.querySelector('hr, h2, h3, h4');
+        if (firstBreak) {
+          const brRect = firstBreak.getBoundingClientRect();
+          bottom = Math.max(bottom, brRect.top - 8);
+        }
+        const cRect = content.getBoundingClientRect();
+        left = Math.min(left, cRect.left);
+        right = Math.max(right, cRect.right);
+      }
+      return { top, left, width: Math.max(200, right - left), height: Math.max(60, bottom - top) };
+    }
+
+    // For H2..H6 subsections:
     const level = /^H(\d)$/.test(heading.tagName) ? Number(heading.tagName[1]) : 7;
     for (let node = heading.nextElementSibling; node; node = node.nextElementSibling) {
       if (node.tagName === 'HR') break;
       const tag = /^H(\d)$/.exec(node.tagName);
       if (tag && Number(tag[1]) <= level) break;
+      // A wrapper that holds the next section too: the ring ends where that section starts.
+      const stop = Array.from(node.querySelectorAll('hr, h1, h2, h3, h4, h5, h6'))
+        .find((h) => h.tagName === 'HR' || Number(h.tagName[1]) <= level);
+      if (stop) {
+        const s = stop.getBoundingClientRect();
+        const n = node.getBoundingClientRect();
+        if (s.top > top) {
+          left = Math.min(left, n.left);
+          right = Math.max(right, n.right);
+          bottom = Math.max(bottom, s.top - 6);
+        }
+        break;
+      }
       rect = node.getBoundingClientRect();
       if (!rect.height) continue;
-      top = Math.min(top, rect.top); left = Math.min(left, rect.left);
-      right = Math.max(right, rect.right); bottom = Math.max(bottom, rect.bottom);
-      if (bottom - top > window.innerHeight * 2.5) break;
+      top = Math.min(top, rect.top);
+      left = Math.min(left, rect.left);
+      right = Math.max(right, rect.right);
+      bottom = Math.max(bottom, rect.bottom);
+      if (bottom - top > window.innerHeight * 2) break;
     }
-    return { top, left, width: right - left, height: bottom - top };
+    return { top, left, width: Math.max(100, right - left), height: Math.max(40, bottom - top) };
   }
-  function showInLesson(id, title) {
-    const anchor = findSectionElement(id, title);
-    if (!anchor) return false;
+
+  // A section kept in a closed panel: the dashboard holds every week ("Course Overview", "Week 5", …)
+  // in a hidden <template> and shows one at a time. Open that week with the page's own link, as the
+  // learner would, so the section is on screen to be ringed. Returns the section's own heading.
+  function openPanelFor(title) {
+    const raw = (title || '').replace(/\s*\(part \d+\)\s*$/i, '').trim();
+    const colon = raw.indexOf(':');
+    const label = (colon < 0 ? raw : raw.slice(0, colon)).trim().toLowerCase();
+    const section = colon < 0 ? '' : raw.slice(colon + 1).trim();
+    if (!label) return null;
+    const link = Array.from(document.querySelectorAll('.nav-link[data-track-id]'))
+      .find((a) => (a.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase() === label);
+    if (!link || !document.querySelector(`template[data-track-panel="${link.dataset.trackId}"]`)) return null;
+    link.click();
+    return section || raw;
+  }
+
+  function showInLesson(id, title, snippet, opened = false, clicked = false) {
+    const found = findSectionElement(id, title);
+    const anchor = isShown(found) ? found : null;
+    if (!anchor && !opened) {
+      const section = openPanelFor(title);
+      if (section) {
+        // The page draws the panel on the click; ring the section once it is there.
+        setTimeout(() => showInLesson(id, section, snippet, true, clicked), 120);
+        return true;
+      }
+    }
+    if (!anchor) {
+      // Not visible on this page (for example a course part kept in a hidden panel): show the course's
+      // own words in the chat instead, with their source.
+      if (snippet) {
+        if (!state.open) setOpen(true);
+        addMessage({ role: 'assistant', kind: 'menu', lang: state.lang, citations: [],
+          text: `${fmt(t().sourceQuote, { title })}\n\n“${snippet}…”` });
+      }
+      return false;
+    }
+    // Mimi's panel would hide the section the learner clicked a source for: she moves aside (opened
+    // again from the card). Her own outline while answering or reading never hides the answer.
+    if (clicked && state.open && !state.minimized) {
+      const r = sectionRect(anchor);
+      const p = panel.getBoundingClientRect();
+      const overlap = Math.max(0, Math.min(r.left + r.width, p.right) - Math.max(r.left, p.left));
+      if (overlap > Math.min(120, r.width / 3)) moveAside();
+    }
     const heading = anchor.closest('h1, h2, h3, h4, h5, h6') || anchor;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    
-    // Smooth scroll with clearance for the fixed top navigation bar (63px)
+
+    // 1. Ensure ring element is in DOM
+    ensureRingInDocument();
+
+    // 2. Smooth scroll with clearance for the fixed top navigation bar (63px)
+    revealInBoxes(heading);
     const rect = heading.getBoundingClientRect();
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const targetY = scrollTop + rect.top - 75;
     window.scrollTo({ top: Math.max(0, targetY), behavior: reduce ? 'auto' : 'smooth' });
 
+    // 3. Place and display the ring IMMEDIATELY (no delay)
+    clearInterval(ringTimer);
     const place = () => {
       const r = sectionRect(anchor);
       Object.assign(ring.style, {
@@ -871,9 +1038,29 @@
         height: `${Math.round(r.height + 16)}px`,
       });
     };
+
     ring.hidden = false;
     place();
-    clearInterval(ringTimer);
+    ring.classList.remove('zoom');
+    void ring.offsetWidth; // restart the zoom for a second click on the same source
+    ring.classList.add('zoom');
+    const dismiss = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Escape') return;
+      if (event.type === 'keydown' && !ring.hidden) {
+        event.stopPropagation(); // this Escape clears the focus only; the next one closes Mimi as before
+        event.preventDefault();
+      }
+      clearInterval(ringTimer);
+      ring.hidden = true;
+      document.removeEventListener('pointerdown', dismiss, true);
+      document.removeEventListener('keydown', dismiss, true);
+    };
+    setTimeout(() => {
+      document.addEventListener('pointerdown', dismiss, true);
+      document.addEventListener('keydown', dismiss, true);
+    }, 300);
+
+    // 4. Update ring position continuously during scroll animation (8 seconds total)
     let ticks = 0;
     ringTimer = setInterval(() => {
       place();
@@ -882,6 +1069,22 @@
         ring.hidden = true;
       }
     }, 100);
+
+    // Also update on scroll event while visible so it glides smoothly
+    const onScroll = () => { if (!ring.hidden) place(); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    setTimeout(() => window.removeEventListener('scroll', onScroll), 8500);
+
+    // 5. Temporary highlight tint on heading as immediate visual confirmation
+    const prevBg = heading.style.backgroundColor;
+    const prevTransition = heading.style.transition;
+    heading.style.transition = 'background-color 0.3s ease';
+    heading.style.backgroundColor = 'rgba(255, 183, 3, 0.2)';
+    setTimeout(() => {
+      heading.style.backgroundColor = prevBg;
+      heading.style.transition = prevTransition;
+    }, 2500);
+
     announcer.append(el('p', { lang: state.lang, text: `${t().shownInLesson}: ${title}` }));
     return true;
   }
@@ -992,6 +1195,9 @@
 
     function unlock() {
       // Called from a click or key press: lets later, programmatic playback through.
+      // Never while Mimi's voice is playing: it uses this same player, so loading the silent clip
+      // cut her greeting off whenever the learner clicked anything or pressed a key (volume too).
+      if (!audio.paused) return;
       try {
         audio.src = SILENCE;
         const p = audio.play();
@@ -2504,12 +2710,12 @@
     if (reply.citations && reply.citations.length && !reply.error) {
       const firstCite = reply.citations[0];
       if (firstCite && firstCite.url) {
-        const u = new URL(firstCite.url, siteRoot);
-        const isCurrentPage = u.pathname === location.pathname ||
-          location.pathname.endsWith(u.pathname.split('/').pop()) ||
-          u.pathname.endsWith(location.pathname.split('/').pop());
+        const citationPath = (firstCite.url || '').split(/[?#]/)[0];
+        const citationFile = citationPath.split('/').filter(Boolean).pop() || '';
+        const currentFile = location.pathname.split('/').filter(Boolean).pop() || '';
+        const isCurrentPage = !citationPath || citationFile === currentFile || location.pathname.endsWith(citationPath);
         if (isCurrentPage) {
-          const h = u.hash ? decodeURIComponent(u.hash.slice(1)) : '';
+          const h = (firstCite.url || '').includes('#') ? decodeURIComponent((firstCite.url || '').split('#')[1]) : '';
           showInLesson(h, firstCite.title);
         }
       }
@@ -2719,6 +2925,10 @@
   document.addEventListener('focusin', (event) => {
     const target = event.target;
     if (!(target instanceof Element) || event.composedPath().includes(host) || !coveredByMimi(target)) return;
+    moveAside();
+  });
+
+  function moveAside() {
     state.open = false;
     session.set('open', false);
     root.classList.remove('open');
@@ -2728,7 +2938,7 @@
     session.set('minimized', true);
     placeVoiceBar();
     announcer.append(el('p', { lang: state.lang, text: t().movedAside }));
-  });
+  }
 
   function setLevel(level) {
     state.level = level;
@@ -2950,5 +3160,10 @@
     }
     revealWidget();
     sendHostContent();
+    const pending = session.get('show-source');
+    if (pending) {
+      session.set('show-source', null);
+      setTimeout(() => showInLesson(pending.id, pending.title, pending.snippet, false, true), 600); // after the page has laid out
+    }
   }, (error) => console.error(error));
 })();

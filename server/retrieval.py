@@ -124,6 +124,25 @@ def load_glossary(lang: str = "am") -> dict[str, str]:
 # The course is in English. A word list per language turns the learner's words into English search
 # words, so questions in these languages are understood with no AI at all, as Amharic ones are.
 
+# Everyday words learners (and translations) use, mapped to the words the course itself uses, so that
+# "Can I resubmit my homework?" finds the section about resubmitting an assignment.
+COURSE_WORDS = [
+    (r"\bhome ?works?\b", "assignment"),
+    (r"\bexams?\b", "quiz"),
+    (r"\bdue dates?\b", "deadline"),
+    (r"\b(re-?take|redo|re-?do|re-?send)\b", "resubmit"),
+    (r"\b(hand|turn) (it )?in\b", "submit"),
+    (r"\bmarks?\b", "score"),
+]
+
+
+def course_words(query: str) -> str:
+    """The question in the course's own words (see COURSE_WORDS)."""
+    for pattern, word in COURSE_WORDS:
+        query = re.sub(pattern, word, query, flags=re.IGNORECASE)
+    return query
+
+
 def expand_words(question: str, glossary: dict[str, str], lang: str) -> str:
     """English search terms for the words of the question found in the word list. Afaan Oromo is
     written in Latin letters; the apostrophe (hudhaa) is often left out when typing."""

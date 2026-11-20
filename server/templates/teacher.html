@@ -28,7 +28,7 @@
 <h2 id="lang-h">By language</h2>
 <table aria-labelledby="lang-h">
   <thead><tr><th scope="col">Language</th><th scope="col" class="n">Questions</th></tr></thead>
-  <tbody>{% for r in s.by_lang %}<tr><td>{{ LANGS.get(r.lang, r.lang) }} ({{ r.lang }})</td><td class="n">{{ r.n }}</td></tr>{% else %}<tr><td colspan="2">No data</td></tr>{% endfor %}</tbody>
+  <tbody>{% for r in s.by_lang %}<tr><td>{{ LANGS.get(r.lang) or {"om": "Afaan Oromoo"}.get(r.lang, r.lang) }} ({{ r.lang }})</td><td class="n">{{ r.n }}</td></tr>{% else %}<tr><td colspan="2">No data</td></tr>{% endfor %}</tbody>
 </table>
 </section>
 <section aria-labelledby="channel-h">

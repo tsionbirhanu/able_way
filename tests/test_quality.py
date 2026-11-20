@@ -1,4 +1,5 @@
 """Answer quality: the evaluation set, Amharic spelling, and no AI call when the course has nothing."""
+import pytest
 import sys
 from pathlib import Path
 
@@ -45,7 +46,10 @@ def test_no_model_call_when_course_has_nothing(monkeypatch):
     assert len(calls) == 1
 
 
-def test_amharic_question_the_word_list_understands_needs_no_translation_call(monkeypatch):
+def test_amharic_question_is_translated_once_then_remembered(monkeypatch):
+    """Every language is searched through an English version of the question, so the same question
+    finds the same sections (and facts) in Amharic, Afaan Oromo and English. The translation is
+    remembered: asking again costs only the answer."""
     monkeypatch.setenv("ABLEWAY_PROVIDERS", "gemini,offline")
     monkeypatch.setenv("GEMINI_API_KEYS", "test-key-not-real")
     from tutor import Tutor
@@ -54,7 +58,57 @@ def test_amharic_question_the_word_list_understands_needs_no_translation_call(mo
     gemini = next(p for p in tutor.chain if p.name == "gemini")
     monkeypatch.setattr(gemini, "status", lambda: {"available": True, "detail": ""})
     systems = []
-    monkeypatch.setattr(gemini, "complete", lambda system, messages, **k: systems.append(system) or "ኮርሱ 7 ቀን ነው [1]።")
+
+    def fake(system, messages, **k):
+        systems.append(system)
+        return "How many days is the course?" if "translate" in system.lower() else "ኮርሱ 7 ቀን ነው [1]።"
+
+    monkeypatch.setattr(gemini, "complete", fake)
     result = tutor.ask("ኮርሱ ስንት ቀን ነው?", "am")
     assert result["grounded"] is True
-    assert not any("translate" in s.lower() for s in systems)  # one AI call: the answer only
+    assert sum("translate" in s.lower() for s in systems) == 1
+    tutor._answer_cache.clear()  # not the answer cache: the translation must be remembered by itself
+    tutor.ask("ኮርሱ ስንት ቀን ነው?", "am")
+    assert sum("translate" in s.lower() for s in systems) == 1
+
+
+def test_square_brackets_are_only_for_source_numbers():
+    from tutor import parse_answer
+
+    hits = [{"title": "Course Overview", "course": "", "url": "pages/x.html", "page": "pages/x.html", "text": ""}]
+    answer = parse_answer("Imaammata [Late Policy] koorsii [1].", hits, "")["answer"]
+    assert answer == "Imaammata (Late Policy) koorsii [1]."
+
+
+@pytest.mark.parametrize("question, section", [
+    ("Can I resubmit my homework?", "Course Overview"),
+    ("Can I retake the exam?", "Evaluation Quizzes"),
+    ("When is the homework due date?", "Course Overview"),
+])
+def test_everyday_words_find_the_course_words(monkeypatch, question, section):
+    """Learners (and translations) say homework, exam, due date; the course says assignment, quiz, deadline."""
+    monkeypatch.setenv("ABLEWAY_PROVIDERS", "offline")
+    from tutor import Tutor
+
+    answer = Tutor().ask(question, "en", cloud=False)
+    assert answer["grounded"] and section in answer["citations"][0]["title"]
+
+
+def test_every_source_carries_the_course_words(monkeypatch):
+    """A source the page cannot show (for example a hidden course panel) is quoted in the chat instead."""
+    monkeypatch.setenv("ABLEWAY_PROVIDERS", "offline")
+    from tutor import Tutor
+
+    tutor = Tutor()
+    for question in ("What is the late submission policy?", "Can I resubmit an assignment?"):
+        source = tutor.ask(question, "en", cloud=False)["citations"][0]
+        assert source["snippet"] and source["snippet"].split()[0] != "WR"  # its own section, not the page top
+
+
+def test_source_links_zoom_and_never_ring_the_wrong_place():
+    from pathlib import Path
+
+    script = (Path(__file__).resolve().parents[1] / "module" / "db-assistant.js").read_text(encoding="utf-8")
+    assert "mimi-source-zoom" in script  # the zoom to the section
+    assert "session.set('show-source'" in script  # a source on another page: go there, then show it
+    assert "return null;" in script and "isShown(found)" in script  # never a fallback ring on a wrong place
