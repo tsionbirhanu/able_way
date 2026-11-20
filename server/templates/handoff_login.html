@@ -3,18 +3,500 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tutor console - sign in</title>
-{% include "_p34_style.html" %}
+<title>Tutor Console — Sign In · Savanna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --alx-red: #db3e3e;
+  --alx-red-dark: #b91c1c;
+  --alx-red-light: #fef2f2;
+  --alx-red-border: #fecaca;
+  --navy-dark: #111827;
+  --navy-slate: #1f2937;
+  --gray-bg: #f8f9fa;
+  --gray-surface: #ffffff;
+  --gray-border: #e5e7eb;
+  --gray-border-subtle: #f1f5f9;
+  --text-primary: #111827;
+  --text-muted: #6b7280;
+  --text-light: #9ca3af;
+  --green-dot: #22c55e;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 12px 28px -4px rgba(0, 0, 0, 0.07), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Ethiopic", sans-serif;
+  --transition: 0.15s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--gray-bg);
+  background-image: 
+    radial-gradient(circle at 50% 15%, rgba(219, 62, 62, 0.04) 0%, transparent 60%),
+    linear-gradient(to bottom, #ffffff 0%, var(--gray-bg) 100%);
+  background-repeat: no-repeat;
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Accessibility */
+.skip {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  background: var(--navy-dark);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  z-index: 10000;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-weight: 600;
+  transition: top var(--transition);
+}
+.skip:focus { top: 1rem; }
+:focus-visible { outline: 2.5px solid var(--alx-red); outline-offset: 2px; }
+
+/* ── Savanna Top Brand Header ───────────────────────────────────── */
+.savanna-header {
+  background: var(--gray-surface);
+  border-bottom: 1px solid var(--gray-border);
+  padding: 0.85rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+}
+.brand-badge {
+  background: var(--alx-red);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+}
+.brand-details {
+  display: flex;
+  flex-direction: column;
+}
+.brand-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+  line-height: 1.2;
+}
+.brand-subtitle {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+.header-badge-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--gray-bg);
+  border: 1px solid var(--gray-border);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+}
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-dot);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+}
+
+/* ── Centered Auth Container ────────────────────────────────────── */
+.auth-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--gray-surface);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 2.5rem 2.25rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle top crimson accent line */
+.auth-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--alx-red) 0%, #f43f5e 100%);
+}
+
+.auth-card-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-icon-wrap {
+  width: 52px;
+  height: 52px;
+  background: var(--alx-red-light);
+  border: 1px solid var(--alx-red-border);
+  border-radius: var(--radius-md);
+  color: var(--alx-red);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.1rem;
+}
+
+.auth-card-header h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+  margin: 0 0 0.45rem;
+  letter-spacing: -0.015em;
+}
+
+.auth-card-header p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* ── Alert Banner ───────────────────────────────────────────────── */
+.alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  animation: shakeIn 0.3s ease;
+}
+@keyframes shakeIn {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+.alert-error svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* ── Form Controls ──────────────────────────────────────────────── */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.field-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--navy-slate);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon-left {
+  position: absolute;
+  left: 0.95rem;
+  color: var(--text-light);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.75rem 2.75rem 0.75rem 2.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-md);
+  background: #fafbfc;
+  color: var(--navy-dark);
+  transition: all var(--transition);
+}
+.auth-input:focus {
+  background: #ffffff;
+  border-color: var(--alx-red);
+  box-shadow: 0 0 0 3px rgba(219, 62, 62, 0.12);
+}
+
+.btn-toggle-pw {
+  position: absolute;
+  right: 0.65rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+}
+.btn-toggle-pw:hover {
+  color: var(--navy-dark);
+}
+
+.field-help {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.btn-submit-login {
+  background: var(--alx-red);
+  color: #ffffff;
+  border: none;
+  font-family: inherit;
+  font-size: 0.96rem;
+  font-weight: 600;
+  padding: 0.85rem 1.5rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  transition: all var(--transition);
+  box-shadow: 0 2px 4px rgba(219, 62, 62, 0.2);
+}
+.btn-submit-login:hover {
+  background: var(--alx-red-dark);
+  box-shadow: 0 4px 8px rgba(219, 62, 62, 0.25);
+  transform: translateY(-1px);
+}
+.btn-submit-login:active {
+  transform: translateY(0);
+}
+
+/* ── Card Footer ────────────────────────────────────────────────── */
+.auth-card-footer {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--gray-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.security-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.back-link {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--navy-slate);
+  text-decoration: none;
+  transition: color var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+.back-link:hover {
+  color: var(--alx-red);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.savanna-footer {
+  text-align: center;
+  padding: 1.25rem;
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+</style>
 </head>
 <body>
-<main>
-<h1>Tutor console</h1>
-{% if error %}<p class="box error" role="alert">Wrong password.</p>{% endif %}
-<form method="post" action="/handoff/console/login">
-  <label for="password">Tutor password</label>
-  <input type="password" id="password" name="password" required autocomplete="current-password">
-  <div><button type="submit">Sign in</button></div>
-</form>
+<a class="skip" href="#password">Skip to password</a>
+
+<!-- ── Header ──────────────────────────────────────────────────── -->
+<header class="savanna-header">
+  <a href="/handoff/console" class="brand-link">
+    <span class="brand-badge">ALX</span>
+    <div class="brand-details">
+      <span class="brand-title">Savanna Tutor Portal</span>
+      <span class="brand-subtitle">Ableway Multilingual Classroom</span>
+    </div>
+  </a>
+  <div class="header-badge-live">
+    <span class="pulse-dot" aria-hidden="true"></span>
+    <span>Live Support Desk</span>
+  </div>
+</header>
+
+<!-- ── Main Card ───────────────────────────────────────────────── -->
+<main class="auth-main" id="main">
+  <div class="auth-card">
+
+    <div class="auth-card-header">
+      <div class="auth-icon-wrap" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <h1>Tutor Console</h1>
+      <p>Authorized access for course instructors, live tutors, and accommodation coordinators.</p>
+    </div>
+
+    {% if error %}
+    <div class="alert-error" role="alert">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div>
+        <strong>Incorrect password.</strong>
+        <div>Please verify your tutor password and try again.</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/handoff/console/login" class="auth-form">
+      <div class="field-group">
+        <label for="password" class="field-label">Tutor Password</label>
+        <div class="input-wrapper">
+          <span class="input-icon-left" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </span>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            class="auth-input" 
+            placeholder="Enter tutor console password…"
+            required 
+            autocomplete="current-password" 
+            autofocus>
+          <button 
+            type="button" 
+            id="toggle-pw" 
+            class="btn-toggle-pw" 
+            aria-label="Show password" 
+            title="Show password">
+            <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
+        <span class="field-help">Configured via the shared TUTOR_PASSWORD environment setting.</span>
+      </div>
+
+      <button type="submit" class="btn-submit-login">
+        <span>Sign In to Console</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+    </form>
+
+    <div class="auth-card-footer">
+      <div class="security-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <span>Secure HTTP-only session authenticated</span>
+      </div>
+      <a href="http://localhost:8001/pages/concept-with-navigation.html" class="back-link">
+        <span>← Return to Ableway Course Hub</span>
+      </a>
+    </div>
+
+  </div>
 </main>
+
+<footer class="savanna-footer">
+  &copy; Ableway & ALX Savanna Learning Management Platform. All rights reserved.
+</footer>
+
+<script>
+(function () {
+  var pwInput = document.getElementById('password');
+  var toggleBtn = document.getElementById('toggle-pw');
+  var eyeIcon = document.getElementById('eye-icon');
+
+  if (toggleBtn && pwInput) {
+    toggleBtn.addEventListener('click', function () {
+      var isPw = pwInput.type === 'password';
+      pwInput.type = isPw ? 'text' : 'password';
+      toggleBtn.setAttribute('aria-label', isPw ? 'Hide password' : 'Show password');
+      toggleBtn.title = isPw ? 'Hide password' : 'Show password';
+      
+      if (isPw) {
+        eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+      } else {
+        eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+      }
+      pwInput.focus();
+    });
+  }
+})();
+</script>
 </body>
 </html>
