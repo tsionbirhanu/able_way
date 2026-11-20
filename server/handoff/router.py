@@ -45,6 +45,21 @@ def conversation_summary(conversation, limit: int = 12) -> str:
     return ("Conversation with Mimi before asking for help:\n" + "\n".join(lines)) if lines else ""
 
 
+def page_line(page) -> str:
+    """'Learner is on: <page> > <section> (<link>)', so the tutor can open the same place. Only an
+    http(s) link is shown; anything else is dropped."""
+    if not isinstance(page, dict):
+        return ""
+    clean = lambda v, n: " ".join(str(v or "").split())[:n]  # noqa: E731
+    title, section, url = clean(page.get("title"), 160), clean(page.get("section"), 160), clean(page.get("url"), 400)
+    if not re.match(r"https?://", url):
+        url = ""
+    where = " > ".join(p for p in (title, section) if p)
+    if not where and not url:
+        return ""
+    return "Learner is on: " + (where or url) + (f" ({url})" if url and where else "")
+
+
 # ------------------------------------------------------------------ tickets
 @router.post("/tickets")
 async def create_ticket(request: Request):
@@ -63,6 +78,13 @@ async def create_ticket(request: Request):
                 data = parsed
     except ValueError:
         pass
+    return JSONResponse(open_ticket(data), status_code=201, headers={"Access-Control-Allow-Origin": "*"})
+
+
+def open_ticket(data: dict, base_url: str | None = None) -> dict:
+    """Create a ticket from {"lang", "topic", "channel", "conversation", "summary", "page"} and return
+    {"ticket_id", "chat_url", "ws_url", "absolute_chat_url"}. Used by POST /handoff/tickets and, in the
+    same process, by the tutor's POST /api/v1/escalations ("Talk to a person" in the widget)."""
     channel = re.sub(r"[^a-z0-9_-]", "", str(data.get("channel") or "web").lower()) or "web"
     lang = norm_lang(data.get("lang"))
     ticket_id = tickets.create_ticket(channel=channel, lang=lang, topic=str(data.get("topic") or ""))
@@ -70,16 +92,15 @@ async def create_ticket(request: Request):
     in_short = " ".join(str(data.get("summary") or "").split())[:300]
     if in_short:
         summary = f"In short: {in_short}\n\n{summary}" if summary else f"In short: {in_short}"
+    where = page_line(data.get("page"))
+    if where:
+        summary = f"{where}\n\n{summary}" if summary else where
     if summary:
         tickets.add_message(ticket_id, "mimi", summary)
     webhook.send("ticket.opened", {"ticketId": ticket_id, "channel": channel, "lang": lang})
     chat_path = "/handoff/chat/{}?lang={}".format(ticket_id, lang)
-    return JSONResponse(
-        {"ticket_id": ticket_id, "chat_url": chat_path, "ws_url": "/handoff/ws/" + ticket_id,
-         "absolute_chat_url": public_base_url() + chat_path},
-        status_code=201,
-        headers={"Access-Control-Allow-Origin": "*"},
-    )
+    return {"ticket_id": ticket_id, "chat_url": chat_path, "ws_url": "/handoff/ws/" + ticket_id,
+            "absolute_chat_url": (base_url or public_base_url()).rstrip("/") + chat_path}
 
 
 @router.get("/start")

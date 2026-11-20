@@ -75,6 +75,9 @@ def speak(text: str, lang: str) -> tuple[bytes, str] | None:
     """(audio, content type) for a reply, or None when no voice is available."""
     if not text:
         return None
+    # The server voices speak Amharic and English; Afaan Oromo has no server voice yet (the text answer stays).
+    if lang not in ("en", "am"):
+        return None
     try:
         audio, mime, _provider = _get().synthesize(text, lang)
     except SpeechError:

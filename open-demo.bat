@@ -9,7 +9,7 @@ rem
 rem A separate demo profile is used so the setting applies even if Edge is already open. Allow the
 rem microphone once when Edge asks; the demo profile remembers it.
 
-set "URL=http://localhost:8001/pages/concept-with-navigation.html"
+set "URL=http://localhost:8000/pages/concept-with-navigation.html"
 set "PROFILE=%LOCALAPPDATA%\MimiDemoBrowser"
 
 set "EDGE=%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"

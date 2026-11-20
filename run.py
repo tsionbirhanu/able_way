@@ -1,75 +1,55 @@
-"""Start the whole project from one terminal.
+"""Start Mimi: one server for everything.
 
-    server\\.venv\\Scripts\\python run.py          (Windows)
-    server/.venv/bin/python run.py              (macOS, Linux)
+    .venv\\Scripts\\python run.py          (Windows)
+    .venv/bin/python run.py              (macOS, Linux)
 
-It starts the two servers side by side and stops both on Ctrl+C:
+    http://localhost:8000/pages/concept-with-navigation.html   the Savanna pages with Mimi
+    http://localhost:8000/handoff/console                      tutor console (talk to a person)
+    http://localhost:8000/teacher, /lite, /sms/simulator        teacher view, low-bandwidth page, SMS
 
-    tutor     http://localhost:8001   the Savanna pages, Mimi (AI answers, voice), /api/...
-    channels  http://localhost:8000   talk to a person, Telegram, SMS, /lite, jobs, teacher view
-
-Open the pages on the tutor: http://localhost:8001/pages/concept-with-navigation.html
+Press Ctrl+C to stop. RUN_PORT=9000 python run.py uses another port.
 """
 
 from __future__ import annotations
 
 import os
-import signal
-import subprocess
 import sys
-import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-TUTOR_PORT = int(os.environ.get("RUN_TUTOR_PORT", "8001"))  # override only for testing
-CHANNELS_PORT = int(os.environ.get("RUN_CHANNELS_PORT", "8000"))
+PORT = int(os.environ.get("RUN_PORT", "8000"))
 
 
 def main() -> int:
-    python = sys.executable
-    base = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
-    # The widget expects the tutor on 8001 and the channels server on 8000, whatever .env says.
-    tutor_env = {**base, "ABLEWAY_PORT": str(TUTOR_PORT)}
-    channels_env = {**base, "CORE_ASK_IMPORT": base.get("CORE_ASK_IMPORT") or "server.core_bridge:ask"}
+    os.chdir(ROOT)
+    sys.path.insert(0, str(ROOT))
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    try:
+        import uvicorn
+    except ImportError:
+        print("FastAPI and uvicorn are not installed here. Run:  pip install -r requirements.txt")
+        return 1
 
-    processes = [
-        ("tutor", subprocess.Popen([python, "server/app.py"], cwd=ROOT, env=tutor_env)),
-        ("channels", subprocess.Popen(
-            [python, "-m", "uvicorn", "server.main:app", "--port", str(CHANNELS_PORT)], cwd=ROOT, env=channels_env)),
-    ]
-    time.sleep(3)
+    from server.main import app
+    from server.tutor_api import startup_report
+
+    startup_report()
     print(
         "\n"
-        f"  Pages and Mimi:    http://localhost:{TUTOR_PORT}/pages/concept-with-navigation.html\n"
-        f"  Tutor console:     http://localhost:{CHANNELS_PORT}/handoff/console\n"
-        f"  Teacher view:      http://localhost:{CHANNELS_PORT}/teacher\n"
-        f"  Low-bandwidth:     http://localhost:{CHANNELS_PORT}/lite\n"
-        f"  SMS simulator:     http://localhost:{CHANNELS_PORT}/sms/simulator\n"
-        "  Press Ctrl+C to stop both servers.\n",
+        f"  Pages and Mimi:    http://localhost:{PORT}/pages/concept-with-navigation.html\n"
+        f"  Tutor console:     http://localhost:{PORT}/handoff/console\n"
+        f"  Teacher view:      http://localhost:{PORT}/teacher\n"
+        f"  Low-bandwidth:     http://localhost:{PORT}/lite\n"
+        f"  SMS simulator:     http://localhost:{PORT}/sms/simulator\n"
+        f"  API contract:      http://localhost:{PORT}/docs\n"
+        "  Press Ctrl+C to stop.\n",
         flush=True,
     )
     try:
-        while True:
-            for name, process in processes:
-                if process.poll() is not None:
-                    print(f"\nThe {name} server stopped (exit code {process.returncode}). Stopping the other one.")
-                    return process.returncode or 1
-            time.sleep(1)
+        uvicorn.run(app, host=os.environ.get("RUN_HOST", "127.0.0.1"), port=PORT)
     except KeyboardInterrupt:
-        print("\nStopping…")
-        return 0
-    finally:
-        for _, process in processes:
-            if process.poll() is None:
-                if os.name == "nt":
-                    process.terminate()
-                else:
-                    process.send_signal(signal.SIGINT)
-        for _, process in processes:
-            try:
-                process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                process.kill()
+        pass
+    return 0
 
 
 if __name__ == "__main__":

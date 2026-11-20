@@ -6,7 +6,8 @@
   },
   "languageNames": {
     "am": "Amharic",
-    "en": "English"
+    "en": "English",
+    "om": "Afaan Oromo"
   },
   "intro": "Hello! I am Mimi, your course tutor. I can explain this lesson, answer your questions, tell you about jobs and connect you to a tutor. Shall we continue in English? For Amharic, say “Amharic”.",
   "introSpoken": "Hello, I am Mimi, your course assistant. I can explain this lesson, answer your questions, and connect you with a tutor. Shall we continue in English?",
@@ -62,6 +63,8 @@
   "clear": "Clear chat",
   "talkToPerson": "Talk to a person",
   "screenShare": "Share screen",
+  "telegram": "Telegram",
+  "telegramLabel": "Continue on Telegram (opens Telegram in a new tab)",
   "screenSharingActive": "Sharing screen (click to stop)",
   "escalating": "Connecting to live tutor…",
   "screenShareAndroid": "Screen sharing is not supported in Chrome on Android. Your current lesson page is shared with the tutor.",
@@ -185,5 +188,7 @@
   "escalateSuggest": "This is not in the course either. A tutor can help: press “Talk to a person”, or say {n}.",
   "thinkingSpoken": "Let me check.",
   "escalatedPress": "I opened a chat with a person. To open it, press Enter, or tap “Open the help chat”. A tutor will answer you there. If nobody is online right now, the answer may come in the morning, and the chat stays open for you.",
-  "openHelp": "Open the help chat"
+  "openHelp": "Open the help chat",
+  "pressHint": "For English, press 2.",
+  "chooseOthers": "For Amharic, press 1. For Afaan Oromo, press 3."
 }

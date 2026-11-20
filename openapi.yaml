@@ -7,20 +7,17 @@ info:
     A course tutor that answers in Amharic and English only from course content, with sources, plus
     one-click help from a person, an SMS route and a webhook.
 
-    Two servers (both started by `docker compose up`):
-    - **tutor** (`http://localhost:8001`): the `/api/...` calls below. Interactive docs: `/docs`.
-    - **channels** (`http://localhost:8000`): `/sms/inbound` and `/handoff/tickets` below; Telegram, `/lite`,
-      job alerts and the teacher view. Its full generated docs: `http://localhost:8000/docs`.
+    One server (`python run.py` or `docker compose up`, http://localhost:8000) serves the pages, the
+    `/api/...` calls below, `/sms/inbound` and `/handoff/tickets`, Telegram, `/lite`, job alerts and the
+    teacher view. This page is `/docs`; the generated documentation of every route is `/api-docs`.
 
     No call needs a key. AI keys stay on the server (`.env`); the browser never sees them.
   license:
     name: MIT
     identifier: MIT
 servers:
-  - url: http://localhost:8001
-    description: tutor
   - url: http://localhost:8000
-    description: channels (only /sms/inbound and /handoff/tickets)
+    description: the Mimi server
 
 paths:
   /api/v1/ask:
@@ -186,8 +183,6 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
 
   /sms/inbound:
-    servers:
-      - url: http://localhost:8000
     post:
       summary: The text route. An SMS gateway posts the learner's message here and sends back the reply.
       description: |
@@ -225,8 +220,6 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
 
   /handoff/tickets:
-    servers:
-      - url: http://localhost:8000
     post:
       summary: Open a help-desk ticket directly (what /api/v1/escalations calls)
       requestBody:

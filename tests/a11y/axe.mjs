@@ -2,8 +2,8 @@
 // Edge on a page after Mimi has loaded, and fails when there is any critical or serious issue.
 //
 //   cd tests/a11y && npm install
-//   node axe.mjs http://localhost:8001/demo/blank.html            (only the assistant)
-//   node axe.mjs http://localhost:8001/demo/blank.html page       (the whole page)
+//   node axe.mjs http://localhost:8000/demo/blank.html            (only the assistant)
+//   node axe.mjs http://localhost:8000/demo/blank.html page       (the whole page)
 //   npm run check                                                 (blank page and a Savanna page)
 import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';

@@ -11,7 +11,6 @@ import unittest
 import urllib.request
 import wave
 import io
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest import mock
 
@@ -209,34 +208,35 @@ class SpeechLayer(unittest.TestCase):
 
 
 class HttpApi(unittest.TestCase):
-    """The real request handler on a local port, with the offline tutor and a fake voice."""
+    """The tutor's routes in the one FastAPI server, with the offline tutor and a fake voice."""
 
     @classmethod
     def setUpClass(cls):
-        import app
+        root = str(Path(__file__).resolve().parents[2])
+        if root not in sys.path:
+            sys.path.insert(0, root)
+        from fastapi.testclient import TestClient
 
-        cls.app = app
-        app.tutor = Tutor(chain=[OfflineProvider()])
-        app.speech = speech.Speech()
-        app.speech.tts = [FakeTTS()]
-        app.speech.stt_keys = []
-        app.sessions = Sessions()
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
-        cls.base = f"http://127.0.0.1:{cls.server.server_address[1]}"
-        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
+        import server.main  # noqa: F401  (builds the app)
+        from server import tutor_api
+
+        cls.api = tutor_api
+        cls.saved = (tutor_api.tutor, tutor_api.speech, tutor_api.sessions)
+        tutor_api.tutor = Tutor(chain=[OfflineProvider()])
+        tutor_api.speech = speech.Speech()
+        tutor_api.speech.tts = [FakeTTS()]
+        tutor_api.speech.stt_keys = []
+        tutor_api.sessions = Sessions()
+        cls.client = TestClient(server.main.app)
 
     @classmethod
     def tearDownClass(cls):
-        cls.server.shutdown()
+        cls.api.tutor, cls.api.speech, cls.api.sessions = cls.saved
 
     def post(self, path, body, content_type="application/json"):
         data = body if isinstance(body, bytes) else json.dumps(body).encode()
-        request = urllib.request.Request(self.base + path, data=data, headers={"Content-Type": content_type})
-        try:
-            with urllib.request.urlopen(request) as r:
-                return r.status, r.headers, r.read()
-        except urllib.error.HTTPError as e:
-            return e.code, e.headers, e.read()
+        r = self.client.post(path, content=data, headers={"Content-Type": content_type})
+        return r.status_code, r.headers, r.content
 
     def test_session_language_is_used_when_the_request_names_none(self):
         _, _, body = self.post("/api/session", {"lang": "am"})
@@ -251,7 +251,7 @@ class HttpApi(unittest.TestCase):
         sid = json.loads(body)["session_id"]
         _, _, body = self.post("/api/ask", {"question": "English please", "lang": "am", "session_id": sid, "detect_switch": True})
         self.assertEqual(json.loads(body)["switch_lang"], "en")
-        self.assertEqual(self.app.sessions.get(sid)["lang"], "en")
+        self.assertEqual(self.api.sessions.get(sid)["lang"], "en")
 
     def test_intent_needs_no_question_but_plain_asks_do(self):
         status, _, _ = self.post("/api/ask", {"question": "", "lang": "en"})
@@ -259,6 +259,11 @@ class HttpApi(unittest.TestCase):
         status, _, body = self.post("/api/ask", {"intent": "lesson_intro", "lang": "en", "context": {"page": "pages/concept-with-navigation.html"}})
         self.assertEqual(status, 200)
         self.assertTrue(json.loads(body)["grounded"])
+
+    def test_bad_bodies(self):
+        self.assertEqual(self.post("/api/ask", b"not json")[0], 400)
+        self.assertEqual(self.post("/api/ask", b"[1]")[0], 400)
+        self.assertEqual(self.post("/api/ask", b"x" * 30000)[0], 413)
 
     def test_tts_returns_audio(self):
         status, headers, body = self.post("/api/tts", {"text": "Hello [1].", "lang": "en"})
@@ -275,26 +280,67 @@ class HttpApi(unittest.TestCase):
         self.assertEqual(self.post("/api/transcribe", b"abc", "text/plain")[0], 415)
 
     def test_health_reports_speech(self):
-        with urllib.request.urlopen(self.base + "/api/health") as r:
-            health = json.load(r)
+        health = self.client.get("/api/health").json()
         self.assertTrue(health["speech"]["tts"])
         self.assertFalse(health["speech"]["stt"])
 
     def test_server_files_stay_private(self):
-        for path in ("/server/.env", "/pages/../server/.env", "/data/tts_cache/x.wav", "/data/channels.db", "/data/accommodations.db"):
-            with self.assertRaises(urllib.error.HTTPError) as caught:
-                urllib.request.urlopen(self.base + path)
-            self.assertEqual(caught.exception.code, 404)
-        with urllib.request.urlopen(self.base + "/data/jobs.json") as r:  # the one public file in data/
-            self.assertEqual(r.status, 200)
+        for path in ("/server/.env", "/pages/../server/.env", "/data/tts_cache/x.wav", "/data/channels.db",
+                     "/data/accommodations.db", "/server/tutor.py", "/.git/config", "/run.py"):
+            self.assertEqual(self.client.get(path).status_code, 404, path)
+        self.assertEqual(self.client.get("/data/jobs.json").status_code, 200)  # the one public file in data/
+
+    def test_site_pages_widget_and_docs_are_served(self):
+        page = self.client.get("/pages/concept-with-navigation.html")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("db-assistant", page.text)
+        script = self.client.get("/module/db-assistant.js", headers={"Accept-Encoding": "gzip"})
+        self.assertEqual(script.status_code, 200)
+        self.assertEqual(script.headers["Content-Encoding"], "gzip")  # small on 3G
+        self.assertEqual(script.headers["Access-Control-Allow-Origin"], "*")  # any website can load Mimi
+        self.assertEqual(self.client.get("/").status_code, 200)  # index.html
+        self.assertIn("swagger-ui", self.client.get("/docs").text)
+        self.assertEqual(self.client.get("/openapi.yaml").status_code, 200)
+        self.assertEqual(self.client.head("/module/db-assistant.js").status_code, 200)
+        self.assertEqual(self.client.options("/api/ask").status_code, 204)
+
+    def test_help_desk_routes_are_on_the_same_server(self):
+        self.assertEqual(self.client.get("/lite").status_code, 200)
+        self.assertEqual(self.client.get("/telegram/status").status_code, 200)
+        self.assertEqual(self.client.get("/handoff/console").status_code, 200)
 
     def test_api_contract_routes(self):
         status, _, body = self.post("/api/v1/ask", {"question": "Is the VA profession shrinking?", "lang": "en"})
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(body)["sources"][0]["url"], "pages/concept-with-navigation.html")
 
-    def test_escalation_opens_a_ticket_with_the_conversation(self):
-        """POST /api/v1/escalations forwards to the help desk (a fake one here) with the conversation."""
+    def test_escalation_opens_a_ticket_in_this_server(self):
+        """Talk to a person: the ticket is created on the help desk of the same server, no HTTP hop."""
+        import os
+
+        from server.handoff import tickets
+
+        old = os.environ.pop("CHANNELS_URL", None)
+        old_db = os.environ.get("CHANNELS_DB_PATH")
+        folder = tempfile.mkdtemp()
+        os.environ["CHANNELS_DB_PATH"] = str(Path(folder) / "channels.db")  # never the real database
+        try:
+            convo = [{"role": "user", "text": "When is the deadline?"}, {"role": "assistant", "text": "Seven days."}]
+            status, _, body = self.post("/api/v1/escalations", {"conversation": convo, "language": "en"})
+            self.assertEqual(status, 201)
+            reply = json.loads(body)
+            self.assertIn("/handoff/chat/" + reply["ticketId"], reply["chatUrl"])
+            self.assertIn("When is the deadline?", tickets.messages(reply["ticketId"])[0]["text"])
+        finally:
+            if old is not None:
+                os.environ["CHANNELS_URL"] = old
+            if old_db is None:
+                os.environ.pop("CHANNELS_DB_PATH", None)
+            else:
+                os.environ["CHANNELS_DB_PATH"] = old_db
+
+    def test_escalation_to_a_separate_help_desk_still_works(self):
+        """CHANNELS_URL set to another server: the ticket goes there (a fake one here), as before."""
         import os
         import threading
         from http.server import BaseHTTPRequestHandler, HTTPServer

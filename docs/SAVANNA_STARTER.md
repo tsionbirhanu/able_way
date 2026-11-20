@@ -45,7 +45,7 @@ Mimi speaks, listens, answers from the course pages with citations, and listens 
 microphone button to press. **Turn off voice** switches to text at any time without losing the
 conversation or the language, and the choice carries over to other lessons in the same tab.
 
-Run `python run.py` and open <http://localhost:8001/pages/concept-with-navigation.html>. How to run,
+Run `python run.py` and open <http://localhost:8000/pages/concept-with-navigation.html>. How to run,
 configure and install Mimi is in the main [README](../README.md).
 
 ## What still works

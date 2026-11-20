@@ -1,64 +1,36 @@
 services:
-  # ── Service 1: Tutor RAG API + Savanna Static Pages ───────────────────────
+  # One web service: the pages and Mimi, the AI, voice, talk to a person, Telegram, SMS and /lite.
   - type: web
-    name: ableway-tutor
+    name: mimi
     runtime: python
-    region: oregon
+    region: frankfurt
     plan: free
     rootDir: .
     buildCommand: pip install -r requirements.txt
-    startCommand: ABLEWAY_HOST=0.0.0.0 ABLEWAY_PORT=$PORT python server/app.py
+    startCommand: uvicorn server.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips "*"
+    healthCheckPath: /api/health
     envVars:
-      - key: ABLEWAY_HOST
-        value: 0.0.0.0
       - key: ABLEWAY_PROVIDERS
         value: gemini,offline
       - key: ABLEWAY_GEMINI_MODEL
         value: gemini-3.5-flash-lite
       - key: GEMINI_API_KEY
-        sync: false          # you will paste this in the Render dashboard
-      # Where "Talk to a person" opens tickets: the ableway-channels service's public address, for example
-      # https://ableway-channels.onrender.com (no slash at the end). Without it the help desk is not found.
-      - key: CHANNELS_URL
+        sync: false          # paste in the Render dashboard
+      # This service's own address, e.g. https://mimi.onrender.com (no slash at the end): used in the
+      # links the help chat, Telegram and SMS send out, and for the Telegram webhook.
+      - key: PUBLIC_BASE_URL
         sync: false
-      - key: CHANNELS_DB_PATH
-        value: data/channels.db
-      - key: ACCOMMODATIONS_DB_PATH
-        value: data/accommodations.db
-
-  # ── Service 2: Channels (SMS, Telegram, Handoff, Jobs) ────────────────────
-  - type: web
-    name: ableway-channels
-    runtime: python
-    region: oregon
-    plan: free
-    rootDir: .
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn server.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      # A random password made by Render (see the service's Environment tab). Never a fixed one in git.
+      # A random password made by Render (see the Environment tab). Never a fixed one in git.
       - key: TUTOR_PASSWORD
         generateValue: true
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false          # a bot made for the hosted server, not the one on your laptop
+      # Telegram sends each message to this server, which also wakes it when the free plan put it to sleep.
+      - key: TELEGRAM_MODE
+        value: webhook
       - key: ALERTS_INTERVAL_MINUTES
         value: "3"
-      - key: CORE_ASK_IMPORT
-        value: server.core_bridge:ask
       - key: CHANNELS_DB_PATH
         value: data/channels.db
       - key: ACCOMMODATIONS_DB_PATH
         value: data/accommodations.db
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false          # paste in Render dashboard; use a different bot from the one on your laptop
-      # Telegram sends each message to this server, which also wakes it when the free plan put it to
-      # sleep. (Polling, the laptop default, stops while the server sleeps.) Needs PUBLIC_BASE_URL.
-      - key: TELEGRAM_MODE
-        value: webhook
-      # Telegram, SMS and /lite answer with the same AI as the web page.
-      - key: ABLEWAY_PROVIDERS
-        value: gemini,offline
-      - key: ABLEWAY_GEMINI_MODEL
-        value: gemini-3.5-flash-lite
-      - key: GEMINI_API_KEY
-        sync: false          # the same key as the tutor service
-      - key: PUBLIC_BASE_URL
-        sync: false          # this service's own address, e.g. https://ableway-channels.onrender.com

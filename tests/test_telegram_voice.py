@@ -248,3 +248,50 @@ def test_mode_defaults_to_polling(monkeypatch):
     assert telegram_mode() == "polling"
     monkeypatch.setenv("TELEGRAM_MODE", "webhook")
     assert telegram_mode() == "webhook"
+
+
+# ---------------------------------------------------------------- the Menu button
+def test_menu_question_is_answered_from_the_course_with_listen(bot_allowed, monkeypatch):
+    telegram_bot, voice, sent = bot_allowed
+    # The real tutor (as on the servers), kept on this machine: no online AI.
+    monkeypatch.setenv("CORE_ASK_IMPORT", "server.core_bridge:ask")
+    monkeypatch.setattr(telegram_bot, "get_consent", lambda channel, address: False)
+    run(telegram_bot._handle_update(text_message(80, "/deadline")))
+    texts = [x for k, x in sent if k == "text"]
+    assert texts[0].startswith("❓ When is the assignment deadline?")
+    assert "pages/" in texts[0]  # with its source
+    assert [b for k, b in sent if k == "buttons"][0][0][0] == "🔊 Listen"
+
+
+def test_menu_question_follows_the_chat_language(bot_allowed):
+    telegram_bot, voice, sent = bot_allowed
+    run(telegram_bot._handle_update(text_message(81, "/lang am")))
+    sent.clear()
+    run(telegram_bot._handle_update(text_message(81, "/late")))
+    assert sent[0][1].startswith("❓ የዘገየ ማስረከቢያ ደንብ ምንድን ነው?")
+
+
+def test_every_menu_entry_is_a_working_command():
+    from server.channels.telegram_bot import COMMANDS, MENU, QUICK_QUESTIONS
+
+    for command, english, amharic in MENU:
+        assert "/" + command in COMMANDS or "/" + command in QUICK_QUESTIONS, command
+        assert 0 < len(english) <= 256 and 0 < len(amharic) <= 256
+        assert command.islower() and len(command) <= 32
+
+
+def test_menu_is_sent_to_telegram_in_both_languages():
+    import asyncio as _asyncio
+
+    from server.channels import telegram_bot
+
+    calls = []
+
+    class FakeClient:
+        async def post(self, url, json=None):
+            calls.append((url.rsplit("/", 1)[-1], json))
+
+    _asyncio.run(telegram_bot._set_menu(FakeClient(), "123:abc"))
+    assert [c[0] for c in calls] == ["setMyCommands", "setMyCommands"]
+    assert "language_code" not in calls[0][1] and calls[1][1]["language_code"] == "am"
+    assert calls[0][1]["commands"][0] == {"command": "deadline", "description": "📅 When is my assignment due?"}

@@ -24,9 +24,15 @@ _tutor: Tutor | None = None
 def ask(question: str, lang: str, channel: str, simple: bool = False, cloud: bool = False) -> dict:
     """The core_client contract: {"answer", "citations": [{"page", "heading"}], "matched"}."""
     global _tutor
-    if _tutor is None:
-        _tutor = Tutor()
-    result = _tutor.ask(question, lang=lang, simple=simple, cloud=cloud)
+    # In the one server, the same tutor as the web page (so lessons a host sent are known here too).
+    api = sys.modules.get("server.tutor_api")
+    if api is not None:
+        tutor = api.tutor
+    else:
+        if _tutor is None:
+            _tutor = Tutor()
+        tutor = _tutor
+    result = tutor.ask(question, lang=lang, simple=simple, cloud=cloud)
     citations = [{"page": c["url"], "heading": c["title"]} for c in result["citations"]]
     answer = result["answer"]
     if channel in ("sms", "telegram", "lite"):

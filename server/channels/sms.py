@@ -54,7 +54,7 @@ async def handle_sms(sender: str, text: str) -> str:
     if not text or word == "HELP":
         return fit_sms(t(lang, "sms_help"))
     if word == "LANG":
-        if arg.lower() not in ("am", "en", "amharic", "english"):
+        if arg.lower() not in ("am", "en", "om", "amharic", "english", "oromo"):
             return fit_sms(t(lang, "sms_lang_usage"))
         lang = norm_lang(arg)
         set_lang("sms", sender, lang)

@@ -15,6 +15,8 @@ def norm_lang(lang) -> str:
         return "am"
     if lang in ("en", "eng", "english", "እንግሊዝኛ"):
         return "en"
+    if lang in ("om", "orm", "oromo", "afaan oromoo", "oromiffa", "ኦሮምኛ"):
+        return "om"
     return DEFAULT_LANG
 
 
@@ -46,11 +48,11 @@ STRINGS = {
     },
     # ---- SMS ----
     "sms_help": {
-        "en": "Send a question, or: JOBS, SUB <word>, UNSUB, LANG AM/EN, AI ON/OFF, FORGET, HELP.",
-        "am": "ጥያቄ ይላኩ፣ ወይም፦ JOBS፣ SUB <ቃል>፣ UNSUB፣ LANG AM/EN፣ AI ON/OFF፣ FORGET፣ HELP።",
+        "en": "Send a question, or: JOBS, SUB <word>, UNSUB, LANG AM/EN/OM, AI ON/OFF, FORGET, HELP.",
+        "am": "ጥያቄ ይላኩ፣ ወይም፦ JOBS፣ SUB <ቃል>፣ UNSUB፣ LANG AM/EN/OM፣ AI ON/OFF፣ FORGET፣ HELP።",
     },
     "sms_lang_set": {"en": "Language set to English.", "am": "ቋንቋ ወደ አማርኛ ተቀይሯል።"},
-    "sms_lang_usage": {"en": "Send LANG AM or LANG EN.", "am": "LANG AM ወይም LANG EN ይላኩ።"},
+    "sms_lang_usage": {"en": "Send LANG AM, LANG EN or LANG OM.", "am": "LANG AM፣ LANG EN ወይም LANG OM ይላኩ።"},
     "sms_sub_usage": {
         "en": "Send SUB and a word, for example: SUB calendar",
         "am": "SUB እና አንድ ቃል ይላኩ፣ ለምሳሌ፦ SUB calendar",
@@ -90,6 +92,13 @@ STRINGS = {
     "tg_help": {
         "en": (
             "Type a question, or send a voice message, and I will answer from the course pages.\n\n"
+            "Quick questions (also under the Menu button):\n"
+            "/deadline - when is my assignment due?\n"
+            "/late - the late submission policy\n"
+            "/resubmit - can I resubmit an assignment?\n"
+            "/quizzes - about the evaluation quizzes\n"
+            "/course - what is this course about?\n"
+            "/future - the future of VA work\n\n"
             "/lang - choose Amharic or English\n"
             "/voice on - get every answer as a voice message too (/voice off to stop)\n"
             "/privacy - choose whether AI and voice services may be used\n"
@@ -103,6 +112,13 @@ STRINGS = {
         ),
         "am": (
             "ማንኛውንም ጥያቄ ይጻፉ ወይም የድምፅ መልእክት ይላኩ፤ ከትምህርቱ ገጾች እመልሳለሁ።\n\n"
+            "ፈጣን ጥያቄዎች (በMenu ቁልፉ ስርም አሉ)፦\n"
+            "/deadline - የቤት ስራ ማስረከቢያ ቀን\n"
+            "/late - የዘገየ ማስረከቢያ ደንብ\n"
+            "/resubmit - እንደገና ማስገባት እችላለሁ?\n"
+            "/quizzes - የግምገማ ፈተናዎች\n"
+            "/course - ይህ ኮርስ ስለ ምንድን ነው?\n"
+            "/future - የቨርቹዋል ረዳት ስራ የወደፊት እድል\n\n"
             "/lang - አማርኛ ወይም እንግሊዝኛ ይምረጡ\n"
             "/voice on - እያንዳንዱን መልስ በድምፅም ያግኙ (ለማቆም /voice off)\n"
             "/privacy - የAIና የድምፅ አገልግሎቶች ይፈቀዱ እንደሆነ ይምረጡ\n"
@@ -116,8 +132,8 @@ STRINGS = {
         ),
     },
     "tg_lang_prompt": {
-        "en": "Choose a language: /lang am for Amharic, /lang en for English.",
-        "am": "ቋንቋ ይምረጡ፦ ለአማርኛ /lang am፣ ለእንግሊዝኛ /lang en።",
+        "en": "Choose a language: /lang am for Amharic, /lang en for English, /lang om for Afaan Oromo.",
+        "am": "ቋንቋ ይምረጡ፦ ለአማርኛ /lang am፣ ለእንግሊዝኛ /lang en፣ ለኦሮምኛ /lang om።",
     },
     "tg_lang_set": {"en": "Language set to English.", "am": "ቋንቋ ወደ አማርኛ ተቀይሯል።"},
     "tg_offer_human": {
@@ -127,6 +143,10 @@ STRINGS = {
     "tg_human_started": {
         "en": "You are now connected to the tutor queue. Write your message and a person will reply here. Send /end to go back to the assistant.",
         "am": "አሁን ከአስተማሪዎች ጋር ተገናኝተዋል። መልእክትዎን ይጻፉ፤ ሰው እዚሁ ይመልስልዎታል። ወደ ረዳቱ ለመመለስ /end ይላኩ።",
+    },
+    "tg_human_not_open": {
+        "en": "You are not in a chat with a person right now, so you are talking to me, Mimi. Ask me a question, or send /human to reach a person.",
+        "am": "አሁን ከሰው ጋር ውይይት ላይ አይደሉም፤ እኔ ሚሚ ጋር ነው የሚነጋገሩት። ጥያቄ ይጠይቁኝ፣ ወይም ሰው ለማግኘት /human ይላኩ።",
     },
     "tg_human_ended": {
         "en": "The chat with a person has ended. You can ask the assistant again.",
@@ -310,6 +330,12 @@ STRINGS = {
     "handoff_start_title": {"en": "Talk to a person", "am": "ከሰው ጋር ይነጋገሩ"},
     "handoff_start_button": {"en": "Start a chat with a tutor", "am": "ከአስተማሪ ጋር ውይይት ጀምር"},
 }
+
+# Afaan Oromo for Telegram and SMS (strings_more.py). Other texts fall back to English.
+from .strings_more import MORE  # noqa: E402
+
+for _key, _by_lang in MORE.items():
+    STRINGS[_key].update(_by_lang)
 
 
 def t(lang: str, key: str, **values) -> str:

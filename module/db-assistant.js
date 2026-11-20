@@ -6,9 +6,8 @@
 //   <script src="../assistant/assistant.js" defer></script>
 //
 // Optional attributes:
-//   data-api="https://host:port"     tutor API (server/app.py). Default: the server that serves this page,
-//                                    or http://localhost:8001 when the page is opened from disk
-//   data-handoff="https://host:port" channels server with /handoff (server/main.py). Default: http://localhost:8000
+//   data-api="https://host:port"     the Mimi server (server/main.py). Default: the server that serves this
+//                                    page, or http://localhost:8000 when the page is opened from disk
 //   data-lang="am"                   language of the spoken greeting (default am)
 //   data-auto-welcome="false"        do not greet by voice when the page opens
 //   data-course / data-lesson        the course and lesson this page shows
@@ -47,7 +46,7 @@
   const siteRoot = new URL('..', script.src); // citations are paths from the site root
   const API = (
     setting('api') ||
-    (location.protocol.startsWith('http') ? location.origin : 'http://localhost:8001')
+    (location.protocol.startsWith('http') ? location.origin : 'http://localhost:8000')
   ).replace(/\/$/, '');
   const config = {
     greetLang: setting('lang') === 'en' ? 'en' : 'am',
@@ -63,17 +62,33 @@
     content: setting('content') || '',
     tts: ['server', 'browser'].includes(setting('tts')) ? setting('tts') : 'auto',
     stt: ['server', 'browser'].includes(setting('stt')) ? setting('stt') : 'auto',
+    // telegram="https://t.me/<bot>": the host's own Telegram bot; "none" hides the button.
+    telegram: (() => {
+      const value = (setting('telegram') || 'https://t.me/mimi_tutor_liveBot').trim();
+      return /^https:\/\//.test(value) ? value : '';
+    })(),
   };
   const LANGUAGE_CODES = ['am', 'en']; // one i18n/<code>.json file each
+  // More languages, offered under Settings. Amharic and English stay the spoken greeting and the
+  // "press 1 / press 2" choice. A file that cannot load only hides its button, never breaks Mimi.
+  const MORE_LANGUAGES = [
+    { code: 'om', name: 'Afaan Oromoo' },
+  ];
   // Room for the chat beside the page: at 200% zoom or on a phone there is not, so Mimi starts small.
   const WIDE = () => window.innerWidth >= 1100;
   const PAGE = location.href.startsWith(siteRoot.href) ? location.href.slice(siteRoot.href.length).split(/[?#]/)[0] : '';
 
-  const END_OF_TURN_MS = { en: 1200, am: 1500 }; // silence that ends the learner's turn; shorter pauses are kept
+  const END_OF_TURN_MS = { en: 1200, am: 1500, om: 1400 }; // silence that ends the learner's turn; shorter pauses are kept
   const MAX_QUIET_RESTARTS = 8; // recogniser restarts without hearing anything before listening pauses (~1 min)
   const QUIET_LIMIT_MS = 60000;
   const ECHO_GAP_MS = 700; // after Mimi stops talking, before the microphone opens
-  const SPEECH_LANG = { en: 'en-US', am: 'am-ET' };
+  const SPEECH_LANG = { en: 'en-US', am: 'am-ET', om: 'om-ET' };
+  // No browser has an Afaan Oromo voice. The closest one reads instead: a Somali voice (a sister
+  // Cushitic language, written in Latin letters with similar spelling).
+  const VOICE_STAND_IN = { om: ['so', 'sw'] };
+  const RECOGNITION_LANG = { ...SPEECH_LANG };
+  // The server's voice and listening services speak only these two.
+  const SERVER_SPEECH = ['en', 'am'];
 
   // ------------------------------------------------------------ text in both languages
 
@@ -174,6 +189,7 @@
   const LANGUAGE_NAMES = {
     am: ['amharic', 'amarigna', 'amharigna', 'amarinya', 'ማርኛ', 'ማረኛ'],
     en: ['english', 'inglish', 'እንግሊ', 'ኢንግሊ'],
+    om: ['oromo', 'oromiffa', 'afaan oromoo', 'ኦሮምኛ', 'ኦሮሚኛ', 'ኦሮሞ'],
   };
   function languageChoice(text) {
     const lower = text.toLowerCase();
@@ -233,7 +249,8 @@
   // ------------------------------------------------------------ state
 
   const state = {
-    lang: session.get('lang') === 'en' || session.get('lang') === 'am' ? session.get('lang') : config.greetLang,
+    // A language from MORE_LANGUAGES is checked again once its file has loaded (see the start, below).
+    lang: [...LANGUAGE_CODES, ...MORE_LANGUAGES.map((l) => l.code)].includes(session.get('lang')) ? session.get('lang') : config.greetLang,
     langChosen: session.get('lang-chosen') === true, // answered after the introduction
     greeted: session.get('greeted') === true,
     voiceOn: session.get('voice') == null ? config.autoWelcome : session.get('voice') === true,
@@ -298,7 +315,12 @@
   );
   // The learner can take their conversation with them, and delete it ("Clear chat").
   const downloadButton = el('button', { type: 'button', class: 'link-button', onclick: downloadChat });
-  const settings = el('div', { class: 'settings' }, langGroup, simpleSwitch, cloudSwitch, downloadButton, clearButton);
+  // More languages: a second row of the same buttons, shown once each language file has loaded.
+  for (const { code, name } of MORE_LANGUAGES) {
+    langButtons[code] = el('button', { type: 'button', lang: code, dir: 'auto', text: name, hidden: true, onclick: () => chooseLanguage(code) });
+  }
+  const moreLangGroup = el('div', { class: 'segmented more-languages', role: 'group' }, ...MORE_LANGUAGES.map(({ code }) => langButtons[code]));
+  const settings = el('div', { class: 'settings' }, langGroup, moreLangGroup, simpleSwitch, cloudSwitch, downloadButton, clearButton);
   // Folded away by default (remembered), so the conversation has the room.
   const settingsTitle = el('span');
   const settingsBox = el('details', { class: 'settings-box' }, el('summary', {}, settingsTitle), settings);
@@ -324,7 +346,12 @@
   const talkButton = el('button', { type: 'button', class: 'btn-help', onclick: escalateToHuman }, icon('person'), talkText);
   const shareText = el('span');
   const shareButton = el('button', { type: 'button', class: 'btn-help', onclick: toggleScreenShare }, icon('share'), shareText);
-  const helpStrip = el('div', { class: 'help-strip' }, talkButton, shareButton);
+  // The same tutor on Telegram, for learners who would rather continue on their phone.
+  const telegramText = el('span');
+  const telegramLink = config.telegram
+    ? el('a', { class: 'btn-help telegram-link', href: config.telegram, target: '_blank', rel: 'noopener noreferrer' }, icon('send'), telegramText)
+    : null;
+  const helpStrip = el('div', { class: 'help-strip' }, talkButton, shareButton, ...(telegramLink ? [telegramLink] : []));
 
   const list = el('ol', { class: 'messages' });
   const suggestions = el('div', { class: 'suggestions' });
@@ -475,7 +502,7 @@
         el('span', { class: 'menu-icon', 'aria-hidden': 'true' }, icon(iconName)),
         el('span', { class: 'menu-label', text: label }));
     menuGrid.replaceChildren(
-      ...MENU.map((m) => item(m.n, t().menu.items[m.action].button, m.icon, m.action === 'language' ? (state.lang === 'am' ? 'en' : 'am') : state.lang)),
+      ...MENU.map((m) => item(m.n, t().menu.items[m.action].button, m.icon, m.action === 'language' ? (state.lang === 'en' ? 'am' : 'en') : state.lang)),
       item(0, s.repeatMenu, 'repeat', state.lang),
     );
   }
@@ -555,6 +582,8 @@
   function applyLanguage() {
     const s = t();
     root.lang = state.lang;
+    // A right-to-left language file (meta.dir "rtl") mirrors the whole panel (the styles use logical properties).
+    root.dir = (s.meta && s.meta.dir) === 'rtl' ? 'rtl' : 'ltr';
     root.setAttribute('aria-label', s.title);
     launcherText.textContent = s.showPanel;
     miniTitle.textContent = s.miniLabel;
@@ -577,6 +606,10 @@
     talkButton.setAttribute('aria-label', s.talkToPerson);
     shareText.textContent = screenStream ? s.screenSharingActive : s.screenShare;
     shareButton.setAttribute('aria-label', screenStream ? s.screenSharingActive : s.screenShare);
+    if (telegramLink) {
+      telegramText.textContent = s.telegram;
+      telegramLink.setAttribute('aria-label', s.telegramLabel);
+    }
     scroller.setAttribute('aria-label', s.transcript);
     inputLabel.textContent = s.inputLabel;
     input.placeholder = s.placeholder;
@@ -648,6 +681,8 @@
           { class: 'choices', role: 'group', 'aria-label': `${STRINGS.am.chooseLabel} / ${STRINGS.en.chooseLabel}` },
           el('button', { type: 'button', class: 'choice', lang: 'am', text: 'አማርኛ', onclick: () => chooseLanguage('am') }),
           el('button', { type: 'button', class: 'choice', lang: 'en', text: 'English', onclick: () => chooseLanguage('en') }),
+          ...MORE_LANGUAGES.filter(({ code }) => STRINGS[code]).map(({ code, name }) =>
+            el('button', { type: 'button', class: 'choice', lang: code, dir: 'auto', text: name, onclick: () => chooseLanguage(code) })),
         ),
       );
     }
@@ -1029,7 +1064,12 @@
 
     function pickVoice(all, lang) {
       // Without consent only voices on this device: online ones (Edge's "Natural" voices) send the text out.
-      const candidates = all.filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith(lang) && (allowCloud() || v.localService));
+      const usable = (code) => all.filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith(code) && (allowCloud() || v.localService));
+      let candidates = usable(lang);
+      for (const standIn of VOICE_STAND_IN[lang] || []) {
+        if (candidates.length) break;
+        candidates = usable(standIn);
+      }
       const score = (v) =>
         (FEMALE.test(v.name) ? 4 : 0) - (MALE.test(v.name) ? 6 : 0) + (/natural|neural|online|premium|enhanced/i.test(v.name) ? 2 : 0) +
         (v.lang.toLowerCase().replace('_', '-') === SPEECH_LANG[lang].toLowerCase() ? 1 : 0);
@@ -1154,7 +1194,7 @@
         if (my !== token) return 'stopped';
         if (natural && /natural|neural|online/i.test(natural.name)) return speakBrowser(say, lang, my, onProgress);
       }
-      if (serverReady(cache)) {
+      if (serverReady(cache) && SERVER_SPEECH.includes(lang)) {
         try {
           return await speakServer(say, lang, cache, my, onProgress);
         } catch (e) {
@@ -1174,7 +1214,12 @@
       if (synth) synth.cancel();
     }
 
-    return { speak, stop, unlock, soundAllowed, available, busy: () => cancelCurrent !== null };
+    // Whether there is a voice for this language (or its stand-in) on this device, before speaking.
+    async function hasVoice(lang) {
+      return !!(synth && pickVoice(await voices(), lang));
+    }
+
+    return { speak, stop, unlock, soundAllowed, available, hasVoice, busy: () => cancelCurrent !== null };
   })();
 
   // ------------------------------------------------------------ hearing the learner (speech to text)
@@ -1190,7 +1235,7 @@
     // Browsers recognise speech on Google's or Microsoft's servers, and the server engine uses a cloud
     // service too: no listening without consent.
     if (!allowCloud()) return null;
-    const server = caps.stt && canRecord && !failedEngines.has('server');
+    const server = caps.stt && canRecord && !failedEngines.has('server') && SERVER_SPEECH.includes(lang);
     const browser = !!Recognition && !failedEngines.has(`browser-${lang}`);
     if (config.stt === 'server') return server ? 'server' : null;
     if (config.stt === 'browser') return browser ? 'browser' : null;
@@ -1237,7 +1282,7 @@
       const my = ++generation;
       lastError = '';
       rec = new Recognition();
-      rec.lang = SPEECH_LANG[lang];
+      rec.lang = RECOGNITION_LANG[lang];
       rec.continuous = true;
       rec.interimResults = true;
       rec.maxAlternatives = 3;
@@ -1676,7 +1721,7 @@
   // in the card's caption; when she stops, the full message (with its source links) is back. It
   // follows the voice's own progress where the voice reports it, else an estimated speaking pace.
   // Screen readers are not disturbed: the hidden log has already announced the whole message once.
-  const STREAM_PACE = { en: 15, am: 11 }; // characters per second at Mimi's speaking rate, a fallback
+  const STREAM_PACE = { en: 15, am: 11, om: 14 }; // characters per second at Mimi's speaking rate, a fallback
   function startStream(bubble, shown, lang) {
     const text = shown.replace(/\s*\[\d+\]/g, '').replace(/\s+/g, ' ').trim();
     const saved = bubble ? [...bubble.childNodes] : null;
@@ -1805,7 +1850,7 @@
     caption('user', String(number));
     ++ctl.speech;
     Speaker.stop();
-    if (!state.langChosen) return chooseLanguage(number === 1 ? 'am' : 'en');
+    if (!state.langChosen) return chooseLanguage(languageForNumber(number) || (number === 1 ? 'am' : 'en'));
     runMenu(number);
   }
 
@@ -1855,16 +1900,26 @@
     const lang = state.lang;
     const result = await say(GREETING_TEXT(lang), lang, { cache: true, speakState: GREETING_STATE });
     if (result === 'superseded' || result === 'blocked' || result === 'stopped') return result;
+    // Then, in the same voice, one sentence with every other language's number ("For English, press
+    // 2, for Afaan Oromo press 3"), so the greeting is one smooth turn by one speaker.
     // The bubble already shows this sentence (its own paragraph): only the card's caption follows it.
-    return say(switchHint(lang), otherLang(lang), { cache: true, speakState: GREETING_STATE, bubble: null });
+    return say(greetingChoices(lang), lang, { cache: true, speakState: GREETING_STATE, bubble: null });
   }
+
+  // The language choices at the end of the greeting, in the greeting's language. Older language
+  // files without it keep the earlier sentence ("For English, say English, or press 2").
+  const greetingChoices = (lang) => (STRINGS[lang] && STRINGS[lang].chooseOthers) || switchHint(lang);
+
+  // The number that chooses each language at the greeting: 1 Amharic, 2 English, then the others.
+  const LANGUAGE_NUMBERS = { 1: 'am', 2: 'en', ...Object.fromEntries(MORE_LANGUAGES.map(({ code }, i) => [i + 3, code])) };
+  const languageForNumber = (number) => (STRINGS[LANGUAGE_NUMBERS[number]] ? LANGUAGE_NUMBERS[number] : null);
 
   async function greet() {
     if (!state.consent) return; // nothing is said or sent before the learner answers the consent question
     if (!state.greeted) {
       state.greeted = true;
       session.set('greeted', true);
-      addMessage({ role: 'assistant', kind: 'greeting', text: GREETING_TEXT(state.lang), translation: switchHint(state.lang), lang: state.lang, citations: [] });
+      addMessage({ role: 'assistant', kind: 'greeting', text: GREETING_TEXT(state.lang), translation: greetingChoices(state.lang), lang: state.lang, citations: [] });
     }
     // On a phone, do not talk over TalkBack or VoiceOver; and anywhere, do not "speak" while the
     // browser holds sound back (the words would move in silence). The greeting is on screen and
@@ -2127,13 +2182,14 @@
     caption('user', said);
     const number = spokenNumber(said);
     if (!state.langChosen) {
-      const choice = number === 1 ? 'am' : number === 2 ? 'en' : languageChoice(said) || (YES.test(said) ? state.lang : null);
+      const choice = languageForNumber(number) || languageChoice(said) || (YES.test(said) ? state.lang : null);
       // The answer to the language question is shown, but not sent to the AI as part of the conversation.
       addMessage({ role: 'user', text: said, lang: scriptLang(said), kind: choice ? 'choice' : undefined });
       input.value = '';
       resizeInput();
       if (choice) return chooseLanguage(choice);
-      setLanguage(scriptLang(said)); // a question straight away: help in the language it was asked in
+      // A question straight away: help in the language it was asked in.
+      setLanguage(STRINGS[scriptLang(said)] ? scriptLang(said) : 'en');
       return askTutor(said, { shown: true });
     }
     if (state.reading) {
@@ -2186,7 +2242,7 @@
       case 'lesson': return askTutor('', { intent: 'lesson_intro' });
       case 'read': return startReading();
       case 'explain': return explainReading();
-      case 'language': return chooseLanguage(state.lang === 'am' ? 'en' : 'am');
+      case 'language': return chooseLanguage(state.lang === 'en' ? 'am' : 'en');
       case 'question': return promptQuestion();
       case 'person': return escalateToHuman();
       case 'jobs': return askTutor(t().jobsQuestion);
@@ -2201,7 +2257,10 @@
   document.addEventListener('keydown', (event) => {
     if (event.ctrlKey || event.altKey || event.metaKey || event.isComposing || !/^[0-9]$/.test(event.key)) return;
     const target = event.composedPath()[0];
-    if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+    // After "Allow and start" the cursor is in Mimi's message box. While she waits for a language,
+    // a number pressed in that box, still empty, is the choice ("press 3"), not the start of a message.
+    const choosingInBox = target === input && !state.langChosen && !input.value.trim() && languageForNumber(Number(event.key));
+    if (target && !choosingInBox && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
     if (!state.greeted || state.busy || (!state.voiceOn && !state.open)) return;
     // WCAG 2.1.4: single-key shortcuts only while Mimi has focus, or before anything on the page has
     // focus (just after it opens). Typing elsewhere on the host page never triggers them.
@@ -2209,10 +2268,11 @@
     if (!event.composedPath().includes(host) && active && active !== document.body) return;
     const number = Number(event.key);
     if (!state.langChosen) {
-      if (number !== 1 && number !== 2) return;
+      const choice = languageForNumber(number); // 1 Amharic, 2 English, 3 Afaan Oromoo
+      if (!choice) return;
       event.preventDefault();
       caption('user', event.key);
-      chooseLanguage(number === 1 ? 'am' : 'en');
+      chooseLanguage(choice);
       return;
     }
     if (number !== 0 && !menuItem(number)) return;
@@ -2403,7 +2463,16 @@
       .map((m) => ({ role: m.role, text: m.text }));
     try {
       // Up to 90 s: on a free hosting plan the help desk may need a minute to wake up.
-      const data = await postJSON('/api/v1/escalations', { conversation, language: state.lang, cloud: allowCloud() }, 90000);
+      // Where the learner is, so the tutor can open the same page and section (this is also how a
+      // tutor "sees" the page on Chrome for Android, which cannot share the screen). No query string:
+      // it can carry tokens.
+      const here = currentSection(lessonSections());
+      const page = {
+        title: document.title.slice(0, 160),
+        url: location.origin + location.pathname + (here ? '#' + here.id : ''),
+        section: here ? here.title.slice(0, 160) : '',
+      };
+      const data = await postJSON('/api/v1/escalations', { conversation, language: state.lang, cloud: allowCloud(), page }, 90000);
       if (!data.chatUrl) throw new Error('no chat');
       setStatus('');
       document.dispatchEvent(new CustomEvent('db-assistant:escalated', {
@@ -2729,6 +2798,22 @@
       }
       throw new Error(`Mimi: could not load the ${code} language file`);
     }));
+    // The extra languages: optional. A missing file only keeps its button hidden.
+    await Promise.all(MORE_LANGUAGES.map(async ({ code }) => {
+      for (const url of [new URL(`i18n/${code}.json`, moduleBase).href, `${API}/module/i18n/${code}.json`]) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            STRINGS[code] = await response.json();
+            langButtons[code].hidden = false;
+            return;
+          }
+        } catch {
+          /* try the next place */
+        }
+      }
+    }));
+    if (!STRINGS[state.lang]) state.lang = config.greetLang; // a saved choice whose file is gone
   }
 
   // The host's own lessons (the content="" attribute): sent once to the tutor to be indexed, so Mimi

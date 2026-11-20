@@ -1,6 +1,5 @@
-# One image for both servers (see docker-compose.yml):
-#   tutor     python server/app.py              the Savanna pages, the <db-assistant> module, /api/...
-#   channels  uvicorn server.main:app           Telegram, SMS, /lite, help desk, jobs, teacher view
+# The one Mimi server: the Savanna pages, the <db-assistant> module, /api/..., the help desk,
+# Telegram, SMS, /lite, job alerts and the teacher view (see docker-compose.yml).
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -21,4 +20,5 @@ RUN useradd --create-home --uid 10001 mimi \
     && chown -R mimi /app/state /app/data/tts_cache
 USER mimi
 
-EXPOSE 8000 8001
+EXPOSE 8000
+CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]

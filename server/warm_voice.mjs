@@ -3,8 +3,8 @@
 // touched the page. Each phrase costs one voice request, once; after that it is served from
 // data/tts_cache/. Run it whenever module/i18n/*.json or the menu in module/db-assistant.js change:
 //
-//   node server/warm_voice.mjs                 (tutor on http://localhost:8001)
-//   node server/warm_voice.mjs http://localhost:8000
+//   node server/warm_voice.mjs                 (server on http://localhost:8000)
+//   node server/warm_voice.mjs https://your-server.example
 //
 // Browsers with a natural voice of their own (Edge: Amharic Mekdes, English Ava) do not need this.
 
@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-const api = (process.argv[2] || 'http://localhost:8001').replace(/\/$/, '');
+const api = (process.argv[2] || 'http://localhost:8000').replace(/\/$/, '');
 const moduleDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'module');
 const source = readFileSync(join(moduleDir, 'db-assistant.js'), 'utf8');
 const STRINGS = Object.fromEntries(['am', 'en'].map((code) => [code, JSON.parse(readFileSync(join(moduleDir, 'i18n', `${code}.json`), 'utf8'))]));

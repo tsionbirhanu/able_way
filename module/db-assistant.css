@@ -216,6 +216,20 @@ svg {
   background: #0c4a6e;
 }
 
+/* More languages (Afaan Oromoo, ትግርኛ, العربية): a second row under English / አማርኛ that wraps. */
+.settings .more-languages {
+  flex-wrap: wrap;
+}
+
+/* Three help buttons may not fit on one line of a narrow phone: let them wrap, never overflow. */
+.help-strip {
+  flex-wrap: wrap;
+}
+
+.help-strip .telegram-link {
+  text-decoration: none;
+}
+
 .help-strip .btn-help.active {
   background: #a4161a; /* sharing: 7.4:1 with white */
   border-color: #a4161a;

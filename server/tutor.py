@@ -14,14 +14,16 @@ from pathlib import Path
 
 try:  # supports both `python server/app.py` and `import server.tutor`
     from .providers import Provider, ProviderError, build_chain
-    from .retrieval import Index, coverage, expand_amharic, is_amharic, load_chunks, load_glossary, tokenize
+    from .retrieval import Index, coverage, expand_amharic, expand_words, is_amharic, load_chunks, load_glossary, tokenize
 except ImportError:  # pragma: no cover - exercised by the standalone app entry point
     from providers import Provider, ProviderError, build_chain
-    from retrieval import Index, coverage, expand_amharic, is_amharic, load_chunks, load_glossary, tokenize
+    from retrieval import Index, coverage, expand_amharic, expand_words, is_amharic, load_chunks, load_glossary, tokenize
 
 DATA = Path(__file__).resolve().parent / "data"
 NOT_FOUND = "[[NOT_FOUND]]"
-LANGUAGES = {"en": "English", "am": "Amharic"}
+LANGUAGES = {"en": "English", "am": "Amharic", "om": "Afaan Oromo"}
+# Languages with no course word list: an AI turns the question into English search words first.
+TRANSLATED_LANGUAGES = ("om",)
 
 SYSTEM_PROMPT = """You are Mimi, a warm, patient and encouraging female tutor inside Savanna, the learning \
 platform of ALX. You speak of yourself as a woman when it comes up (learners address you with feminine \
@@ -72,6 +74,13 @@ AMHARIC_NOTE = (
     "digits (7, 85%), which voices read correctly. "
 )
 ENGLISH_NOTE = "Use clear, everyday English and short sentences, and avoid needlessly complicated words. "
+OTHER_NOTES = {
+    "om": (
+        "Write natural, standard Afaan Oromo in Latin letters (Qubee), the way a good teacher explains, "
+        "not a word-for-word translation of English. Keep course names and technical terms understandable: "
+        "explain them in Afaan Oromo and give the English term in brackets the first time. "
+    ),
+}
 SIMPLE_NOTE = (
     "\n\nThe learner has turned on simple mode. Use short sentences and everyday words, one idea per "
     "sentence, explain any technical term you must use in a few words, and keep to about five sentences."
@@ -109,7 +118,8 @@ CONFUSED = re.compile(
 # Greetings, thanks and "what can you do": no course source is needed, so the model may answer.
 SMALL_TALK = re.compile(
     r"^\W*(hi|hello|hey|thanks?|thank you|good (morning|afternoon|evening)|bye|goodbye|who are you|"
-    r"what can you do|how are you|ሰላም|ጤና ይስጥልኝ|እንደምን|አመሰግናለሁ|እናመሰግናለን|ደህና|ማን ነሽ|ምን ትሰሪያለሽ|ምን ማድረግ ትችያለሽ)",
+    r"what can you do|how are you|ሰላም|ጤና ይስጥልኝ|እንደምን|አመሰግናለሁ|እናመሰግናለን|ደህና|ማን ነሽ|ምን ትሰሪያለሽ|ምን ማድረግ ትችያለሽ"
+    r"|akkam|nagaa|galatoomi)",
     re.I,
 )
 
@@ -132,6 +142,15 @@ TEXT = {
         "switched": "ጥሩ! ከአሁን በኋላ በአማርኛ አግዝሃለሁ። ትምህርቱን እንጀምር!",
         "intro": "እንኳን ወደ {lesson} በደህና መጡ። ትምህርቱ እንዲህ ይጀምራል፦",
     },
+    "om": {
+        "not_found": "Kana qabiyyee koorsii ani argu keessatti argachuu hin dandeenye. Gaaffii keessan karaa biraatiin barreessuu, ykn nama irraa gargaarsa gaafachuu ni dandeessu.",
+        "offline_quote": "Amma interneetii malee hojjechaa waanan jiruuf, barreeffama koorsii akkuma jirutti Afaan Ingliiziitiin isiniif dhiyeessa:",
+        "confused": "Dhiifama, ifa hin turre. Amma AI malee hojjechaa waanan jiruuf karaa biraatiin ibsuu hin danda'u, barsiisaan garuu isin gargaaruu danda'a.",
+        "related": "Kan walqabatu:",
+        "hello": "Akkam! Waa'ee koorsii keessanii na gaafadhaa: barnoota, guyyaa galchuu, qabxii ykn sagantaalee dhufan. Ani fuula koorsii keessanii qofa irraa deebisa, deebii tokkoon tokkoon isaas eessaa akka dhufe nan agarsiisa.",
+        "switched": "Baay'ee gaarii! Amma booda Afaan Oromootiin isin gargaara. Barachuu haa jalqabnu!",
+        "intro": "Baga gara {lesson} dhuftan. Barnoonni akkana jalqaba:",
+    },
 }
 
 GREETINGS = {"hi", "hello", "hey", "selam", "salam", "ሰላም", "ሃይ", "ጤና ይስጥልኝ", "እንደምን"}
@@ -143,6 +162,7 @@ GREETINGS = {"hi", "hello", "hey", "selam", "salam", "ሰላም", "ሃይ", "ጤ
 LANGUAGE_NAMES = {
     "am": ("amharic", "amarigna", "amharigna", "amarinya", "ማርኛ", "ማረኛ"),
     "en": ("english", "inglish", "እንግሊ", "ኢንግሊ", "እንግሊዝ"),
+    "om": ("oromo", "oromiffa", "afaan oromoo", "ኦሮምኛ", "ኦሮሚኛ"),
 }
 SWITCH_WORDS = re.compile(
     r"\b(switch|change|speak|talk|answer|reply|respond|continue|use|let'?s|teach|explain|go back)\b"
@@ -209,6 +229,8 @@ class Tutor:
     def __init__(self, chain: list[Provider] | None = None):
         self.index = Index(load_chunks())
         self.glossary = load_glossary()
+        # The Afaan Oromo word list (server/data/glossary_om.json).
+        self.glossaries = {code: load_glossary(code) for code in TRANSLATED_LANGUAGES}
         self.faq = json.loads((DATA / "faq.json").read_text(encoding="utf-8"))
         self.chain = chain if chain is not None else build_chain()
 
@@ -360,7 +382,7 @@ class Tutor:
             query = context["lesson"] or context["course"]
         else:
             query = question
-            if is_amharic(question):
+            if is_amharic(question) and lang not in TRANSLATED_LANGUAGES:
                 # The Amharic word list often understands the question already: then search with its
                 # English words and skip the extra AI call (about a second faster, and less quota).
                 words = expand_amharic(question, self.glossary)
@@ -374,6 +396,20 @@ class Tutor:
                         max_tokens=2000,
                     )
                     query = f"{english} {words}"
+            elif lang in TRANSLATED_LANGUAGES:
+                # Afaan Oromo: the word list first (no extra AI call when it
+                # understands the question), else an English version of the question from the AI.
+                words = expand_words(question, self.glossaries.get(lang, {}), lang)
+                found = self._search(words, page=context["page"]) if words else []
+                if words and found and coverage(self.index, words, found) >= self.MIN_COVERAGE:
+                    query = words
+                else:
+                    english = provider.complete(
+                        "You translate search queries.",
+                        [{"role": "user", "content": TRANSLATE_PROMPT.format(question=question)}],
+                        max_tokens=2000,
+                    )
+                    query = f"{english} {words} {question}"
             previous = next((m["content"] for m in reversed(history) if m["role"] == "user"), "")
             if previous and len(tokenize(query)) < 4:
                 query = f"{previous} {query}"  # "and what about week 5?" needs the earlier topic
@@ -400,7 +436,7 @@ class Tutor:
         system = SYSTEM_PROMPT.format(
             marker=NOT_FOUND,
             language=LANGUAGES[lang],
-            language_note=AMHARIC_NOTE if lang == "am" else ENGLISH_NOTE,
+            language_note=AMHARIC_NOTE if lang == "am" else OTHER_NOTES.get(lang, ENGLISH_NOTE),
             simple_note=SIMPLE_NOTE if simple else "",
             voice_note=VOICE_NOTE if voice else "",
             context_note=CONTEXT_NOTE.format(where=where) if where else "",
@@ -524,7 +560,9 @@ class Tutor:
                 best = None
         if best and best_score >= self.FAQ_THRESHOLD:
             answers = best.get("simple", {}) if simple else {}
-            answer = answers.get(lang) or best["answer"].get(lang) or best["answer"]["en"]
+            answer = answers.get(lang) or best["answer"].get(lang)
+            if not answer:  # no prepared answer in this language (Afaan Oromo): say so
+                answer = f"{text['offline_quote']}\n\n{best['answer']['en']}"
             source = best["source"]
             return {
                 "answer": f"{answer} [1]",
@@ -534,7 +572,10 @@ class Tutor:
 
         # 2. Otherwise quote the best-matching course text, in its original English.
         query = question
-        if is_amharic(question):
+        if lang in TRANSLATED_LANGUAGES:
+            # The learner's words in English from the word list; an English question is searched as it is.
+            query = expand_words(question, self.glossaries.get(lang, {}), lang) or question
+        elif is_amharic(question):
             query = expand_amharic(question, self.glossary)
         hits = self._search(query, k=2)
         # Job listings found for a job question are an answer even when they score low: the

@@ -50,3 +50,18 @@ def test_ticket_starts_with_the_summary(client):  # noqa: F811
     first = tickets.messages(created["ticket_id"])[0]
     assert first["text"].startswith("In short: Learner needs an extension.")
     assert "Learner: Can I get an extension" in first["text"]
+
+
+def test_ticket_shows_the_page_and_section_the_learner_is_on(client):  # noqa: F811
+    """On Chrome for Android there is no screen sharing: the tutor sees where the learner is instead."""
+    from server.handoff import tickets
+
+    page = {"title": "The Future of the VA Industry", "section": "Artificial Intelligence and the Future of VA Work",
+            "url": "https://example.org/pages/concept-with-navigation.html#artificial-intelligence-and-the-future-of-va-work"}
+    ticket = client.post("/handoff/tickets", json={"lang": "en", "conversation": CONVERSATION, "page": page}).json()
+    first = tickets.messages(ticket["ticket_id"])[0]["text"]
+    assert first.startswith("Learner is on: The Future of the VA Industry > Artificial Intelligence")
+    assert page["url"] in first
+
+    bad = client.post("/handoff/tickets", json={"lang": "en", "page": {"title": "X", "url": "javascript:alert(1)"}}).json()
+    assert "javascript:" not in tickets.messages(bad["ticket_id"])[0]["text"]

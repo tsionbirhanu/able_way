@@ -115,9 +115,29 @@ def load_chunks() -> list[dict]:
     return chunks
 
 
-def load_glossary() -> dict[str, str]:
-    path = DATA / "glossary_am.json"
+def load_glossary(lang: str = "am") -> dict[str, str]:
+    path = DATA / f"glossary_{lang}.json"
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+# ------------------------------------------------------------------ Afaan Oromo
+# The course is in English. A word list per language turns the learner's words into English search
+# words, so questions in these languages are understood with no AI at all, as Amharic ones are.
+
+def expand_words(question: str, glossary: dict[str, str], lang: str) -> str:
+    """English search terms for the words of the question found in the word list. Afaan Oromo is
+    written in Latin letters; the apostrophe (hudhaa) is often left out when typing."""
+    plain, key = f" {question.lower().replace(chr(39), '').replace('’', '')} ", lambda w: w.lower().replace("'", "")
+    found = []
+    # Longest first, and a match is taken out of the text: "hojii manaa" (assignment) is not also "hojii".
+    for word, english in sorted(glossary.items(), key=lambda item: -len(item[0])):
+        stem = key(word)
+        # Short words must stand alone ("ai", "va"); longer ones are stems ("galch" in "galchuu").
+        pattern = rf"(?<!\w){re.escape(stem)}(?!\w)" if len(stem) <= 3 else re.escape(stem)
+        if re.search(pattern, plain):
+            found.append(english)
+            plain = re.sub(pattern, " ", plain)
+    return " ".join(found)
 
 
 # Amharic letters (fidel) are a consonant plus one of seven vowel orders: ሰ ሱ ሲ ሳ ሴ ስ ሶ are all "s".

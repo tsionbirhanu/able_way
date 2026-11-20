@@ -43,6 +43,56 @@ FLOWS = {}
 # Optional interceptor for "talking to a human" mode: async f(chat_id, text, lang) -> list[str] | None
 _interceptors = []
 
+# Ready-made questions in the bot's menu: one tap asks the course, in the chat's language. Each one is
+# answered from the course with its source (checked against the course in both languages).
+QUICK_QUESTIONS = {
+    "/deadline": {"en": "When is the assignment deadline?", "am": "የቤት ስራ ማስረከቢያ ቀን መቼ ነው?",
+                  "om": "Guyyaan galchuu hojii manaa yoom?"},
+    "/late": {"en": "What is the late submission policy?", "am": "የዘገየ ማስረከቢያ ደንብ ምንድን ነው?",
+              "om": "Imaammanni yeroo darbee galchuu maali?"},
+    "/resubmit": {"en": "Can I resubmit an assignment?", "am": "እንደገና ማስገባት እችላለሁ?",
+                  "om": "Irra deebi'ee galchuu nan danda'aa?"},
+    "/quizzes": {"en": "What are the evaluation quizzes?", "am": "የግምገማ ፈተናዎች ምንድን ናቸው?",
+                 "om": "Qormaatni madaallii maali?"},
+    "/course": {"en": "What is this course about?", "am": "ይህ ኮርስ ስለ ምንድን ነው?",
+                "om": "Koorsiin kun waa'ee maaliiti?"},
+    "/future": {"en": "Is the future of VA work promising?", "am": "የቨርቹዋል ረዳት ስራ የወደፊት እድል ጥሩ ነው?",
+                "om": "Egereen hojii VA abdachiisaadhaa?"},
+}
+
+# The bot's "Menu" button in Telegram (setMyCommands), in English and, for Amharic apps, Amharic.
+# Every command already works when typed; this only lists them. Order: the course first, then help.
+MENU = [
+    ("deadline", "📅 When is my assignment due?", "📅 የቤት ስራ ማስረከቢያ ቀን"),
+    ("late", "⏰ Late submission policy", "⏰ የዘገየ ማስረከቢያ ደንብ"),
+    ("resubmit", "🔁 Can I resubmit an assignment?", "🔁 እንደገና ማስገባት እችላለሁ?"),
+    ("quizzes", "📝 About the evaluation quizzes", "📝 የግምገማ ፈተናዎች"),
+    ("course", "📘 What is this course about?", "📘 ይህ ኮርስ ስለ ምንድን ነው?"),
+    ("future", "🚀 The future of VA work", "🚀 የቨርቹዋል ረዳት ስራ የወደፊት እድል"),
+    ("jobs", "💼 Newest remote jobs", "💼 አዳዲስ የርቀት ስራዎች"),
+    ("subscribe", "🔔 Job alerts, e.g. /subscribe calendar", "🔔 የስራ ማሳወቂያ፣ ለምሳሌ /subscribe calendar"),
+    ("accommodation", "♿ Ask for support in an interview", "♿ ለቃለ መጠይቅ ድጋፍ ይጠይቁ"),
+    ("human", "🙋 Talk to a person", "🙋 ከሰው ጋር ይነጋገሩ"),
+    ("voice", "🔊 Answers by voice: /voice on or off", "🔊 መልሶችን በድምፅ፦ /voice on ወይም off"),
+    ("lang", "🌍 Amharic or English: /lang am or en", "🌍 አማርኛ ወይም እንግሊዝኛ፦ /lang am ወይም en"),
+    ("privacy", "🔒 AI and voice privacy choice", "🔒 የAIና የድምፅ ግላዊነት ምርጫ"),
+    ("forget", "🗑 Delete everything kept about me", "🗑 ስለ እኔ የተያዘውን ሁሉ ሰርዝ"),
+    ("help", "❓ Everything I can do", "❓ ማድረግ የምችለው ሁሉ"),
+]
+
+
+async def _set_menu(client, token: str) -> None:
+    """Show the commands under the bot's Menu button. Never stops the bot if Telegram refuses."""
+    for lang_code, column in ((None, 1), ("am", 2)):
+        body = {"commands": [{"command": row[0], "description": row[column]} for row in MENU]}
+        if lang_code:
+            body["language_code"] = lang_code
+        try:
+            await client.post(API.format(token=token, method="setMyCommands"), json=body)
+        except httpx.HTTPError:
+            log.warning("Could not set the bot's menu; the commands still work when typed.")
+            return
+
 
 _ETHIOPIC = re.compile(r"[ሀ-፿]")
 _LATIN = re.compile(r"[A-Za-z]")
@@ -98,7 +148,13 @@ async def handle_message(chat_id, text: str) -> list:
         if handler:
             _flows.pop(chat_id, None)  # starting another command abandons a half-done flow
             return await handler(chat_id, arg.strip(), lang)
-        return [t(lang, "tg_help")]
+        if command not in QUICK_QUESTIONS:
+            return [t(lang, "tg_help")]
+        # A ready-made question from the menu (/deadline, /late, ...): answered like a typed one.
+        _flows.pop(chat_id, None)
+        asked = QUICK_QUESTIONS[command].get(lang) or QUICK_QUESTIONS[command]["en"]
+        replies = await _answer_question(chat_id, asked, lang)
+        return ["❓ " + asked + "\n\n" + replies[0]] + replies[1:]
 
     flow = _flows.get(chat_id)
     if flow:  # e.g. accommodation: goes to its own handler, never to ask() or the question log
@@ -109,10 +165,17 @@ async def handle_message(chat_id, text: str) -> list:
         if replies is not None:
             return replies
 
+    return await _answer_question(chat_id, text, lang)
+
+
+async def _answer_question(chat_id: str, text: str, lang: str) -> list:
+    """Answer one course question from the course pages, with its sources."""
     # Answer in the language the question is in, as the web widget does: an English question in
     # an Amharic chat gets an English answer (and voice), and the chat now continues in English.
     asked_in = question_lang(text)
-    if asked_in and asked_in != lang:
+    # Only between Amharic and English: an Afaan Oromo chat is in Latin letters, so its own questions
+    # must not switch it to English.
+    if asked_in and asked_in != lang and lang in ("en", "am"):
         lang = asked_in
         set_lang("telegram", chat_id, lang)
 
@@ -135,7 +198,7 @@ async def _cmd_help(chat_id, arg, lang):
 
 
 async def _cmd_lang(chat_id, arg, lang):
-    if arg.lower() not in ("am", "en", "amharic", "english", "አማርኛ", "እንግሊዝኛ"):
+    if norm_lang(arg) == "en" and arg.lower() not in ("en", "eng", "english", "እንግሊዝኛ"):  # not a language we know
         return [t(lang, "tg_lang_prompt")]
     lang = norm_lang(arg)
     set_lang("telegram", chat_id, lang)
@@ -200,6 +263,8 @@ async def _handle_update(update: dict) -> None:
         log.error("handler error: %s", type(exc).__name__)
         return
     is_command = text.strip().startswith("/")
+    if is_command and text.strip().split()[0].split("@")[0].lower() in QUICK_QUESTIONS:
+        is_command = False  # a menu question: an answer, with "🔊 Listen", like a typed question
     if is_command and text.strip().split()[0].split("@")[0].lower() == "/privacy" and replies:
         # The last reply is the question: send it with its two buttons.
         lang = get_lang("telegram", str(chat_id))
@@ -372,6 +437,7 @@ async def _poll_forever(token: str) -> None:
             return
         _state["username"] = me.json().get("result", {}).get("username")
         await client.post(API.format(token=token, method="deleteWebhook"))
+        await _set_menu(client, token)
     except httpx.HTTPError as exc:
         log.error("Cannot reach Telegram (%s). Bot not started.", type(exc).__name__)
         return
@@ -422,6 +488,7 @@ async def _use_webhook(token: str) -> None:
         if resp.status_code != 200:
             log.error("Telegram refused the webhook address (HTTP %s).", resp.status_code)
             return
+        await _set_menu(client, token)
     except httpx.HTTPError as exc:
         log.error("Cannot reach Telegram (%s). Bot not started.", type(exc).__name__)
         return
@@ -538,8 +605,8 @@ async def _cmd_end(chat_id, arg, lang):
     from server.handoff import hub, tickets
 
     ticket_id = tickets.find_open_external("telegram", chat_id)
-    if not ticket_id:
-        return [t(lang, "tg_nothing_to_cancel")]
+    if not ticket_id:  # never opened, already closed, or lost when a free server restarted
+        return [t(lang, "tg_human_not_open")]
     await hub.close(ticket_id, notify_external=False)
     return [t(lang, "tg_human_ended")]
 
