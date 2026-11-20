@@ -91,7 +91,7 @@
   "cleared": "Haasawni haqameera.",
   "chooseLabel": "Afaan filadhaa",
   "confirm": "Baay'ee gaarii! Afaan Oromootiin isin gargaara. Maal beekuu barbaaddu? Waa'ee barnoota kanaa na gaafachuu, ykn “barnoota kana ibsi” jechuu ni dandeessu.",
-  "chooseRetry": "Dhiifama, sirriitti hin dhageenye. Afaan Amaaraatiif “tokko”, Afaan Ingliiziitiif “lama” jedhaa, ykn 1 ykn 2 tuqaa.",
+  "chooseRetry": "Dhiifama, sirriitti hin dhageenye. Afaan Amaaraatiif 1, Afaan Ingliiziitiif 2, Afaan Oromootiif 3 jedhaa ykn tuqaa.",
   "askNow": "Itti fufaa, gaaffii keessan gaafadhaa. Isin dhaggeeffachaa jira.",
   "jobsQuestion": "Hojiiwwan maaltu naaf banaadha, akkamittin iyyadha?",
   "sourcesHint": "Maddoota ilaaluuf {n} jedhaa.",
@@ -190,7 +190,7 @@
   "escalatedPress": "Nama waliin haasawa baneera. Banuuf Enter tuqaa, ykn “Haasawa gargaarsaa bani” tuqaa. Barsiisaan achitti isiniif deebisa. Yoo amma namni toora irra hin jiru ta'e, deebiin ganama dhufuu danda'a, haasawni immoo isiniif banaa ta'ee tura.",
   "openHelp": "Haasawa gargaarsaa bani",
   "pressHint": "Afaan Oromootiif, 3 tuqaa.",
-  "chooseOthers": "Afaan Amaaraatiif 1, Afaan Ingliiziitiif 2 tuqaa.",
+  "chooseOthers": "Afaan Amaaraatiif 1, Afaan Ingliiziitiif 2, Afaan Oromootiif 3 tuqaa.",
   "answerLevel": "Sadarkaa deebii",
   "answerLevels": [
     "Salphaa",

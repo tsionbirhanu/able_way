@@ -108,8 +108,9 @@ INTRO_QUESTION = (
 )
 
 TRANSLATE_PROMPT = (
-    "Translate this learner's question into a short English search query that would find the "
-    "relevant page of their course. Reply with the query only.\n\n{question}"
+    "Translate this learner's question into natural English, exactly as an English-speaking learner "
+    "would ask it. Keep course names, numbers and abbreviations (WR 100, VA, AI, 85%) as they are. "
+    "Reply with the English question only.\n\n{question}"
 )
 
 # "I don't understand", "አልገባኝም": with a model, the earlier question gives the topic and Mimi explains
@@ -388,34 +389,12 @@ class Tutor:
             query = context["lesson"] or context["course"]
         else:
             query = question
-            if is_amharic(question) and lang not in TRANSLATED_LANGUAGES:
-                # The Amharic word list often understands the question already: then search with its
-                # English words and skip the extra AI call (about a second faster, and less quota).
-                words = expand_amharic(question, self.glossary)
-                found = self._search(words, page=context["page"]) if words else []
-                if words and found and coverage(self.index, words, found) >= self.MIN_COVERAGE:
-                    query = words
-                else:
-                    english = provider.complete(
-                        "You translate search queries.",
-                        [{"role": "user", "content": TRANSLATE_PROMPT.format(question=question)}],
-                        max_tokens=2000,
-                    )
-                    query = f"{english} {words}"
-            elif lang in TRANSLATED_LANGUAGES:
-                # Afaan Oromo: the word list first (no extra AI call when it
-                # understands the question), else an English version of the question from the AI.
-                words = expand_words(question, self.glossaries.get(lang, {}), lang)
-                found = self._search(words, page=context["page"]) if words else []
-                if words and found and coverage(self.index, words, found) >= self.MIN_COVERAGE:
-                    query = words
-                else:
-                    english = provider.complete(
-                        "You translate search queries.",
-                        [{"role": "user", "content": TRANSLATE_PROMPT.format(question=question)}],
-                        max_tokens=2000,
-                    )
-                    query = f"{english} {words} {question}"
+            if is_amharic(question) or lang in TRANSLATED_LANGUAGES:
+                # The same question in any language must find the same course sections, so that it gets
+                # the same answer: it is put into English and searched exactly as an English question is
+                # (remembered, so a repeated question costs no extra AI call). Only when the AI cannot
+                # translate do the Amharic and Afaan Oromo word lists stand in.
+                query = self._english(provider, question, lang)
             previous = next((m["content"] for m in reversed(history) if m["role"] == "user"), "")
             if previous and len(tokenize(query)) < 4:
                 query = f"{previous} {query}"  # "and what about week 5?" needs the earlier topic
@@ -433,6 +412,30 @@ class Tutor:
                 return {"answer": TEXT[lang]["not_found"], "grounded": False, "citations": []}
 
         return self._answer_from(provider, question, lang, simple, history, context, voice, hits, detailed)
+
+    def _english(self, provider, question: str, lang: str) -> str:
+        """The question in English, to search the (English) course the same way in every language."""
+        cache = self.__dict__.setdefault("_translations", {})
+        key = (lang, normalise(question).strip())
+        if key in cache:
+            return cache[key]
+        try:
+            english = provider.complete(
+                "You translate learners' questions into English.",
+                [{"role": "user", "content": TRANSLATE_PROMPT.format(question=question)}],
+                max_tokens=2000,
+            ).strip().strip('"“”')
+        except ProviderError:
+            english = ""
+        if not english:
+            # No AI translation: the course word lists turn the learner's words into English ones.
+            if lang in TRANSLATED_LANGUAGES:
+                return expand_words(question, self.glossaries.get(lang, {}), lang) or question
+            return expand_amharic(question, self.glossary) or question
+        if len(cache) > 2000:
+            cache.clear()
+        cache[key] = english
+        return english
 
     def _answer_from(self, provider, question, lang, simple, history, context, voice, hits, detailed=False) -> dict:
         """Ask the model to answer from these sources only, and check its citations."""

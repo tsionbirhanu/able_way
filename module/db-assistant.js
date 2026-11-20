@@ -97,15 +97,17 @@
   // THE MENU: one line per choice. Its words (what Mimi says, the button label) are in
   // module/i18n/<lang>.json under "menu.items.<action>". Add, remove or reorder lines here.
   //   action: lesson | language | question | person | jobs | chat
+  // 1, 2 and 3 always choose the language (Amharic, English, Afaan Oromo), as in the greeting, at any
+  // time. The menu uses 4 to 9; 4 is "talk to a person".
   const MENU = [
-    { n: 1, action: 'read', icon: 'speaker' },
-    { n: 2, action: 'language', icon: 'globe' },
-    { n: 3, action: 'question', icon: 'chat' },
     { n: 4, action: 'person', icon: 'person' },
-    { n: 5, action: 'jobs', icon: 'briefcase' },
-    { n: 6, action: 'chat', icon: 'list' },
-    { n: 7, action: 'explain', icon: 'book' },
+    { n: 5, action: 'read', icon: 'speaker' },
+    { n: 6, action: 'question', icon: 'chat' },
+    { n: 7, action: 'jobs', icon: 'briefcase' },
+    { n: 8, action: 'chat', icon: 'list' },
+    { n: 9, action: 'explain', icon: 'book' },
   ];
+  const LANGUAGE_LABELS = { am: 'አማርኛ', en: 'English', om: 'Afaan Oromoo' };
 
   // Fills {placeholders} in a sentence from a language file.
   const fmt = (template, values = {}) => String(template || '').replace(/\{(\w+)\}/g, (_, key) => (key in values ? values[key] : ''));
@@ -114,7 +116,7 @@
   const MENU_TEXT = (lang) => {
     const m = STRINGS[lang].menu;
     const lines = MENU.map((item) => fmt(m.line, { say: m.items[item.action].say, n: item.n }));
-    return [m.intro, ...lines, m.repeat].join(' ');
+    return [m.intro, STRINGS[lang].chooseOthers, ...lines, m.repeat].filter(Boolean).join(' ');
   };
 
   // The full introduction (shown) and the short one (spoken).
@@ -200,14 +202,16 @@
   // A menu number said or typed on its own: "2", "two", "number two", "ሁለት", "ቁጥር ሁለት", "፪".
   // Only a whole short reply counts, so a question that merely contains "two" is still a question.
   const NUMBER_WORDS = [
-    [0, /^(0|zero|oh|menu|ዜሮ|ሜኑ|ምርጫ|ምርጫዎች)$/],
-    [1, /^(1|one|won|first|አንድ|አንደኛ|፩)$/],
-    [2, /^(2|two|second|ሁለት|ሁለተኛ|፪)$/],
-    [3, /^(3|three|third|ሶስት|ሦስት|ሶስተኛ|ሦስተኛ|፫)$/],
-    [4, /^(4|four|fourth|አራት|አራተኛ|፬)$/],
-    [5, /^(5|five|fifth|አምስት|አምስተኛ|፭)$/],
-    [6, /^(6|six|sixth|ስድስት|ስድስተኛ|፮)$/],
-    [7, /^(7|seven|seventh|ሰባት|ሰባተኛ|፯)$/],
+    [0, /^(0|zero|oh|menu|ዜሮ|ሜኑ|ምርጫ|ምርጫዎች|duwwaa|zeeroo)$/],
+    [1, /^(1|one|won|first|አንድ|አንደኛ|፩|tokko)$/],
+    [2, /^(2|two|second|ሁለት|ሁለተኛ|፪|lama)$/],
+    [3, /^(3|three|third|ሶስት|ሦስት|ሶስተኛ|ሦስተኛ|፫|sadii)$/],
+    [4, /^(4|four|fourth|አራት|አራተኛ|፬|afur)$/],
+    [5, /^(5|five|fifth|አምስት|አምስተኛ|፭|shan)$/],
+    [6, /^(6|six|sixth|ስድስት|ስድስተኛ|፮|jaha)$/],
+    [7, /^(7|seven|seventh|ሰባት|ሰባተኛ|፯|torba)$/],
+    [8, /^(8|eight|eighth|ስምንት|ስምንተኛ|፰|saddeet)$/],
+    [9, /^(9|nine|ninth|ዘጠኝ|ዘጠነኛ|፱|sagal)$/],
   ];
   const NUMBER_FILLER = new Set(['number', 'press', 'say', 'option', 'choose', 'please', 'ቁጥር', 'እባክዎ']);
   function spokenNumber(text) {
@@ -508,7 +512,10 @@
         el('span', { class: 'menu-icon', 'aria-hidden': 'true' }, icon(iconName)),
         el('span', { class: 'menu-label', text: label }));
     menuGrid.replaceChildren(
-      ...MENU.map((m) => item(m.n, t().menu.items[m.action].button, m.icon, m.action === 'language' ? (state.lang === 'en' ? 'am' : 'en') : state.lang)),
+      // The other languages first (1, 2, 3), each in its own language, then the menu.
+      ...Object.entries(LANGUAGE_NUMBERS).filter(([, code]) => code !== state.lang && STRINGS[code])
+        .map(([n, code]) => item(Number(n), LANGUAGE_LABELS[code] || code, 'globe', code)),
+      ...MENU.map((m) => item(m.n, t().menu.items[m.action].button, m.icon, state.lang)),
       item(0, s.repeatMenu, 'repeat', state.lang),
     );
   }
@@ -2220,7 +2227,7 @@
         return stopReading();
       }
     }
-    if (number !== null && (number === 0 || menuItem(number))) {
+    if (number !== null && (number === 0 || menuItem(number) || languageForNumber(number))) {
       addMessage({ role: 'user', text: said, lang: scriptLang(said) });
       input.value = '';
       resizeInput();
@@ -2254,12 +2261,13 @@
 
   function runMenu(number) {
     if (state.busy) return;
+    const language = languageForNumber(number); // 1 Amharic, 2 English, 3 Afaan Oromo, at any time
+    if (language) return chooseLanguage(language);
     const item = menuItem(number);
     switch (item && item.action) {
       case 'lesson': return askTutor('', { intent: 'lesson_intro' });
       case 'read': return startReading();
       case 'explain': return explainReading();
-      case 'language': return chooseLanguage(state.lang === 'en' ? 'am' : 'en');
       case 'question': return promptQuestion();
       case 'person': return escalateToHuman();
       case 'jobs': return askTutor(t().jobsQuestion);
@@ -2292,7 +2300,7 @@
       chooseLanguage(choice);
       return;
     }
-    if (number !== 0 && !menuItem(number)) return;
+    if (number !== 0 && !menuItem(number) && !languageForNumber(number)) return;
     event.preventDefault();
     Speaker.stop();
     caption('user', event.key);

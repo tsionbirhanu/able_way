@@ -91,7 +91,7 @@
   "cleared": "Chat cleared.",
   "chooseLabel": "Choose a language",
   "confirm": "Great! I will help you in English. What would you like to know? You can ask me about this lesson, or say “explain this lesson”.",
-  "chooseRetry": "Sorry, I did not catch that. Say “one” for Amharic or “two” for English, or press 1 or 2.",
+  "chooseRetry": "Sorry, I did not catch that. Say or press 1 for Amharic, 2 for English, or 3 for Afaan Oromo.",
   "askNow": "Go ahead, ask your question. I am listening.",
   "jobsQuestion": "What jobs are open for me, and how do I apply?",
   "sourcesHint": "Say {n} to see the sources.",
@@ -190,7 +190,7 @@
   "escalatedPress": "I opened a chat with a person. To open it, press Enter, or tap “Open the help chat”. A tutor will answer you there. If nobody is online right now, the answer may come in the morning, and the chat stays open for you.",
   "openHelp": "Open the help chat",
   "pressHint": "For English, press 2.",
-  "chooseOthers": "For Amharic, press 1. For Afaan Oromo, press 3.",
+  "chooseOthers": "For Amharic, press 1. For English, press 2. For Afaan Oromo, press 3.",
   "answerLevel": "Answer level",
   "answerLevels": [
     "Simple",
