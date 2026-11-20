@@ -15,6 +15,7 @@
   function addMessage(m) {
     var p = document.createElement("p");
     if (m.role === "learner") p.className = "mine";
+    else if (m.role === "mimi") p.className = "mimi";
     var who = document.createElement("span");
     who.className = "who";
     who.textContent = m.role === "learner" ? S.chat_you : m.role === "mimi" ? "Mimi" : S.chat_tutor;

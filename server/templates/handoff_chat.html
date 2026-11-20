@@ -3,43 +3,630 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ t(lang, "chat_title") }}</title>
-{% include "_p34_style.html" %}
-{% include "_p34_chat_style.html" %}
+<title>{{ t(lang, "chat_title") }} · Savanna Classroom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --alx-red: #db3e3e;
+  --alx-red-dark: #b91c1c;
+  --alx-red-light: #fef2f2;
+  --alx-red-border: #fecaca;
+  --navy-dark: #111827;
+  --navy-slate: #1f2937;
+  --gray-bg: #f8f9fa;
+  --gray-surface: #ffffff;
+  --gray-border: #e5e7eb;
+  --gray-border-subtle: #f1f5f9;
+  --text-primary: #1f2937;
+  --text-muted: #6b7280;
+  --text-light: #9ca3af;
+  --green-dot: #22c55e;
+  --green-bg: #f0fdf4;
+  --green-text: #166534;
+  --green-border: #bbf7d0;
+  --blue-bubble: #eff6ff;
+  --blue-bubble-border: #bfdbfe;
+  --blue-bubble-text: #1e3a8a;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Ethiopic", sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--gray-bg);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Accessibility */
+.skip {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  background: var(--navy-dark);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  z-index: 10000;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-weight: 600;
+  transition: top 0.15s ease;
+}
+.skip:focus { top: 1rem; }
+:focus-visible { outline: 2.5px solid var(--alx-red); outline-offset: 2px; }
+
+[hidden] { display: none !important; }
+
+/* ── Top Brand Header ───────────────────────────────────────────── */
+.savanna-top-nav {
+  background: var(--gray-surface);
+  border-bottom: 1px solid var(--gray-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+.nav-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+}
+.brand-badge {
+  background: var(--alx-red);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+}
+.brand-info {
+  display: flex;
+  flex-direction: column;
+}
+.brand-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+  line-height: 1.2;
+}
+.brand-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.lang-toggle {
+  font-size: 0.82rem;
+  color: var(--navy-dark);
+  text-decoration: none;
+  font-weight: 600;
+  background: var(--gray-bg);
+  border: 1px solid var(--gray-border);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  transition: all 0.15s ease;
+}
+.lang-toggle:hover {
+  background: #fff;
+  border-color: var(--alx-red-border);
+  color: var(--alx-red);
+}
+
+/* ── Main Layout Canvas ─────────────────────────────────────────── */
+.chat-page-container {
+  max-width: 860px;
+  margin: 1.75rem auto;
+  padding: 0 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Live Screen Share Banner (Active Sticky Alert) ─────────────── */
+.banner {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  position: sticky;
+  top: 4.5rem;
+  z-index: 90;
+  animation: slideDown 0.25s ease-out;
+}
+@keyframes slideDown {
+  from { transform: translateY(-12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.banner-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.banner-pulse-dot {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  animation: pulse-ring 1.5s infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(255, 255, 255, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+.banner button {
+  background: #ffffff;
+  color: #dc2626;
+  border: none;
+  font-weight: 700;
+  font-size: 0.84rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.banner button:hover {
+  background: #fee2e2;
+}
+
+/* ── Primary Chat Card ──────────────────────────────────────────── */
+.chat-card {
+  background: var(--gray-surface);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Card Header Bar */
+.chat-card-header {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-border);
+  background: #fafbfc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.header-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.chat-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.chat-title-group h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+  margin: 0;
+}
+.ticket-id-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--gray-bg);
+  border: 1px solid var(--gray-border);
+  color: var(--text-muted);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: #ffffff;
+  border: 1px solid var(--gray-border);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  margin: 0;
+}
+.status-pill::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-dot);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+  flex-shrink: 0;
+}
+.chat-intro-note {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Chat Messages Log */
+.log {
+  height: 400px;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+  background: #fdfdfd;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  border-bottom: 1px solid var(--gray-border);
+}
+.log::-webkit-scrollbar { width: 6px; }
+.log::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+.log p {
+  margin: 0;
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--radius-md);
+  max-width: 80%;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  align-self: flex-start;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: var(--navy-dark);
+  border-bottom-left-radius: 3px;
+}
+.log p.mine {
+  align-self: flex-end;
+  background: var(--blue-bubble);
+  border-color: var(--blue-bubble-border);
+  color: var(--blue-bubble-text);
+  border-bottom-right-radius: 3px;
+}
+.log p.mimi {
+  align-self: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  max-width: 90%;
+  font-size: 0.88rem;
+  border-radius: var(--radius-md);
+}
+
+.log .who {
+  display: block;
+  font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--alx-red);
+  margin-bottom: 0.25rem;
+}
+.log p.mine .who {
+  color: #2563eb;
+  text-align: end;
+}
+.log p.mimi .who {
+  color: #64748b;
+  text-align: center;
+}
+
+/* Chat Input Form */
+.savanna-composer {
+  padding: 1rem 1.5rem;
+  background: #ffffff;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.savanna-composer input[type="text"] {
+  flex: 1;
+  font-family: inherit;
+  font-size: 0.94rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-md);
+  background: #fafafa;
+  color: var(--navy-dark);
+  transition: all 0.15s ease;
+}
+.savanna-composer input[type="text"]:focus {
+  background: #fff;
+  border-color: var(--alx-red);
+  box-shadow: 0 0 0 3px rgba(219, 62, 62, 0.12);
+}
+.savanna-composer button[type="submit"] {
+  background: var(--alx-red);
+  color: #ffffff;
+  border: none;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 0.75rem 1.4rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+.savanna-composer button[type="submit"]:hover {
+  background: var(--alx-red-dark);
+}
+.savanna-composer button[type="submit"]:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+}
+
+/* ── Screen Sharing Control Card ────────────────────────────────── */
+.share-feature-card {
+  background: var(--gray-surface);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.2s ease;
+}
+.share-feature-card:hover {
+  border-color: #cbd5e1;
+}
+.share-card-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.share-card-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 260px;
+}
+.share-icon-box {
+  width: 44px;
+  height: 44px;
+  background: var(--alx-red-light);
+  border: 1px solid var(--alx-red-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+.share-text-block h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+  margin: 0 0 0.2rem;
+}
+.share-explain-text {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+.btn-share-start {
+  background: #ffffff;
+  color: var(--alx-red);
+  border: 1.5px solid var(--alx-red);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.btn-share-start:hover {
+  background: var(--alx-red-light);
+}
+.btn-share-start:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+.share-status-live {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin: 0;
+  min-height: 1.2rem;
+}
+
+/* ── Error & Fallback States ────────────────────────────────────── */
+.savanna-empty-card {
+  background: var(--gray-surface);
+  border: 1px solid var(--gray-border);
+  border-radius: var(--radius-lg);
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.savanna-alert {
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius-md);
+  margin: 1rem 0;
+  font-size: 0.92rem;
+}
+.savanna-alert.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+.btn-primary-savanna {
+  display: inline-block;
+  background: var(--alx-red);
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.7rem 1.5rem;
+  border-radius: var(--radius-md);
+  margin-top: 1rem;
+  transition: background 0.15s ease;
+}
+.btn-primary-savanna:hover {
+  background: var(--alx-red-dark);
+}
+
+@media (max-width: 640px) {
+  .nav-container { padding: 0.75rem 1rem; }
+  .chat-page-container { margin: 1rem auto; padding: 0 0.85rem 2rem; }
+  .chat-card-header { padding: 0.85rem 1rem; }
+  .log { height: 350px; padding: 1rem; }
+  .savanna-composer { padding: 0.85rem 1rem; }
+  .share-feature-card { padding: 1rem; }
+}
+</style>
 </head>
 <body>
 <a class="skip" href="#message">{{ t(lang, "skip_to_content") }}</a>
-<main id="main">
-<h1>{{ t(lang, "chat_title") }}</h1>
-{% if not ticket %}
-<p class="box error" role="alert">{{ t(lang, "chat_not_found") }}</p>
-<p><a href="/handoff/start?lang={{ lang }}">{{ t(lang, "handoff_start_button") }}</a></p>
-{% else %}
-<div id="share-banner" class="banner" role="status" hidden>
-  <span>{{ t(lang, "share_banner") }}</span>
-  <button type="button" id="share-stop">{{ t(lang, "share_stop") }}</button>
-</div>
-<p>{{ t(lang, "chat_intro") }}</p>
-<p id="status" role="status" class="note">{{ t(lang, "chat_connecting") }}</p>
-<h2 id="log-h">{{ t(lang, "chat_messages") }}</h2>
-<div id="log" class="log" role="log" aria-live="polite" aria-labelledby="log-h" tabindex="0"></div>
-<form id="chat-form">
-  <label for="message">{{ t(lang, "chat_message_label") }}</label>
-  <div class="row">
-    <input type="text" id="message" maxlength="2000" autocomplete="off" dir="auto" required>
-    <button type="submit">{{ t(lang, "send") }}</button>
+
+<!-- ── Savanna Top Nav ──────────────────────────────────────────── -->
+<header class="savanna-top-nav">
+  <div class="nav-container">
+    <a href="/handoff/chat" class="brand-link">
+      <span class="brand-badge">ALX</span>
+      <div class="brand-info">
+        <span class="brand-name">Savanna Live Help</span>
+        <span class="brand-desc">Ableway Student Learning Hub</span>
+      </div>
+    </a>
+    <div class="nav-actions">
+      {% if lang == "am" %}
+      <a href="?lang=en" class="lang-toggle" title="Switch to English">English</a>
+      {% else %}
+      <a href="?lang=am" class="lang-toggle" title="ወደ አማርኛ ቀይር">አማርኛ</a>
+      {% endif %}
+    </div>
   </div>
-</form>
-<section aria-labelledby="share-h" id="share-section" hidden>
-  <h2 id="share-h">{{ t(lang, "share_start") }}</h2>
-  <p class="note" id="share-help">{{ t(lang, "share_explain") }}</p>
-  <button type="button" id="share-start" class="secondary" aria-describedby="share-help">{{ t(lang, "share_start") }}</button>
-  <p id="share-status" role="status" class="note"></p>
-</section>
-<noscript><p class="box error">{{ t(lang, "chat_needs_js") }} <a href="/lite?lang={{ lang }}">/lite</a></p></noscript>
-<script type="application/json" id="handoff-config">{{ js_config | tojson }}</script>
-<script src="/handoff/static/handoff_chat.js"></script>
+</header>
+
+<!-- ── Main Workspace ───────────────────────────────────────────── -->
+<div class="chat-page-container">
+<main id="main">
+
+{% if not ticket %}
+  <!-- Not Found / Error State -->
+  <div class="savanna-empty-card">
+    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;" aria-hidden="true">💬</div>
+    <h1 style="font-size: 1.3rem; margin: 0 0 0.5rem; color: var(--navy-dark)">{{ t(lang, "chat_not_found") }}</h1>
+    <p class="chat-intro-note">This help session may have expired or ended.</p>
+    <a href="/handoff/start?lang={{ lang }}" class="btn-primary-savanna">{{ t(lang, "handoff_start_button") }}</a>
+  </div>
+{% else %}
+
+  <!-- Live Screen Sharing Banner (Learner Active State) -->
+  <div id="share-banner" class="banner" role="status" hidden>
+    <div class="banner-badge-group">
+      <span class="banner-pulse-dot" aria-hidden="true"></span>
+      <span>{{ t(lang, "share_banner") }}</span>
+    </div>
+    <button type="button" id="share-stop">{{ t(lang, "share_stop") }}</button>
+  </div>
+
+  <!-- Primary Chat Workspace Card -->
+  <section class="chat-card" aria-label="{{ t(lang, 'chat_title') }}">
+    <div class="chat-card-header">
+      <div class="header-row-top">
+        <div class="chat-title-group">
+          <h1>{{ t(lang, "chat_title") }}</h1>
+          <span class="ticket-id-tag">#{{ ticket.id[:8] }}</span>
+        </div>
+        <p id="status" role="status" class="status-pill">{{ t(lang, "chat_connecting") }}</p>
+      </div>
+      <p class="chat-intro-note">{{ t(lang, "chat_intro") }}</p>
+    </div>
+
+    <!-- Messages Container -->
+    <h2 id="log-h" class="skip">{{ t(lang, "chat_messages") }}</h2>
+    <div id="log" class="log" role="log" aria-live="polite" aria-labelledby="log-h" tabindex="0"></div>
+
+    <!-- Composer Form -->
+    <form id="chat-form" class="savanna-composer">
+      <label for="message" class="skip">{{ t(lang, "chat_message_label") }}</label>
+      <input type="text" id="message" maxlength="2000" autocomplete="off" dir="auto" required placeholder="{{ t(lang, 'chat_message_label') }}…">
+      <button type="submit">
+        <span>{{ t(lang, "send") }}</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </form>
+  </section>
+
+  <!-- Built-in Screen Sharing Feature Section -->
+  <section aria-labelledby="share-h" id="share-section" class="share-feature-card" hidden>
+    <div class="share-card-layout">
+      <div class="share-card-info">
+        <div class="share-icon-box" aria-hidden="true">🖥️</div>
+        <div class="share-text-block">
+          <h2 id="share-h">{{ t(lang, "share_start") }}</h2>
+          <p class="share-explain-text" id="share-help">{{ t(lang, "share_explain") }}</p>
+        </div>
+      </div>
+      <button type="button" id="share-start" class="btn-share-start" aria-describedby="share-help">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+        <span>{{ t(lang, "share_start") }}</span>
+      </button>
+    </div>
+    <p id="share-status" role="status" class="share-status-live"></p>
+  </section>
+
+  <noscript>
+    <div class="savanna-alert error">
+      {{ t(lang, "chat_needs_js") }} <a href="/lite?lang={{ lang }}" style="color:inherit;font-weight:700">/lite</a>
+    </div>
+  </noscript>
+
+  <script type="application/json" id="handoff-config">{{ js_config | tojson }}</script>
+  <script src="/handoff/static/handoff_chat.js"></script>
+
 {% endif %}
+
 </main>
+</div>
 </body>
 </html>
