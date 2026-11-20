@@ -351,17 +351,14 @@
     el('div', { class: 'choices' }, consentYes, consentNo),
   );
 
-  let screenStream = null;
   const talkText = el('span');
   const talkButton = el('button', { type: 'button', class: 'btn-help', onclick: escalateToHuman }, icon('person'), talkText);
-  const shareText = el('span');
-  const shareButton = el('button', { type: 'button', class: 'btn-help', onclick: toggleScreenShare }, icon('share'), shareText);
   // The same tutor on Telegram, for learners who would rather continue on their phone.
   const telegramText = el('span');
   const telegramLink = config.telegram
     ? el('a', { class: 'btn-help telegram-link', href: config.telegram, target: '_blank', rel: 'noopener noreferrer' }, icon('send'), telegramText)
     : null;
-  const helpStrip = el('div', { class: 'help-strip' }, talkButton, shareButton, ...(telegramLink ? [telegramLink] : []));
+  const helpStrip = el('div', { class: 'help-strip' }, talkButton, ...(telegramLink ? [telegramLink] : []));
 
   const list = el('ol', { class: 'messages' });
   const suggestions = el('div', { class: 'suggestions' });
@@ -620,8 +617,6 @@
     settingsTitle.textContent = s.settings;
     talkText.textContent = s.talkToPerson;
     talkButton.setAttribute('aria-label', s.talkToPerson);
-    shareText.textContent = screenStream ? s.screenSharingActive : s.screenShare;
-    shareButton.setAttribute('aria-label', screenStream ? s.screenSharingActive : s.screenShare);
     if (telegramLink) {
       telegramText.textContent = s.telegram;
       telegramLink.setAttribute('aria-label', s.telegramLabel);
@@ -2534,37 +2529,6 @@
       addMessage({ role: 'assistant', text: s.escalateFailed, lang: state.lang, citations: [], error: true, retry: 'escalate' });
       if (state.voiceOn) await say(s.escalateFailed, state.lang);
       afterSpeech();
-    }
-  }
-
-  async function toggleScreenShare() {
-    const s = t();
-    if (screenStream) {
-      screenStream.getTracks().forEach((track) => track.stop());
-      screenStream = null;
-      shareButton.classList.remove('active');
-      shareText.textContent = s.screenShare;
-      setStatus('');
-      return;
-    }
-    // Chrome on Android does not support getDisplayMedia.
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-      setStatus(s.screenShareAndroid);
-      return;
-    }
-    try {
-      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      shareButton.classList.add('active');
-      shareText.textContent = s.screenSharingActive;
-      setStatus(s.screenSharingActive);
-      screenStream.getVideoTracks()[0].onended = () => {
-        screenStream = null;
-        shareButton.classList.remove('active');
-        shareText.textContent = t().screenShare;
-        setStatus('');
-      };
-    } catch {
-      setStatus('');
     }
   }
 
