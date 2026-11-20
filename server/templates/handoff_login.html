@@ -407,15 +407,23 @@ body {
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
       <div>
-        <strong>Incorrect password.</strong>
-        <div>Please verify your tutor password and try again.</div>
+        <strong>Incorrect name or password.</strong>
+        <div>Tutors: use your own name and password. Coordinator: the coordinator password.</div>
       </div>
     </div>
     {% endif %}
 
     <form method="post" action="/handoff/console/login" class="auth-form">
       <div class="field-group">
-        <label for="password" class="field-label">Tutor Password</label>
+        <label for="name" class="field-label">Your name</label>
+        <div class="input-wrapper">
+          <input type="text" id="name" name="name" class="auth-input" style="padding-left:1rem"
+            placeholder="For example Hana" autocomplete="username" maxlength="40" autofocus>
+        </div>
+        <span class="field-help">Learners see this name when you take their request.</span>
+      </div>
+      <div class="field-group">
+        <label for="password" class="field-label">Password</label>
         <div class="input-wrapper">
           <span class="input-icon-left" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -430,8 +438,7 @@ body {
             class="auth-input" 
             placeholder="Enter tutor console password…"
             required 
-            autocomplete="current-password" 
-            autofocus>
+            autocomplete="current-password">
           <button 
             type="button" 
             id="toggle-pw" 
@@ -444,7 +451,7 @@ body {
             </svg>
           </button>
         </div>
-        <span class="field-help">Configured via the shared TUTOR_PASSWORD environment setting.</span>
+        <span class="field-help">Tutors: your own password (TUTORS setting). Coordinator: the coordinator password (ADMIN_PASSWORD).</span>
       </div>
 
       <button type="submit" class="btn-submit-login">

@@ -20,9 +20,12 @@ services:
       # links the help chat, Telegram and SMS send out, and for the Telegram webhook.
       - key: PUBLIC_BASE_URL
         sync: false
-      # A random password made by Render (see the Environment tab). Never a fixed one in git.
-      - key: TUTOR_PASSWORD
+      # The coordinator's password, made by Render (see the Environment tab). Never a fixed one in git.
+      - key: ADMIN_PASSWORD
         generateValue: true
+      # Tutors, each with their own name and password: "Hana:password1,Abel:password2".
+      - key: TUTORS
+        sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false          # a bot made for the hosted server, not the one on your laptop
       # Telegram sends each message to this server, which also wakes it when the free plan put it to sleep.

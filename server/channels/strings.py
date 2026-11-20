@@ -327,6 +327,45 @@ STRINGS = {
         "en": "This browser cannot share the screen.",
         "am": "ይህ ብራውዘር ስክሪን ማጋራት አይችልም።",
     },
+    # Shown to the learner when a tutor takes their request ("Take this request" in the console).
+    "chat_tutor_joined": {
+        "en": "{name}, a tutor, has joined and will help you.",
+        "am": "{name} (አስተማሪ) ተቀላቅለዋል፤ ይረዱዎታል።",
+        "om": "{name}, barsiisaan, makameera; isin gargaara.",
+    },
+    # The voice call with the tutor (server/static/handoff_voice.js). Only the learner can start it.
+    "chat_voice_title": {"en": "Talk by voice", "am": "በድምፅ ይነጋገሩ", "om": "Sagaleen dubbadhu"},
+    "chat_voice_explain": {
+        "en": "Talk with the tutor using your microphone. Only you can start it, and you can mute or end it at any time.",
+        "am": "በማይክሮፎንዎ ከአስተማሪው ጋር ይነጋገሩ። መጀመር የሚችሉት እርስዎ ብቻ ነዎት፤ በማንኛውም ጊዜ ድምፅዎን ማጥፋት ወይም ጥሪውን መጨረስ ይችላሉ።",
+        "om": "Maaykiroofoonii keessaniin barsiisaa waliin dubbadhaa. Jalqabuu kan dandeessan isin qofa; yeroo kamiyyuu callisuu ykn xumuruu ni dandeessu.",
+    },
+    "chat_voice_start": {"en": "Talk by voice", "am": "በድምፅ ይነጋገሩ", "om": "Sagaleen dubbadhu"},
+    "chat_voice_end": {"en": "End voice call", "am": "የድምፅ ጥሪውን ጨርስ", "om": "Waamicha sagalee xumuri"},
+    "chat_voice_mute": {"en": "Mute my microphone", "am": "ማይክሮፎኔን አጥፋ", "om": "Maaykiroofoonii koo callisi"},
+    "chat_voice_unmute": {"en": "Unmute my microphone", "am": "ማይክሮፎኔን አብራ", "om": "Maaykiroofoonii koo bani"},
+    "chat_voice_on": {
+        "en": "Voice call on: the tutor can hear you.",
+        "am": "የድምፅ ጥሪ በርቷል፦ አስተማሪው ይሰማዎታል።",
+        "om": "Waamichi sagalee banaadha: barsiisaan isin dhaga'a.",
+    },
+    "chat_voice_muted": {"en": "Your microphone is muted.", "am": "ማይክሮፎንዎ ጠፍቷል።", "om": "Maaykiroofooniin keessan callifameera."},
+    "chat_voice_ended": {"en": "The voice call has ended.", "am": "የድምፅ ጥሪው አብቅቷል።", "om": "Waamichi sagalee xumurameera."},
+    "chat_voice_denied": {
+        "en": "The microphone is blocked. Allow it in your browser, or write your message.",
+        "am": "ማይክሮፎኑ ታግዷል። በብራውዘርዎ ይፍቀዱት፣ ወይም መልእክትዎን ይጻፉ።",
+        "om": "Maaykiroofooniin cufameera. Biraawuzarii keessan keessatti eeyyamaa, ykn ergaa keessan barreessaa.",
+    },
+    "chat_voice_failed": {
+        "en": "The microphone could not be started. Please write your message.",
+        "am": "ማይክሮፎኑን ማስጀመር አልተቻለም። እባክዎ መልእክትዎን ይጻፉ።",
+        "om": "Maaykiroofoonii jalqabsiisuun hin danda'amne. Mee ergaa keessan barreessaa.",
+    },
+    "chat_voice_unsupported": {
+        "en": "Voice calls do not work in this browser. Please write your message.",
+        "am": "በዚህ ብራውዘር የድምፅ ጥሪ አይሰራም። እባክዎ መልእክትዎን ይጻፉ።",
+        "om": "Biraawuzarii kana irratti waamichi sagalee hin hojjetu. Mee ergaa keessan barreessaa.",
+    },
     "handoff_start_title": {"en": "Talk to a person", "am": "ከሰው ጋር ይነጋገሩ"},
     "handoff_start_button": {"en": "Start a chat with a tutor", "am": "ከአስተማሪ ጋር ውይይት ጀምር"},
 }

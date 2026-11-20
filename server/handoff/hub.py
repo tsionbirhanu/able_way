@@ -56,6 +56,20 @@ async def post_message(ticket_id: str, role: str, text: str) -> bool:
     return True
 
 
+async def announce(ticket_id: str, key: str, **values) -> None:
+    """A note from Mimi in the learner's language, for example "Hana, a tutor, joined the chat"."""
+    ticket = tickets.get_ticket(ticket_id)
+    if not ticket:
+        return
+    text = t(ticket["lang"], key, **values)
+    message = tickets.add_message(ticket_id, "mimi", text)
+    await broadcast(ticket_id, dict(message, type="chat"))
+    if ticket["external_address"]:
+        sender = external_senders.get(ticket["channel"])
+        if sender:
+            await sender(ticket["external_address"], text)
+
+
 async def close(ticket_id: str, notify_external: bool = True) -> bool:
     ticket = tickets.get_ticket(ticket_id)
     if not ticket or not tickets.close_ticket(ticket_id):

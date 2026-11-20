@@ -69,14 +69,14 @@ def _job_options():
 
 
 # ------------------------------------------------------------------ staff page: a person handles each request
-# Behind the tutor console's password. Requests are deleted once handled (keep no more than needed).
+# The coordinator only (they hold disability information): not tutors. Deleted once handled.
 @router.get("/requests")
 async def staff_list(request: Request):
     from fastapi.responses import RedirectResponse
 
-    from server.handoff.router import is_tutor
+    from server.handoff.router import is_admin
 
-    if not is_tutor(request.cookies):
+    if not is_admin(request.cookies):
         return RedirectResponse("/handoff/console", status_code=303)
     return render(request, "accommodation_requests.html", "en", requests=list_requests())
 
@@ -85,10 +85,10 @@ async def staff_list(request: Request):
 async def staff_done(request: Request, request_id: int):
     from fastapi.responses import JSONResponse, RedirectResponse
 
-    from server.handoff.router import is_tutor
+    from server.handoff.router import is_admin
 
-    if not is_tutor(request.cookies):
-        return JSONResponse({"error": "tutor login required"}, status_code=401)
+    if not is_admin(request.cookies):
+        return JSONResponse({"error": "coordinator login required"}, status_code=403)
     delete_request(request_id)
     return RedirectResponse("/accommodation/requests", status_code=303)
 

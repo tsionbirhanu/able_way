@@ -83,4 +83,9 @@
   extra.src = "/handoff/static/handoff_screenshare.js";
   extra.onerror = function () {};
   document.body.appendChild(extra);
+  // The voice call with the tutor (the learner's microphone, the tutor's voice): also optional.
+  var voice = document.createElement("script");
+  voice.src = "/handoff/static/handoff_voice.js";
+  voice.onerror = function () {};
+  document.body.appendChild(voice);
 })();

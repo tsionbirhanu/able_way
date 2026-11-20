@@ -322,6 +322,8 @@ body {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
 }
 .btn-savanna-primary:hover { background: var(--alx-red-dark); border-color: var(--alx-red-dark); }
+/* Another tutor has this request: clearly not available (still read out as "Hana is helping"). */
+.btn-savanna-primary:disabled { background: #e5e7eb; border-color: #9ca3af; color: #374151; cursor: not-allowed; }
 
 .btn-savanna-secondary {
   background: #fff; color: var(--text-main); border: 1px solid var(--gray-border);
@@ -719,6 +721,7 @@ video {
       <span class="pulse-dot online" aria-hidden="true"></span>
       <span>Live Desk</span>
     </div>
+    <span id="me-label" style="font-size:0.85rem;font-weight:600;color:var(--text-muted)" aria-live="polite"></span>
     <form method="post" action="/handoff/console/logout" style="margin:0">
       <button type="submit" class="btn-signout">Sign Out</button>
     </form>
@@ -1052,6 +1055,7 @@ video {
   var allAccommodations = [];
   var teacherStats     = null;
   var currentFilter    = 'all';
+  var me               = null; // {name, role}: who is signed in (from /handoff/api/dashboard)
   var activeTicketId   = null;
   var ws               = null;
   var listeners        = {};
@@ -1296,11 +1300,22 @@ video {
       var channelBadge = '<span class="badge badge-' + (t.channel === 'telegram' ? 'telegram' : t.channel === 'sms' ? 'sms' : 'web') + '">' + esc(t.channel) + '</span>';
       var langBadge = '<span class="badge badge-lang">' + esc(t.lang) + '</span>';
       var planBadge = t.schedule_method ? '<span class="badge badge-plan">Plan: ' + esc(t.schedule_method) + '</span>' : '';
+      // Who is helping: one tutor per learner. "Take this request" when nobody has it yet.
+      var owner = t.tutor_name || '';
+      var mine = owner && me && owner === me.name;
+      var ownerBadge = owner
+        ? '<span class="badge badge-plan">🙋 ' + (mine ? 'You' : esc(owner)) + '</span>'
+        : '<span class="badge badge-lang">Waiting for a tutor</span>';
+      var openLabel = !owner ? 'Take this request →'
+        : mine ? 'Open Live Chat →'
+        : (me && me.role === 'admin') ? 'Watch or take over →'
+        : esc(owner) + ' is helping';
+      var openDisabled = owner && !mine && !(me && me.role === 'admin');
 
       li.innerHTML =
         '<button type="button" class="ticket-header-btn">' +
           '<div class="ticket-meta-row">' +
-            '<div class="meta-badges">' + channelBadge + langBadge + planBadge + '</div>' +
+            '<div class="meta-badges">' + channelBadge + langBadge + ownerBadge + planBadge + '</div>' +
             '<span class="ticket-time">' + formatTimeAgo(t.created_at) + '</span>' +
           '</div>' +
           '<div class="ticket-summary" dir="auto">' + esc(t.last_message || t.topic || 'New Help Request') + '</div>' +
@@ -1316,14 +1331,42 @@ video {
           '<textarea id="note-' + t.id + '" class="savanna-textarea" placeholder="Tutor note or meeting details…" data-tid="' + t.id + '">' + esc(t.schedule_note || '') + '</textarea>' +
           '<div class="action-btns-row">' +
             '<button type="button" class="btn-savanna-secondary" data-action="save-plan" data-tid="' + t.id + '">Save Plan</button>' +
-            '<button type="button" class="btn-savanna-primary" data-action="open-chat" data-tid="' + t.id + '">Open Live Chat →</button>' +
+            '<button type="button" class="btn-savanna-primary" data-action="open-chat" data-tid="' + t.id + '"' + (openDisabled ? ' disabled' : '') + '>' + openLabel + '</button>' +
           '</div>' +
         '</div>';
 
-      li.querySelector('.ticket-header-btn').addEventListener('click', function () { openTicketChat(t.id); });
-      li.querySelector('[data-action="open-chat"]').addEventListener('click', function () { openTicketChat(t.id); });
+      li.querySelector('.ticket-header-btn').addEventListener('click', function () { if (!openDisabled) takeAndOpen(t); });
+      li.querySelector('[data-action="open-chat"]').addEventListener('click', function () { takeAndOpen(t); });
       li.querySelector('[data-action="save-plan"]').addEventListener('click', function () { saveSchedulePlan(t.id); });
       ticketListEl.appendChild(li);
+    });
+  }
+
+  // "Take this request": the request becomes this tutor's, and the learner is told who joined. The
+  // coordinator can watch a chat another tutor has, or take it over.
+  function takeAndOpen(t) {
+    var owner = t.tutor_name || '';
+    var needsTake = !owner || (me && me.role === 'admin' && owner !== me.name &&
+      window.confirm(owner + ' is helping this learner. Take over the request? (Cancel: watch only.)'));
+    if (!needsTake) { openTicketChat(t.id); return; }
+    fetch('/handoff/tickets/' + encodeURIComponent(t.id) + '/claim', { method: 'POST', credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (res) {
+        if (!res.ok) { showToast(res.body.error || 'Could not take this request', 'error'); refreshDashboardData(); return; }
+        t.tutor_name = me.name;
+        openTicketChat(t.id);
+      })
+      .catch(function () { showToast('Could not take this request', 'error'); });
+  }
+
+  // Tutors see the help queue and the questions log; the coordinator also sees the teacher analytics
+  // and the interview accommodation requests (disability information).
+  function applyRole() {
+    if (!me) return;
+    $('me-label').textContent = 'Signed in as ' + me.name + ' (' + (me.role === 'admin' ? 'coordinator' : 'tutor') + ')';
+    ['analytics', 'accommodations'].forEach(function (v) {
+      var btn = document.querySelector('.sidebar-nav-btn[data-view="' + v + '"]');
+      if (btn && btn.closest('li')) btn.closest('li').hidden = me.role !== 'admin';
     });
   }
 
@@ -1409,7 +1452,14 @@ video {
       emit(m.type, m);
     };
 
-    ws.onclose = function () {
+    ws.onclose = function (e) {
+      if (e && e.code === 4409) {
+        presenceText.textContent = 'Another tutor is already helping this learner.';
+        chatInput.disabled = true;
+        refreshDashboardData();
+        emit('leave');
+        return;
+      }
       if (activeTicketId === id && !chatInput.disabled) {
         presenceDot.className = 'pulse-dot';
         presenceText.textContent = 'Disconnected (click ticket to reconnect)';
@@ -1493,6 +1543,7 @@ video {
         return r.json();
       })
       .then(function (data) {
+        if (data.me) { me = data.me; applyRole(); }
         allQuestions      = data.questions || [];
         allTickets        = data.tickets   || [];
         allAccommodations = data.accommodations || [];
@@ -1519,5 +1570,6 @@ video {
 </script>
 <!-- Screen share WebRTC controller (Built-in) -->
 <script src="/handoff/static/handoff_console_screen.js"></script>
+<script src="/handoff/static/handoff_console_voice.js"></script>
 </body>
 </html>

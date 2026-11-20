@@ -81,6 +81,23 @@ def tutor_password() -> str:
         log.warning("TUTOR_PASSWORD is not set. Temporary tutor password: %s", _generated_password)
     return _generated_password
 
+def admin_password() -> str:
+    """The coordinator's password (ADMIN_PASSWORD). Without one, TUTOR_PASSWORD signs in as the
+    coordinator, as the one shared password did before tutor accounts existed."""
+    return (os.environ.get("ADMIN_PASSWORD") or "").strip() or tutor_password()
+
+
+def tutor_accounts() -> dict:
+    """Named tutors from TUTORS="Hana:password1,Abel:password2" -> {"Hana": "password1", ...}."""
+    accounts = {}
+    for pair in (os.environ.get("TUTORS") or "").split(","):
+        name, _, password = pair.partition(":")
+        name, password = name.strip()[:40], password.strip()
+        if name and password and "|" not in name:
+            accounts[name] = password
+    return accounts
+
+
 if not log.handlers:  # make our own INFO lines visible under uvicorn without touching its config
     _h = logging.StreamHandler()
     _h.setFormatter(logging.Formatter("%(levelname)s:     [%(name)s] %(message)s"))

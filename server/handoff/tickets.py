@@ -34,11 +34,17 @@ def find_open_external(channel: str, address) -> str:
 def list_open() -> list:
     with connect() as c:
         rows = c.execute(
-            "SELECT t.id, t.channel, t.lang, t.topic, t.created_at, "
+            "SELECT t.id, t.channel, t.lang, t.topic, t.created_at, t.tutor_name, "
             "(SELECT COUNT(*) FROM ticket_messages m WHERE m.ticket_id=t.id) AS message_count, "
             "(SELECT text FROM ticket_messages m WHERE m.ticket_id=t.id ORDER BY m.id DESC LIMIT 1) AS last_message "
             "FROM tickets t WHERE t.status='open' ORDER BY t.created_at").fetchall()
     return [dict(r) for r in rows]
+
+
+def claim(ticket_id: str, tutor_name: str) -> None:
+    """This tutor is now helping on this request."""
+    with connect() as c:
+        c.execute("UPDATE tickets SET tutor_name=? WHERE id=? AND status='open'", (tutor_name[:40], ticket_id))
 
 
 def close_ticket(ticket_id: str) -> bool:

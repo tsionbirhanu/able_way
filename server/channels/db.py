@@ -83,6 +83,9 @@ def connect():
     try:
         if str(path) not in _initialised or not path.exists():
             conn.executescript(SCHEMA)
+            # Added after the first release: the tutor who took a help request ("Take this request").
+            if "tutor_name" not in {r[1] for r in conn.execute("PRAGMA table_info(tickets)")}:
+                conn.execute("ALTER TABLE tickets ADD COLUMN tutor_name TEXT")
             _initialised.add(str(path))
         yield conn
         conn.commit()

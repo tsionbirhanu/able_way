@@ -92,6 +92,7 @@
 
   chat.on("signal", function (m) {
     var d = m.data || {};
+    if (d.channel === "voice") return; // the voice call has its own connection (handoff_voice.js)
     if (d.request === "offer") { offer(); return; } // tutor (re)joined: no-op unless already sharing
     if (!pc) return;
     if (d.description && d.description.type === "answer") {

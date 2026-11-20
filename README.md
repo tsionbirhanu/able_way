@@ -167,8 +167,12 @@ No key is needed: with an empty `.env`, Mimi answers from the course text (offli
 | http://localhost:8000/lite | Low-bandwidth page, no JavaScript |
 | http://localhost:8000/sms/simulator | Pretend phone for the SMS route |
 
-The console password is `TUTOR_PASSWORD` in `.env`; if you leave it empty, a random one is printed in
-the log when the server starts. Stop everything with `Ctrl+C`, then `docker compose down`.
+Sign in to the tutor console with a name and password: **tutors** are listed in `TUTORS`
+(`Hana:password1,Abel:password2`), the **coordinator** uses `ADMIN_PASSWORD` (or, in older setups,
+`TUTOR_PASSWORD`). If none is set, a random coordinator password is printed in the log when the server
+starts. A tutor presses **"Take this request"**: the learner sees "Hana, a tutor, has joined", and other
+tutors see "Hana is helping". Only the coordinator sees the teacher analytics and the interview
+accommodation requests. Stop everything with `Ctrl+C`, then `docker compose down`.
 
 ### Without Docker
 
@@ -254,7 +258,8 @@ it by hand with **New → Web Service**, language **Python 3** (not Docker), bui
 | `GEMINI_API_KEY` | your key (the web page, Telegram and SMS all use it) |
 | `ABLEWAY_PROVIDERS`, `ABLEWAY_GEMINI_MODEL` | `gemini,offline`, `gemini-3.5-flash-lite` |
 | `PUBLIC_BASE_URL` | the service's own address, e.g. `https://mimi-tutor.onrender.com` |
-| `TUTOR_PASSWORD` | a strong password for the tutor console |
+| `TUTORS` | the tutors, each with their own name and password: `Hana:password1,Abel:password2` |
+| `ADMIN_PASSWORD` | the coordinator's password (analytics, accommodation requests, take over a request). Without it, `TUTOR_PASSWORD` signs in as the coordinator |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_MODE` | a bot made for the hosted server (keep a separate bot for your laptop), `webhook` |
 
 `CHANNELS_URL` is no longer needed: "Talk to a person" opens the ticket on the same server. (Set it only
@@ -295,7 +300,7 @@ Job alerts then go out as real SMS too. Commands a learner can text: `JOBS`, `SU
 
 ```bash
 pip install -r requirements.txt
-python -m pytest server/tests tests     # 143 tests
+python -m pytest server/tests tests     # 153 tests
 python server/evaluate.py               # answer quality: 30 questions, see "Quality" below
 cd tests/a11y && npm install && node axe.mjs http://localhost:8000/demo/blank.html page open
 ```
@@ -561,7 +566,7 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
   skip the extra AI step, and "Let me check." when an answer takes a moment.
 - The pluggable AI layer with an offline mode; the API with `/docs`, OpenAPI and a webhook;
   schema.org JobPosting; Docker Compose; a Render blueprint, with Telegram by webhook when hosted.
-- 143 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
+- 153 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
   0 issues on every page, with the chat open and closed.
 
 **Not finished or not yet verified:**

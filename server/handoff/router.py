@@ -3,12 +3,13 @@ import hashlib
 import hmac
 import json
 import re
+from urllib.parse import quote, unquote
 
 from server.channels import webhook
 from fastapi import APIRouter, Form, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
-from server.channels.config import STATIC_DIR, public_base_url, tutor_password
+from server.channels.config import STATIC_DIR, admin_password, public_base_url, tutor_accounts
 from server.channels.db import connect
 from server.channels.strings import STRINGS, norm_lang
 from server.channels.web import render
@@ -22,13 +23,40 @@ COOKIE = "tutor_session"
 CHAT_JS_KEYS = [k for k in STRINGS if k.startswith(("chat_", "share_"))]
 
 
-# ------------------------------------------------------------------ tutor auth (one shared password)
-def _session_value() -> str:
-    return hmac.new(tutor_password().encode(), b"tutor-console", hashlib.sha256).hexdigest()
+# ------------------------------------------------------------------ sign-in: tutors and the coordinator
+# Two roles. A tutor (TUTORS="Hana:pw,Abel:pw") takes help requests by name and helps learners. The
+# coordinator (ADMIN_PASSWORD, or TUTOR_PASSWORD when that is not set) sees everything tutors see, plus
+# the teacher analytics and the interview accommodation requests, which hold disability information.
+def _secret() -> bytes:
+    # Changing any password signs everyone out.
+    return hashlib.sha256(("mimi-console|" + admin_password() + "|" + repr(sorted(tutor_accounts().items()))).encode()).digest()
+
+
+def _session_value(role: str = "admin", name: str = "Coordinator") -> str:
+    body = f"{role}|{quote(name)}"
+    return body + "|" + hmac.new(_secret(), body.encode(), hashlib.sha256).hexdigest()
+
+
+def session(cookies) -> dict | None:
+    """{"role": "tutor"|"admin", "name": ...} for a valid console sign-in, else None."""
+    value = (cookies or {}).get(COOKIE) or ""
+    role, _, rest = value.partition("|")
+    name, _, signature = rest.partition("|")
+    if role not in ("tutor", "admin") or not signature:
+        return None
+    if not hmac.compare_digest(value, _session_value(role, unquote(name))):
+        return None
+    return {"role": role, "name": unquote(name)}
 
 
 def is_tutor(cookies) -> bool:
-    return hmac.compare_digest(cookies.get(COOKIE) or "", _session_value())
+    """Signed in to the console: a tutor or the coordinator."""
+    return session(cookies) is not None
+
+
+def is_admin(cookies) -> bool:
+    s = session(cookies)
+    return bool(s) and s["role"] == "admin"
 
 
 def conversation_summary(conversation, limit: int = 12) -> str:
@@ -153,9 +181,20 @@ async def ticket_ws(ws: WebSocket, ticket_id: str, role: str = "learner"):
     role = "tutor" if role == "tutor" else "learner"
     ticket = tickets.get_ticket(ticket_id)
     await ws.accept()
-    if not ticket or (role == "tutor" and not is_tutor(ws.cookies)):
+    me = session(ws.cookies) if role == "tutor" else None
+    if not ticket or (role == "tutor" and not me):
         await ws.close(code=4404 if not ticket else 4401)
         return
+    if me and ticket["status"] == "open":
+        # A tutor opening a request nobody has taken takes it; one another tutor has is refused (4409).
+        # The coordinator can look at any chat without taking it.
+        owner = ticket.get("tutor_name")
+        if me["role"] == "tutor" and owner and owner != me["name"]:
+            await ws.send_json({"type": "taken", "by": owner})
+            await ws.close(code=4409)
+            return
+        if me["role"] == "tutor" and not owner:
+            await take(ticket_id, me)
     await ws.send_json({"type": "history", "messages": tickets.messages(ticket_id), "status": ticket["status"]})
     if ticket["status"] != "open":
         await ws.send_json({"type": "closed"})
@@ -201,12 +240,61 @@ async def console(request: Request):
 
 
 @router.post("/console/login")
-async def console_login(request: Request, password: str = Form("")):
-    if not hmac.compare_digest(password.encode(), tutor_password().encode()):
+async def console_login(request: Request, password: str = Form(""), name: str = Form("")):
+    """A tutor signs in with their name and own password (TUTORS); the coordinator with ADMIN_PASSWORD
+    (and any name, for example their own)."""
+    name = " ".join(name.replace("|", " ").split())[:40]
+    role = None
+    for tutor_name, tutor_pw in tutor_accounts().items():
+        if name.casefold() == tutor_name.casefold() and hmac.compare_digest(password.encode(), tutor_pw.encode()):
+            role, name = "tutor", tutor_name
+            break
+    if role is None and hmac.compare_digest(password.encode(), admin_password().encode()):
+        role, name = "admin", name or "Coordinator"
+    if role is None:
         return render(request, "handoff_login.html", "en", status_code=401, error=True)
     resp = RedirectResponse("/handoff/console", status_code=303)
-    resp.set_cookie(COOKIE, _session_value(), httponly=True, samesite="strict", max_age=12 * 3600)
+    resp.set_cookie(COOKIE, _session_value(role, name), httponly=True, samesite="strict", max_age=12 * 3600)
     return resp
+
+
+@router.get("/api/me")
+async def api_me(request: Request):
+    """Who is signed in, so the console shows only what this role may use."""
+    me = session(request.cookies)
+    if not me:
+        return JSONResponse({"error": "tutor login required"}, status_code=401)
+    return me
+
+
+@router.post("/tickets/{ticket_id}/claim")
+async def claim_ticket(request: Request, ticket_id: str):
+    """"Take this request": the ticket becomes this tutor's, and the learner is told who is helping.
+    A ticket another tutor took is refused (409), except for the coordinator, who can take it over."""
+    me = session(request.cookies)
+    if not me:
+        return JSONResponse({"error": "tutor login required"}, status_code=401)
+    result = await take(ticket_id, me)
+    if result == "missing":
+        return JSONResponse({"error": "This request is closed or does not exist."}, status_code=404)
+    if result != "ok":
+        return JSONResponse({"error": f"{result} is already helping this learner.", "claimed_by": result}, status_code=409)
+    return {"claimed": True, "tutor": me["name"]}
+
+
+async def take(ticket_id: str, me: dict) -> str:
+    """'ok', 'missing', or the name of the tutor who already has it. Announces a new tutor to the learner."""
+    ticket = tickets.get_ticket(ticket_id)
+    if not ticket or ticket["status"] != "open":
+        return "missing"
+    current = ticket.get("tutor_name")
+    if current == me["name"]:
+        return "ok"
+    if current and me["role"] != "admin":
+        return current
+    tickets.claim(ticket_id, me["name"])
+    await hub.announce(ticket_id, "chat_tutor_joined", name=me["name"])
+    return "ok"
 
 
 @router.post("/console/logout")
@@ -226,8 +314,10 @@ async def api_tickets(request: Request):
 @router.get("/api/dashboard")
 async def api_dashboard(request: Request):
     """Return questions log + open help-request tickets + teacher analytics + accommodation requests."""
-    if not is_tutor(request.cookies):
+    me = session(request.cookies)
+    if not me:
         return JSONResponse({"error": "tutor login required"}, status_code=401)
+    admin = me["role"] == "admin"
 
     from server.channels.accommodation import list_requests as list_accommodations
     from server.teacher.router import stats as teacher_stats
@@ -254,7 +344,7 @@ async def api_dashboard(request: Request):
             "ORDER BY q.id DESC LIMIT 100"
         ).fetchall()
         open_tickets = c.execute(
-            "SELECT t.id, t.channel, t.lang, t.topic, t.created_at, "
+            "SELECT t.id, t.channel, t.lang, t.topic, t.created_at, t.tutor_name, "
             "(SELECT COUNT(*) FROM ticket_messages m WHERE m.ticket_id=t.id) AS message_count, "
             "(SELECT text FROM ticket_messages m WHERE m.ticket_id=t.id ORDER BY m.id DESC LIMIT 1) AS last_message, "
             "s.method AS schedule_method, s.note AS schedule_note "
@@ -278,8 +368,10 @@ async def api_dashboard(request: Request):
         "stats": stats,
         "questions": [dict(q) for q in questions],
         "tickets": [dict(t) for t in open_tickets],
-        "teacher": teacher_stats(),
-        "accommodations": list_accommodations(),
+        # Teacher analytics and accommodation requests (disability information): the coordinator only.
+        "teacher": teacher_stats() if admin else None,
+        "accommodations": list_accommodations() if admin else [],
+        "me": me,
     }
 
 
@@ -314,7 +406,7 @@ async def schedule_help(request: Request, ticket_id: str,
 
 # ------------------------------------------------------------------ static files of this feature
 _STATIC = {"handoff.js", "handoff_chat.js", "handoff_console.js", "handoff_screenshare.js",
-           "handoff_console_screen.js"}
+           "handoff_console_screen.js", "handoff_voice.js", "handoff_console_voice.js"}
 
 
 @router.get("/static/{name}", include_in_schema=False)

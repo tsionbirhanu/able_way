@@ -47,8 +47,10 @@
     }
 
     tutor.on("open", function () { signal({ request: "offer" }); });
+    // (The voice call re-asks for its own offer: handoff_console_voice.js.)
     tutor.on("signal", function (m) {
       var d = m.data || {};
+      if (d.channel === "voice") return; // the voice call has its own connection (handoff_console_voice.js)
       if (d.description && d.description.type === "offer") {
         onOffer(d.description);
       } else if (d.candidate && pc) {

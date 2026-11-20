@@ -164,3 +164,28 @@ def test_the_api_takes_the_level():
     plain = validate({"question": "Hi"})[0]
     assert plain["simple"] is False and plain["detailed"] is False
     assert validate({"question": "Hi", "simple": True})[0]["simple"] is True  # older clients still work
+
+
+# ---------------------------------------------------------------- the voice call with the tutor
+def test_voice_call_files_are_served_and_the_learner_page_has_its_texts(client):  # noqa: F811
+    for name in ("handoff_voice.js", "handoff_console_voice.js"):
+        assert client.get(f"/handoff/static/{name}").status_code == 200
+    ticket = client.post("/handoff/tickets", json={"lang": "am"}).json()
+    import json
+    import re
+
+    page = client.get(ticket["chat_url"]).text
+    config = json.loads(re.search(r'<script type="application/json" id="handoff-config">(.*?)</script>', page, re.S).group(1))
+    assert config["strings"]["chat_voice_start"] == "በድምፅ ይነጋገሩ"  # the button text, in the learner's language
+
+
+def test_only_the_learner_can_start_the_voice_call():
+    root = Path(__file__).resolve().parents[1] / "server" / "static"
+    learner = (root / "handoff_voice.js").read_text(encoding="utf-8")
+    tutor = (root / "handoff_console_voice.js").read_text(encoding="utf-8")
+    assert "getUserMedia" in learner and 'startBtn.addEventListener("click"' in learner
+    # The tutor's page only answers an offer, and asks the learner's page to re-offer; never starts the learner's mic.
+    assert "createOffer" not in tutor and 'request: "offer"' in tutor
+    # Screen sharing and voice never mix their connections.
+    for name in ("handoff_screenshare.js", "handoff_console_screen.js"):
+        assert 'd.channel === "voice"' in (root / name).read_text(encoding="utf-8")
