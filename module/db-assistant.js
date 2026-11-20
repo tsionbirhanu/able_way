@@ -538,7 +538,37 @@
     pillState.textContent = voiceState.textContent ? ` · ${voiceState.textContent}` : '';
   }
   // The ring that marks a cited lesson section (see showInLesson).
-  const ring = el('div', { class: 'source-ring', 'aria-hidden': 'true', hidden: true });
+  // It MUST live in document.body — not inside the shadow DOM — so that position:fixed
+  // is relative to the viewport and not to the shadow host's stacking context.
+  const ring = document.createElement('div');
+  ring.className = 'mimi-source-ring';
+  ring.setAttribute('aria-hidden', 'true');
+  ring.hidden = true;
+  // Inject the ring's styles into the host document once (idempotent).
+  if (!document.getElementById('mimi-ring-style')) {
+    const ringStyle = document.createElement('style');
+    ringStyle.id = 'mimi-ring-style';
+    ringStyle.textContent = [
+      '.mimi-source-ring {',
+      '  position: fixed;',
+      '  z-index: 2147483647;',
+      '  pointer-events: none;',
+      '  border: 4px solid #ffb703;',
+      '  border-radius: 12px;',
+      '  box-shadow: 0 0 0 4px rgb(15 42 71 / 85%), 0 0 0 9999px rgb(15 42 71 / 18%);',
+      '  transition: top 0.1s, left 0.1s, width 0.1s, height 0.1s;',
+      '}',
+      '@media (prefers-reduced-motion: reduce) {',
+      '  .mimi-source-ring { transition: none; }',
+      '}',
+      '@media (forced-colors: active) {',
+      '  .mimi-source-ring { border-color: Highlight; box-shadow: none; }',
+      '}',
+      '.mimi-source-ring[hidden] { display: none !important; }',
+    ].join('\n');
+    document.head.appendChild(ringStyle);
+  }
+  document.body.appendChild(ring);
   // Where the right edge of the screen is. A host page that is wider than the phone (it scrolls
   // sideways) would otherwise push Mimi partly off screen: she is placed by the visible area instead.
   const edgeProbe = el('div', { class: 'edge-probe', 'aria-hidden': 'true' });
@@ -566,7 +596,7 @@
   }
   window.addEventListener('resize', fitToScreen);
   window.addEventListener('load', fitToScreen); // the host page may grow wider once its images arrive
-  shadow.append(css, root, ring, edgeProbe, floorProbe);
+  shadow.append(css, root, edgeProbe, floorProbe);
 
   // The host's brand colour (Bootstrap's --bs-primary, or --db-assistant-brand) on Mimi's main
   // buttons, so she looks part of the platform: but only when white text on it is readable (4.5:1).
