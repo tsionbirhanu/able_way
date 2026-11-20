@@ -255,7 +255,13 @@
     greeted: session.get('greeted') === true,
     voiceOn: session.get('voice') == null ? config.autoWelcome : session.get('voice') === true,
     sessionId: session.get('session-id'),
-    simple: store(localStorage, 'ableway-simple') === true,
+    // How much Mimi explains: 'simple' (short, everyday words), 'standard' or 'detailed' (a fuller
+    // explanation), always with the same sources. An earlier "Simple words: on" counts as simple.
+    level: ['simple', 'standard', 'detailed'].includes(store(localStorage, 'ableway-level'))
+      ? store(localStorage, 'ableway-level')
+      : store(localStorage, 'ableway-simple') === true ? 'simple' : 'standard',
+    simple: false, // set from level just below
+
     handsFree: store(localStorage, 'ableway-hands-free') !== false, // listen again after each answer
     // 0 normal, 1 large, 2 extra large (an earlier "Larger text: on" counts as large).
     textSize: [0, 1, 2].includes(store(localStorage, 'ableway-text-size')) ? store(localStorage, 'ableway-text-size') : store(localStorage, 'ableway-big-text') === true ? 1 : 0,
@@ -268,6 +274,7 @@
     // Mimi neither speaks nor sends anything until the learner answers.
     consent: ['yes', 'no'].includes(store(localStorage, 'ableway-consent')) ? store(localStorage, 'ableway-consent') : config.consentGiven ? 'yes' : null,
   };
+  state.simple = state.level === 'simple';
   const t = () => STRINGS[state.lang];
   const allowCloud = () => state.consent === 'yes';
   // A phone or tablet: its screen reader (TalkBack, VoiceOver) starts reading the page at once, so Mimi
@@ -298,13 +305,12 @@
     am: el('button', { type: 'button', lang: 'am', text: 'አማርኛ', onclick: () => chooseLanguage('am') }),
   };
   const langGroup = el('div', { class: 'segmented', role: 'group' }, langButtons.en, langButtons.am);
-  const simpleText = el('span');
-  const simpleSwitch = el(
-    'button',
-    { type: 'button', class: 'switch', role: 'switch', onclick: () => setSimple(!state.simple) },
-    el('span', { class: 'track', 'aria-hidden': 'true' }),
-    simpleText,
-  );
+  // Answer level: Simple / Standard / Detailed (the judges' "answers at the learner's level").
+  const LEVELS = ['simple', 'standard', 'detailed'];
+  const levelLabel = el('span', { class: 'size-label', id: 'ableway-level-label' });
+  const levelButtons = LEVELS.map((level) => el('button', { type: 'button', onclick: () => setLevel(level) }));
+  const levelGroup = el('div', { class: 'text-size answer-level', role: 'group', 'aria-labelledby': 'ableway-level-label' },
+    levelLabel, el('div', { class: 'segmented' }, ...levelButtons));
   const clearButton = el('button', { type: 'button', class: 'link-button', onclick: clearChat });
   const cloudText = el('span');
   const cloudSwitch = el(
@@ -320,7 +326,7 @@
     langButtons[code] = el('button', { type: 'button', lang: code, dir: 'auto', text: name, hidden: true, onclick: () => chooseLanguage(code) });
   }
   const moreLangGroup = el('div', { class: 'segmented more-languages', role: 'group' }, ...MORE_LANGUAGES.map(({ code }) => langButtons[code]));
-  const settings = el('div', { class: 'settings' }, langGroup, moreLangGroup, simpleSwitch, cloudSwitch, downloadButton, clearButton);
+  const settings = el('div', { class: 'settings' }, langGroup, moreLangGroup, levelGroup, cloudSwitch, downloadButton, clearButton);
   // Folded away by default (remembered), so the conversation has the room.
   const settingsTitle = el('span');
   const settingsBox = el('details', { class: 'settings-box' }, el('summary', {}, settingsTitle), settings);
@@ -594,8 +600,11 @@
     closeButton.setAttribute('aria-label', s.close);
     langGroup.setAttribute('aria-label', s.language);
     for (const [code, button] of Object.entries(langButtons)) button.setAttribute('aria-pressed', String(state.langChosen && code === state.lang));
-    simpleText.textContent = s.simple;
-    simpleSwitch.setAttribute('aria-checked', String(state.simple));
+    levelLabel.textContent = s.answerLevel;
+    levelButtons.forEach((button, n) => {
+      button.textContent = s.answerLevels[n];
+      button.setAttribute('aria-pressed', String(state.level === LEVELS[n]));
+    });
     cloudText.textContent = s.consentSwitch;
     cloudSwitch.setAttribute('aria-checked', String(allowCloud()));
     renderConsent();
@@ -2299,7 +2308,7 @@
     try {
       const data = await postJSON(
         '/api/ask',
-        { question, lang: state.lang, simple: state.simple, history, session_id: state.sessionId, context: { ...pageContext(), section }, intent, voice: state.voiceOn, detect_switch: !intent, cloud: allowCloud() },
+        { question, lang: state.lang, simple: state.simple, level: state.level, history, session_id: state.sessionId, context: { ...pageContext(), section }, intent, voice: state.voiceOn, detect_switch: !intent, cloud: allowCloud() },
         90000,
       );
       if (!data.session_id && state.sessionId) {
@@ -2423,8 +2432,13 @@
   }
 
   function retry() {
-    const lastQuestion = [...state.messages].reverse().find((m) => m.role === 'user');
+    const failed = [...state.messages].reverse().find((m) => m.error);
     state.messages = state.messages.filter((m) => !m.error);
+    if (failed && failed.retry === 'escalate') {
+      renderMessages();
+      return escalateToHuman();
+    }
+    const lastQuestion = [...state.messages].reverse().find((m) => m.role === 'user');
     if (lastQuestion) {
       state.messages.splice(state.messages.lastIndexOf(lastQuestion), 1);
       renderMessages();
@@ -2500,7 +2514,8 @@
     } catch {
       if (tab) tab.close();
       setStatus(s.escalateFailed);
-      addMessage({ role: 'assistant', text: s.escalateFailed, lang: state.lang, citations: [], error: true });
+      // "Try again" on this message tries to reach a person again (not the last question).
+      addMessage({ role: 'assistant', text: s.escalateFailed, lang: state.lang, citations: [], error: true, retry: 'escalate' });
       if (state.voiceOn) await say(s.escalateFailed, state.lang);
       afterSpeech();
     }
@@ -2650,10 +2665,16 @@
     announcer.append(el('p', { lang: state.lang, text: t().movedAside }));
   });
 
+  function setLevel(level) {
+    state.level = level;
+    state.simple = level === 'simple';
+    store(localStorage, 'ableway-level', level);
+    store(localStorage, 'ableway-simple', state.simple); // older versions read this
+    levelButtons.forEach((button, n) => button.setAttribute('aria-pressed', String(level === LEVELS[n])));
+  }
+
   function setSimple(on) {
-    state.simple = on;
-    store(localStorage, 'ableway-simple', on);
-    simpleSwitch.setAttribute('aria-checked', String(on));
+    setLevel(on ? 'simple' : 'standard');
   }
 
   // The conversation as a plain text file, with the address of every source: the learner's own copy.

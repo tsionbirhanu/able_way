@@ -190,5 +190,11 @@
   "escalatedPress": "I opened a chat with a person. To open it, press Enter, or tap “Open the help chat”. A tutor will answer you there. If nobody is online right now, the answer may come in the morning, and the chat stays open for you.",
   "openHelp": "Open the help chat",
   "pressHint": "For English, press 2.",
-  "chooseOthers": "For Amharic, press 1. For Afaan Oromo, press 3."
+  "chooseOthers": "For Amharic, press 1. For Afaan Oromo, press 3.",
+  "answerLevel": "Answer level",
+  "answerLevels": [
+    "Simple",
+    "Standard",
+    "Detailed"
+  ]
 }

@@ -85,6 +85,11 @@ SIMPLE_NOTE = (
     "\n\nThe learner has turned on simple mode. Use short sentences and everyday words, one idea per "
     "sentence, explain any technical term you must use in a few words, and keep to about five sentences."
 )
+DETAILED_NOTE = (
+    "\n\nThe learner asked for detailed answers. Give a fuller explanation than usual: the main idea, "
+    "then how it works in this course, with one short example from the sources and any rule or number "
+    "they state, in about six to ten sentences. Still cite every statement about the course [n]."
+)
 VOICE_NOTE = (
     "\n\nThis is a spoken conversation: your reply will be read aloud and the learner will answer by "
     "voice. Keep it to two to four short sentences that sound natural when heard, still with the [n] "
@@ -256,6 +261,7 @@ class Tutor:
         voice: bool = False,
         detect_switch: bool = False,
         cloud: bool = True,
+        detailed: bool = False,
     ) -> dict:
         """Answer one question. `history` is the earlier turns of this chat as
         [{"role": "user"|"assistant", "content": str}], kept by the client; the server stores nothing.
@@ -283,7 +289,7 @@ class Tutor:
             question = INTRO_QUESTION.format(lesson=f'"{context["lesson"] or context["course"] or "this page"}"')
         # The same question in the same place gets the same answer: reuse it instead of asking the AI
         # again. Learners repeat questions a lot (see the teacher view), so this saves most of the quota.
-        key = None if history else (normalise(question).strip(), lang, simple, voice, intent, context["page"], context["lesson"], context.get("section", ""))
+        key = None if history else (normalise(question).strip(), lang, simple, detailed, voice, intent, context["page"], context["lesson"], context.get("section", ""))
         cached = self._cache.get(key) if key else None
         if cached and time.time() - cached[0] < self.CACHE_SECONDS:
             return {**cached[1], "cached": True}
@@ -292,13 +298,13 @@ class Tutor:
                 continue
             try:
                 if provider.uses_model:
-                    result = self._ask_model(provider, question, lang, simple, history, context, intent, voice)
+                    result = self._ask_model(provider, question, lang, simple, history, context, intent, voice, detailed)
                 elif intent == "lesson_intro":
                     result = self._intro_offline(lang, context)
                 elif intent == "explain":
                     result = self._explain_offline(question, lang, context)
                 else:
-                    result = self._ask_offline(question, lang, simple)
+                    result = self._ask_offline(question, lang, simple, detailed)
             except ProviderError as e:
                 print(f"[tutor] {provider.name} failed, trying the next provider: {e}", file=sys.stderr)
                 continue
@@ -372,12 +378,12 @@ class Tutor:
 
     def _ask_model(
         self, provider: Provider, question: str, lang: str, simple: bool, history: list[dict],
-        context: dict | None = None, intent: str | None = None, voice: bool = False,
+        context: dict | None = None, intent: str | None = None, voice: bool = False, detailed: bool = False,
     ) -> dict:
         context = context or {"page": "", "course": "", "lesson": "", "section": ""}
         if intent == "explain":
             hits = self._explain_hits(question, context)
-            return self._answer_from(provider, question, lang, simple, history, context, voice, hits)
+            return self._answer_from(provider, question, lang, simple, history, context, voice, hits, detailed)
         if intent == "lesson_intro":
             query = context["lesson"] or context["course"]
         else:
@@ -426,9 +432,9 @@ class Tutor:
                 # (it could only guess, and it would spend quota).
                 return {"answer": TEXT[lang]["not_found"], "grounded": False, "citations": []}
 
-        return self._answer_from(provider, question, lang, simple, history, context, voice, hits)
+        return self._answer_from(provider, question, lang, simple, history, context, voice, hits, detailed)
 
-    def _answer_from(self, provider, question, lang, simple, history, context, voice, hits) -> dict:
+    def _answer_from(self, provider, question, lang, simple, history, context, voice, hits, detailed=False) -> dict:
         """Ask the model to answer from these sources only, and check its citations."""
         where = ", ".join(
             f'{label} "{value}"' for label, value in (("course", context["course"]), ("lesson", context["lesson"])) if value
@@ -437,7 +443,7 @@ class Tutor:
             marker=NOT_FOUND,
             language=LANGUAGES[lang],
             language_note=AMHARIC_NOTE if lang == "am" else OTHER_NOTES.get(lang, ENGLISH_NOTE),
-            simple_note=SIMPLE_NOTE if simple else "",
+            simple_note=SIMPLE_NOTE if simple else DETAILED_NOTE if detailed else "",
             voice_note=VOICE_NOTE if voice else "",
             context_note=CONTEXT_NOTE.format(where=where) if where else "",
         )
@@ -535,7 +541,7 @@ class Tutor:
 
     # -------------------------------------------------------------- without a model
 
-    def _ask_offline(self, question: str, lang: str, simple: bool) -> dict:
+    def _ask_offline(self, question: str, lang: str, simple: bool, detailed: bool = False) -> dict:
         text = TEXT[lang]
         if CONFUSED.search(question) and len(question.split()) <= 8:
             return {"answer": text["confused"], "grounded": False, "citations": []}
@@ -583,7 +589,7 @@ class Tutor:
         job_answer = bool(hits) and hits[0].get("corpus") == "jobs" and bool(self.JOB_WORDS.search(query))
         if not hits or (not job_answer and (hits[0]["score"] < self.OFFLINE_MIN_SCORE or coverage(self.index, query, hits) < self.MIN_COVERAGE)):
             return {"answer": text["not_found"], "grounded": False, "citations": []}
-        quote = best_sentences(hits[0]["text"], query)
+        quote = best_sentences(hits[0]["text"], query, count=6 if detailed else 3)
         answer = f"{text['offline_quote']}\n\n{quote} [1]"
         if len(hits) > 1:
             answer += f"\n\n{text['related']} {hits[1]['title']} [2]"

@@ -82,8 +82,9 @@ few simple sentences, and waits for "next", "repeat" or "stop" (spoken, or as bu
 
 ### 8. Settings the learner controls
 
-Language, simple words, online AI and voice on or off, three text sizes, listen automatically, download
-the chat, clear the chat. The choices are remembered on the learner's own device.
+Language, **answer level** (Simple, Standard or Detailed: the same sources at every level), online AI
+and voice on or off, three text sizes, listen automatically, download the chat, clear the chat. The
+choices are remembered on the learner's own device.
 
 ![The settings: language, simple words, online AI, text size, listen automatically](docs/screenshots/settings.png)
 
@@ -215,6 +216,19 @@ both are read, and the project's own `.env` wins where both set the same thing.
 | Telegram bot | `TELEGRAM_BOT_TOKEN=...` (and `TELEGRAM_MODE=webhook` on a hosted server, see "Deploy online") | In Telegram, message @BotFather, send `/newbot` |
 | Real SMS | `SMS_PROVIDER=...` | See "Real SMS, free for development" below |
 
+### Without a Gemini key (or any AI)
+
+Mimi still answers, from the course text, with the same sources: questions are matched against the
+course sections (BM25 and the Amharic and Afaan Oromo word lists) and the best-matching sentences are
+quoted, marked "Answered offline, without AI". Off-topic questions are still refused and offered a
+person. Three ways to see it:
+
+- **On the live page:** at the first visit choose **"No, text only"** (or turn off "Online AI and voice"
+  in Settings). Nothing is sent to any AI from then on.
+- **On a server:** leave `GEMINI_API_KEY` empty, or set `ABLEWAY_PROVIDERS=offline`, and restart.
+- **In the tests:** `tests/test_judges_feedback.py` removes every key and checks English, Amharic and
+  Afaan Oromo answers and the off-topic refusal.
+
 ### Test on a real phone (needed for the microphone)
 
 Phones only allow the microphone on HTTPS. With the servers running, open a second terminal:
@@ -250,6 +264,15 @@ to send tickets to a help desk that runs separately.) Addresses have no `/` at t
 free plan the service sleeps after 15 minutes without visits; the first request after that (a page,
 "Talk to a person", a Telegram message) takes up to about a minute. Open it once before a demo. Data in SQLite is reset when a free service restarts.
 
+**Monitoring and automatic restart.** `GET /api/health` answers **200** when Mimi can answer and the
+help desk can take learners (`"help_desk": {"ok": true, "waiting": 0, "telegram": "running"}`), and
+**503** when the help desk cannot (for example, its database cannot be opened).
+- **Render** uses it as the health check (`healthCheckPath` in render.yaml) and restarts the service when it fails.
+- **Docker Compose** restarts the container if it stops and marks it "unhealthy" when the check fails.
+- **A free uptime monitor** (for example UptimeRobot or Better Stack) checking
+  `https://<your service>/api/health` every 5 minutes e-mails the team when it fails. It also keeps a
+  free Render service awake, so the first learner does not wait.
+
 ### Real SMS, free for development
 
 Without an SMS gateway, `POST /sms/inbound` returns the reply as plain text (at
@@ -272,7 +295,7 @@ Job alerts then go out as real SMS too. Commands a learner can text: `JOBS`, `SU
 
 ```bash
 pip install -r requirements.txt
-python -m pytest server/tests tests     # 104 tests
+python -m pytest server/tests tests     # 143 tests
 python server/evaluate.py               # answer quality: 30 questions, see "Quality" below
 cd tests/a11y && npm install && node axe.mjs http://localhost:8000/demo/blank.html page open
 ```
@@ -530,7 +553,7 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
 - Telegram: typed questions and voice messages, "🔊 Listen", `/voice on`, `/privacy`, `/forget`.
 - SMS (plain text, 160 characters) with real gateways for development; `/lite`.
 - Job answers, job alerts, interview accommodation requests handled by a person.
-- Simple mode, teacher view, offline question queue, "Download chat".
+- Answer level (Simple, Standard, Detailed, same sources), teacher view, offline question queue, "Download chat".
 - Text size in three steps, dark mode (following the device, or `theme`), the host's brand colour
   when readable; Mimi stays inside the visible screen on phones, even on pages wider than the phone
   (tested at 320, 360, 390 and 412 px, at every text size).
@@ -538,7 +561,7 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
   skip the extra AI step, and "Let me check." when an answer takes a moment.
 - The pluggable AI layer with an offline mode; the API with `/docs`, OpenAPI and a webhook;
   schema.org JobPosting; Docker Compose; a Render blueprint, with Telegram by webhook when hosted.
-- 104 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
+- 143 automated tests (`python -m pytest server/tests tests`) and an axe-core check (`tests/a11y`):
   0 issues on every page, with the chat open and closed.
 
 **Not finished or not yet verified:**
@@ -549,7 +572,9 @@ No feature depends on a paid service: every AI, voice and SMS provider can be sw
   shows what she heard, so the learner can correct it or type instead.
 - Only Amharic and English language files; the mechanism for more is in place.
 - The real SMS gateways are tested with simulated requests only, not yet with a real phone and SIM.
-- The Amharic text should be read once more by a native speaker on the team.
+- The Amharic text should be read once more by a native speaker on the team: run
+  `python server/amharic_review.py` and fill in [docs/amharic_review.csv](docs/amharic_review.csv)
+  (every Amharic text next to its English, including the fixed course terms the AI must use).
 
 ## Project structure
 

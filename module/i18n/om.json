@@ -190,5 +190,11 @@
   "escalatedPress": "Nama waliin haasawa baneera. Banuuf Enter tuqaa, ykn “Haasawa gargaarsaa bani” tuqaa. Barsiisaan achitti isiniif deebisa. Yoo amma namni toora irra hin jiru ta'e, deebiin ganama dhufuu danda'a, haasawni immoo isiniif banaa ta'ee tura.",
   "openHelp": "Haasawa gargaarsaa bani",
   "pressHint": "Afaan Oromootiif, 3 tuqaa.",
-  "chooseOthers": "Afaan Amaaraatiif 1, Afaan Ingliiziitiif 2 tuqaa."
+  "chooseOthers": "Afaan Amaaraatiif 1, Afaan Ingliiziitiif 2 tuqaa.",
+  "answerLevel": "Sadarkaa deebii",
+  "answerLevels": [
+    "Salphaa",
+    "Idilee",
+    "Bal'aa"
+  ]
 }

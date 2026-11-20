@@ -1,6 +1,6 @@
 """The tutor's web API and the site's pages, as part of the one FastAPI server (server/main.py).
 
-    POST /api/ask, /api/v1/ask  {"question", "lang"|"language", "simple", "history", "session_id",
+    POST /api/ask, /api/v1/ask  {"question", "lang"|"language", "simple", "level", "history", "session_id",
                                  "context": {"page", "course", "lesson", "section"}, "intent",
                                  "voice", "detect_switch", "cloud"}
     POST /api/v1/content        the host's lessons to index ({"chunks": [{title, url, text}]})
@@ -98,7 +98,9 @@ def validate(body: dict) -> tuple[dict | None, str]:
         "question": question,
         # "language" is the API contract's name for it; "lang" is what the widget sends.
         "lang": next((v for v in (body.get("language"), body.get("lang")) if v in LANGUAGES), None),
-        "simple": body.get("simple") is True,
+        # The answer level: "simple", "standard" or "detailed" ("simple": true still means simple).
+        "simple": body.get("simple") is True or body.get("level") == "simple",
+        "detailed": body.get("level") == "detailed" and body.get("simple") is not True,
         "history": history,
         "context": context,
         "intent": intent,
@@ -315,9 +317,29 @@ async def transcribe(request: Request, lang: str = "", purpose: str = ""):
 
 
 # ------------------------------------------------------------------ health, contract, docs
+def help_desk_status() -> dict:
+    """Can a learner reach a person right now? The ticket database must open and answer; Telegram is
+    reported but optional. A monitor (Render's health check, Docker, an uptime service) reads this."""
+    from server.channels.config import telegram_token
+    from server.channels.telegram_bot import is_running
+    from server.handoff import tickets
+
+    status = {"ok": True, "waiting": None, "telegram": "off"}
+    try:
+        status["waiting"] = len(tickets.list_open())
+    except Exception as e:  # the database file is missing, locked or unwritable
+        status.update(ok=False, error=type(e).__name__)
+    if telegram_token():
+        status["telegram"] = "running" if is_running() else "not running"
+    return status
+
+
 @router.api_route("/api/health", methods=["GET", "HEAD"])
 async def health(request: Request):
-    return send_json(request, 200, {**tutor.health(), "speech": speech.status()})
+    """200 when Mimi can answer and the help desk can take learners; 503 when the help desk cannot, so
+    a health check restarts the service (see render.yaml and docker-compose.yml)."""
+    desk = await run_in_threadpool(help_desk_status)
+    return send_json(request, 200 if desk["ok"] else 503, {**tutor.health(), "speech": speech.status(), "help_desk": desk})
 
 
 @router.api_route("/openapi.yaml", methods=["GET", "HEAD"], include_in_schema=False)
