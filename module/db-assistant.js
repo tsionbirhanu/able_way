@@ -755,22 +755,52 @@
 
   function sourceLink(citation, text, isMarker = false) {
     const url = new URL(citation.url, siteRoot);
-    const samePage = url.pathname === location.pathname;
-    const link = el('a', { href: samePage ? url.hash || '#' : url.href, text, lang: isMarker ? null : 'en' });
+    const samePage = url.pathname === location.pathname ||
+      location.pathname.endsWith(url.pathname.split('/').pop()) ||
+      url.pathname.endsWith(location.pathname.split('/').pop());
+    const hash = url.hash ? decodeURIComponent(url.hash.slice(1)) : '';
+    const link = el('a', { href: samePage ? (url.hash || '#') : url.href, text, lang: isMarker ? null : 'en' });
     if (isMarker) {
       link.className = 'cite';
       link.setAttribute('aria-label', `${t().source} ${citation.n}: ${citation.title}`);
     }
-    if (!samePage) {
+    if (samePage) {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        showInLesson(hash, citation.title);
+      });
+    } else {
       link.target = '_blank';
       link.rel = 'noopener';
       if (!isMarker) link.append(el('span', { class: 'sr-only', lang: state.lang, text: ` (${t().newTab})` }));
-    } else if (url.hash) {
-      link.addEventListener('click', (event) => {
-        if (showInLesson(decodeURIComponent(url.hash.slice(1)), citation.title)) event.preventDefault();
-      });
     }
     return link;
+  }
+
+  function findSectionElement(id, title) {
+    if (id) {
+      const byId = document.getElementById(id) || document.querySelector(`[name="${id}"]`);
+      if (byId) return byId;
+    }
+    const cleanTitle = (title || '').replace(/^.*?[-—–]\s*/, '').trim().toLowerCase();
+    if (cleanTitle) {
+      const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+      for (const h of headings) {
+        const text = h.textContent.trim().toLowerCase();
+        if (text && (text.includes(cleanTitle) || cleanTitle.includes(text))) {
+          return h;
+        }
+      }
+      const idSlug = cleanTitle.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      if (idSlug) {
+        const bySlug = document.getElementById(idSlug) || document.querySelector(`[id*="${idSlug}"]`);
+        if (bySlug) return bySlug;
+      }
+    }
+    if (!id || /intro/i.test(title || '')) {
+      return document.querySelector('#curriculum_navigation_content h1, main h1, h1');
+    }
+    return null;
   }
 
   // "Where did this answer come from?" A source on this page: scroll the lesson to that section and
@@ -781,28 +811,40 @@
     const heading = anchor.closest('h1, h2, h3, h4, h5, h6') || anchor;
     let rect = heading.getBoundingClientRect();
     let top = rect.top, left = rect.left, right = rect.right, bottom = rect.bottom;
-    // The heading and what follows it, up to the next heading of the same or a higher level.
+    // The heading and what follows it, up to the next heading of the same or a higher level, or an HR.
     const level = /^H(\d)$/.test(heading.tagName) ? Number(heading.tagName[1]) : 7;
     for (let node = heading.nextElementSibling; node; node = node.nextElementSibling) {
+      if (node.tagName === 'HR') break;
       const tag = /^H(\d)$/.exec(node.tagName);
       if (tag && Number(tag[1]) <= level) break;
       rect = node.getBoundingClientRect();
       if (!rect.height) continue;
       top = Math.min(top, rect.top); left = Math.min(left, rect.left);
       right = Math.max(right, rect.right); bottom = Math.max(bottom, rect.bottom);
-      if (bottom - top > window.innerHeight * 0.8) break;
+      if (bottom - top > window.innerHeight * 2.5) break;
     }
     return { top, left, width: right - left, height: bottom - top };
   }
   function showInLesson(id, title) {
-    const anchor = document.getElementById(id);
+    const anchor = findSectionElement(id, title);
     if (!anchor) return false;
     const heading = anchor.closest('h1, h2, h3, h4, h5, h6') || anchor;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    heading.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    
+    // Smooth scroll with clearance for the fixed top navigation bar (63px)
+    const rect = heading.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const targetY = scrollTop + rect.top - 75;
+    window.scrollTo({ top: Math.max(0, targetY), behavior: reduce ? 'auto' : 'smooth' });
+
     const place = () => {
       const r = sectionRect(anchor);
-      Object.assign(ring.style, { top: `${r.top - 8}px`, left: `${r.left - 8}px`, width: `${r.width + 16}px`, height: `${r.height + 16}px` });
+      Object.assign(ring.style, {
+        top: `${Math.round(r.top - 8)}px`,
+        left: `${Math.round(r.left - 8)}px`,
+        width: `${Math.round(r.width + 16)}px`,
+        height: `${Math.round(r.height + 16)}px`,
+      });
     };
     ring.hidden = false;
     place();
@@ -2434,6 +2476,19 @@
       reply.text = `${reply.text}\n\n${last ? words.readLast : words.readHint}`;
     }
     addMessage(reply);
+    if (reply.citations && reply.citations.length && !reply.error) {
+      const firstCite = reply.citations[0];
+      if (firstCite && firstCite.url) {
+        const u = new URL(firstCite.url, siteRoot);
+        const isCurrentPage = u.pathname === location.pathname ||
+          location.pathname.endsWith(u.pathname.split('/').pop()) ||
+          u.pathname.endsWith(location.pathname.split('/').pop());
+        if (isCurrentPage) {
+          const h = u.hash ? decodeURIComponent(u.hash.slice(1)) : '';
+          showInLesson(h, firstCite.title);
+        }
+      }
+    }
     if (!state.voiceOn) caption('mimi', reply.text, reply.lang || state.lang);
     if (reply.error && ctl.errors >= 2) {
       go(ERROR); // the service is down: do not keep listening and failing

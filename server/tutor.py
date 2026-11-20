@@ -639,4 +639,9 @@ def parse_answer(raw: str, hits: list[dict], fallback: str) -> dict:
     text = re.sub(r"[ \t]+([.,;:!?።፣፤])", r"\1", text)
     text = re.sub(r"[ \t]{2,}", " ", text).strip()
     citations = [citation(i, hits[n - 1]) for i, n in enumerate(order, start=1)]
+    if not not_found and hits and not citations:
+        count = min(len(hits), 3)
+        citations = [citation(i, hits[i - 1]) for i in range(1, count + 1)]
+        if text and not re.search(r"\[\d+\]", text):
+            text = f"{text} [1]"
     return {"answer": text or fallback, "grounded": bool(citations), "citations": citations}
