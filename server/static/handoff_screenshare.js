@@ -93,7 +93,14 @@
   chat.on("signal", function (m) {
     var d = m.data || {};
     if (d.channel === "voice") return; // the voice call has its own connection (handoff_voice.js)
-    if (d.request === "offer") { offer(); return; } // tutor (re)joined: no-op unless already sharing
+    if (d.request === "offer") {
+      // Do not recreate peer connection if we just offered or are already connected
+      if (pc && (pc.signalingState === "have-local-offer" || pc.connectionState === "connected" || pc.iceConnectionState === "connected")) {
+        return;
+      }
+      offer();
+      return;
+    } // tutor (re)joined: no-op unless already sharing
     if (!pc) return;
     if (d.description && d.description.type === "answer") {
       pc.setRemoteDescription(d.description)
