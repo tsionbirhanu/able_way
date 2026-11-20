@@ -68,6 +68,65 @@ STRINGS = {
     "job_remote": {"en": "Remote", "am": "ከርቀት"},
     "job_skills": {"en": "Skills", "am": "ክህሎቶች"},
     "job_alert_prefix": {"en": "New job", "am": "አዲስ ስራ"},
+    # ---- Telegram buttons under answers and jobs; jobs that fit (/match); applying with Mimi ----
+    "tg_btn_lesson": {"en": "📖 Show in lesson", "am": "📖 በትምህርቱ ውስጥ አሳይ", "om": "📖 Barnoota keessatti agarsiisi"},
+    "tg_btn_person": {"en": "🙋 Ask a person", "am": "🙋 ሰው ይጠይቁ", "om": "🙋 Nama gaafadhu"},
+    "tg_btn_apply": {"en": "📝 Apply with Mimi", "am": "📝 ከሚሚ ጋር ያመልክቱ", "om": "📝 Mimii waliin iyyadhu"},
+    "tg_btn_support": {"en": "♿ Interview support", "am": "♿ የቃለ መጠይቅ ድጋፍ", "om": "♿ Deeggarsa af-gaaffii"},
+    "tg_btn_match": {"en": "🎯 Jobs for my skills", "am": "🎯 ለክህሎቴ የሚመጥኑ ስራዎች", "om": "🎯 Hojii dandeettii kootiif"},
+    "tg_btn_done": {"en": "✅ Done", "am": "✅ ጨርሻለሁ", "om": "✅ Xumureera"},
+    "match_ask": {
+        "en": "🎯 Which kinds of work would you like? Tap every one that fits you, then ✅ Done. "
+              "I will show the jobs that fit and send you new ones as they arrive.",
+        "am": "🎯 ምን ዓይነት ስራዎችን ይፈልጋሉ? የሚስማሙዎትን ሁሉ ይንኩ፣ ከዚያ «✅ ጨርሻለሁ» ይንኩ። "
+              "የሚመጥኑዎትን ስራዎች አሳይዎታለሁ፣ አዳዲሶቹንም ሲመጡ እልክልዎታለሁ።",
+        "om": "🎯 Hojii akkamii barbaadda? Kan siif ta'u hunda tuqi, achiis ✅ Xumureera tuqi. "
+              "Hojiiwwan siif ta'an siif nan agarsiisa, kanneen haaraa yeroo dhufan siif nan erga.",
+    },
+    "match_pick_one": {"en": "Tap at least one kind of work first.", "am": "መጀመሪያ ቢያንስ አንድ የስራ ዓይነት ይንኩ።",
+                       "om": "Dursa gosa hojii tokko tuqi."},
+    "match_header": {
+        "en": "Jobs that fit you. Alerts are on: I will send you new jobs that fit (/unsubscribe to stop).",
+        "am": "የሚመጥኑዎት ስራዎች። ማሳወቂያ በርቷል፦ አዳዲስ የሚመጥኑ ስራዎችን እልክልዎታለሁ (ለማቆም /unsubscribe)።",
+        "om": "Hojiiwwan siif ta'an. Beeksisni banameera: hojiiwwan haaraa siif ta'an siif nan erga (dhaabuuf /unsubscribe).",
+    },
+    "match_empty": {
+        "en": "No open job fits these yet. Alerts are on: I will send you new jobs that fit as they arrive.",
+        "am": "እስካሁን የሚመጥንዎት ክፍት ስራ የለም። ማሳወቂያ በርቷል፦ አዳዲስ የሚመጥኑ ስራዎች ሲመጡ እልክልዎታለሁ።",
+        "om": "Ammaaf hojiin banaan siif ta'u hin jiru. Beeksisni banameera: hojiiwwan haaraa siif ta'an yeroo dhufan siif nan erga.",
+    },
+    "match_why": {"en": "✅ Why it fits you: {skills}", "am": "✅ ለምን ይመጥንዎታል፦ {skills}", "om": "✅ Maaliif siif ta'a: {skills}"},
+    "apply_steps": {
+        "en": "📝 Applying for {title} at {company}\n\n"
+              "1. Read what they need: {skills}.\n"
+              "2. Prepare a short CV (one page): your name, contacts, skills, and any work or course you finished.\n"
+              "3. Write 3 to 4 sentences: who you are, one skill from the list with an example, and why you want this job.\n"
+              "4. Apply before {deadline}: {link}\n\n"
+              "Need support for the interview (sign language, extra time, a screen reader, questions in writing)? "
+              "Tap ♿ below. It goes privately to a coordinator, never to the employer.",
+        "am": "📝 በ{company} ለ«{title}» ማመልከት\n\n"
+              "1. የሚፈልጉትን ያንብቡ፦ {skills}።\n"
+              "2. አጭር የሥራ ልምድ ማስረጃ (CV፣ አንድ ገጽ) ያዘጋጁ፦ ስምዎ፣ አድራሻዎ፣ ክህሎቶችዎ፣ እና የሠሩት ስራ ወይም የጨረሱት ኮርስ።\n"
+              "3. ከ3 እስከ 4 ዓረፍተ ነገሮች ይጻፉ፦ ማን እንደሆኑ፣ ከዝርዝሩ አንድ ክህሎት ከምሳሌ ጋር፣ እና ይህን ስራ ለምን እንደሚፈልጉት።\n"
+              "4. ከ{deadline} በፊት ያመልክቱ፦ {link}\n\n"
+              "ለቃለ መጠይቁ ድጋፍ ያስፈልግዎታል (የምልክት ቋንቋ፣ ተጨማሪ ጊዜ፣ ስክሪን ሪደር፣ ጥያቄዎች በጽሑፍ)? "
+              "ከታች ♿ ይንኩ። ጥያቄው በሚስጥር ወደ አስተባባሪ ይሄዳል፤ ለአሠሪው ፈጽሞ አይደርስም።",
+        "om": "📝 {company} keessatti {title} iyyachuu\n\n"
+              "1. Waan isaan barbaadan dubbisi: {skills}.\n"
+              "2. CV gabaabaa (fuula tokko) qopheessi: maqaa, teessoo, dandeettii, fi hojii hojjette ykn koorsii xumurte.\n"
+              "3. Hima 3 hanga 4 barreessi: eenyu akka taate, dandeettii tarree keessaa tokko fakkeenya waliin, fi hojii kana maaliif akka barbaaddu.\n"
+              "4. {deadline} dura iyyadhu: {link}\n\n"
+              "Af-gaaffiif deeggarsa barbaaddaa (afaan mallattoo, yeroo dabalataa, screen reader, gaaffii barreeffamaan)? "
+              "Gadi ♿ tuqi. Dhoksaan gara qindeessaatti deema; gonkumaa gara hojjechiisaatti hin ergamu.",
+    },
+    "apply_gone": {"en": "That job is no longer listed. Send /match to see jobs that fit you.",
+                   "am": "ያ ስራ ከእንግዲህ አልተዘረዘረም። የሚመጥኑዎትን ስራዎች ለማየት /match ይላኩ።",
+                   "om": "Hojiin sun amma hin jiru. Hojiiwwan siif ta'an ilaaluuf /match ergi."},
+    "acc_tg_step2_for": {
+        "en": "Interview support for {job} (private, step 2 of 3).\nWhat support do you need? Send /cancel to stop.",
+        "am": "ለ{job} የቃለ መጠይቅ ድጋፍ (ሚስጥራዊ፣ ደረጃ 2 ከ3)።\nምን ዓይነት ድጋፍ ያስፈልግዎታል? ለማቆም /cancel ይላኩ።",
+        "om": "Deeggarsa af-gaaffii {job}f (dhoksaa, sadarkaa 2 keessaa 3).\nDeeggarsa akkamii barbaadda? Dhaabuuf /cancel ergi.",
+    },
     "subscribed": {
         "en": "Subscribed to job alerts for \"{keyword}\".",
         "am": "ለ«{keyword}» የስራ ማሳወቂያ ተመዝግበዋል።",
@@ -99,11 +158,12 @@ STRINGS = {
             "/quizzes - about the evaluation quizzes\n"
             "/course - what is this course about?\n"
             "/future - the future of VA work\n\n"
-            "/lang - choose Amharic or English\n"
+            "/lang - choose Amharic, English or Afaan Oromo (/lang am, en or om)\n"
             "/voice on - get every answer as a voice message too (/voice off to stop)\n"
             "/privacy - choose whether AI and voice services may be used\n"
             "/forget - delete everything kept about this chat\n"
             "/jobs - newest virtual assistant jobs\n"
+            "/match - jobs that fit your skills, with alerts and help to apply\n"
             "/subscribe <word> - get job alerts (for example /subscribe calendar)\n"
             "/unsubscribe - stop job alerts\n"
             "/accommodation - ask for support in an interview\n"
@@ -119,11 +179,12 @@ STRINGS = {
             "/quizzes - የግምገማ ፈተናዎች\n"
             "/course - ይህ ኮርስ ስለ ምንድን ነው?\n"
             "/future - የቨርቹዋል ረዳት ስራ የወደፊት እድል\n\n"
-            "/lang - አማርኛ ወይም እንግሊዝኛ ይምረጡ\n"
+            "/lang - አማርኛ፣ እንግሊዝኛ ወይም አፋን ኦሮሞ ይምረጡ (/lang am፣ en ወይም om)\n"
             "/voice on - እያንዳንዱን መልስ በድምፅም ያግኙ (ለማቆም /voice off)\n"
             "/privacy - የAIና የድምፅ አገልግሎቶች ይፈቀዱ እንደሆነ ይምረጡ\n"
             "/forget - ስለዚህ ውይይት የተያዘውን ሁሉ ይሰርዙ\n"
             "/jobs - አዳዲስ የቨርቹዋል ረዳት ስራዎች\n"
+            "/match - ለክህሎትዎ የሚመጥኑ ስራዎች፣ ከማሳወቂያና ከማመልከቻ እገዛ ጋር\n"
             "/subscribe <ቃል> - የስራ ማሳወቂያ ያግኙ (ለምሳሌ /subscribe calendar)\n"
             "/unsubscribe - የስራ ማሳወቂያ ያቁሙ\n"
             "/accommodation - ለቃለ መጠይቅ ድጋፍ ይጠይቁ\n"

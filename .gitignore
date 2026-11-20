@@ -10,3 +10,6 @@ __pycache__/
 .env
 *.db
 data/*.db
+
+# Local testing notes, not published
+docs/FEATURES_AND_TESTING.md

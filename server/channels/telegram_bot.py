@@ -12,6 +12,7 @@ import re
 import secrets
 from collections import OrderedDict
 from contextlib import asynccontextmanager
+from urllib.parse import quote
 
 import httpx
 from fastapi import APIRouter, Request
@@ -42,6 +43,8 @@ COMMANDS = {}
 FLOWS = {}
 # Optional interceptor for "talking to a human" mode: async f(chat_id, text, lang) -> list[str] | None
 _interceptors = []
+# Button taps: "prefix:payload" -> async f(chat_id, payload, lang, query) -> list of replies to send
+CALLBACKS = {}
 
 # Ready-made questions in the bot's menu: one tap asks the course, in the chat's language. Each one is
 # answered from the course with its source (checked against the course in both languages).
@@ -70,11 +73,12 @@ MENU = [
     ("course", "📘 What is this course about?", "📘 ይህ ኮርስ ስለ ምንድን ነው?"),
     ("future", "🚀 The future of VA work", "🚀 የቨርቹዋል ረዳት ስራ የወደፊት እድል"),
     ("jobs", "💼 Newest remote jobs", "💼 አዳዲስ የርቀት ስራዎች"),
+    ("match", "🎯 Jobs that fit my skills", "🎯 ለክህሎቴ የሚመጥኑ ስራዎች"),
     ("subscribe", "🔔 Job alerts, e.g. /subscribe calendar", "🔔 የስራ ማሳወቂያ፣ ለምሳሌ /subscribe calendar"),
     ("accommodation", "♿ Ask for support in an interview", "♿ ለቃለ መጠይቅ ድጋፍ ይጠይቁ"),
     ("human", "🙋 Talk to a person", "🙋 ከሰው ጋር ይነጋገሩ"),
     ("voice", "🔊 Answers by voice: /voice on or off", "🔊 መልሶችን በድምፅ፦ /voice on ወይም off"),
-    ("lang", "🌍 Amharic or English: /lang am or en", "🌍 አማርኛ ወይም እንግሊዝኛ፦ /lang am ወይም en"),
+    ("lang", "🌍 Amharic, English or Afaan Oromo: /lang am, en or om", "🌍 አማርኛ፣ እንግሊዝኛ ወይም አፋን ኦሮሞ፦ /lang am፣ en ወይም om"),
     ("privacy", "🔒 AI and voice privacy choice", "🔒 የAIና የድምፅ ግላዊነት ምርጫ"),
     ("forget", "🗑 Delete everything kept about me", "🗑 ስለ እኔ የተያዘውን ሁሉ ሰርዝ"),
     ("help", "❓ Everything I can do", "❓ ማድረግ የምችለው ሁሉ"),
@@ -112,21 +116,59 @@ def is_running() -> bool:
     return bool(_state["running"])
 
 
+class Reply(str):
+    """A reply text that carries its own buttons: commands still return plain text (and compare as
+    text in tests), and the sender puts the buttons under it."""
+
+    def __new__(cls, text: str, buttons: list | None = None):
+        reply = super().__new__(cls, text)
+        reply.buttons = buttons
+        return reply
+
+
+def _rows(buttons: list | None) -> list:
+    """Buttons as rows: one row [(label, data)], or several [[(label, data)], …]. A data that is a web
+    address makes a link button; anything else is sent back to the bot when tapped."""
+    if not buttons:
+        return []
+    rows = buttons if isinstance(buttons[0], list) else [buttons]
+    return [[{"text": label, "url": data} if data.startswith(("https://", "http://")) else
+             {"text": label, "callback_data": data} for label, data in row] for row in rows if row]
+
+
 async def send_message(chat_id, text: str, buttons: list | None = None) -> bool:
-    """Send a plain-text message, optionally with one row of inline buttons [(label, data)].
-    Returns False if the bot is not running or Telegram refused."""
+    """Send a plain-text message, optionally with inline buttons: one row [(label, data)] or several
+    rows [[(label, data)], …]. Returns False if the bot is not running or Telegram refused."""
     client, token = _state["client"], telegram_token()
     if not (client and token and _state["running"]):
         return False
     body = {"chat_id": chat_id, "text": text[:TG_LIMIT], "disable_web_page_preview": True}
-    if buttons:
-        body["reply_markup"] = {"inline_keyboard": [[{"text": label, "callback_data": data} for label, data in buttons]]}
+    rows = _rows(buttons)
+    if rows:
+        body["reply_markup"] = {"inline_keyboard": rows}
     try:
         resp = await client.post(API.format(token=token, method="sendMessage"), json=body)
+        if resp.status_code != 200 and any("url" in b for row in rows for b in row):
+            # Telegram refuses some link buttons (for example a local address): send without them.
+            plain = [[b for b in row if "url" not in b] for row in rows]
+            body["reply_markup"] = {"inline_keyboard": [row for row in plain if row]}
+            resp = await client.post(API.format(token=token, method="sendMessage"), json=body)
         return resp.status_code == 200
     except httpx.HTTPError as exc:
         log.warning("sendMessage failed: %s", type(exc).__name__)
         return False
+
+
+async def _edit_buttons(chat_id, message_id, buttons: list) -> None:
+    """Change the buttons under a message already sent (the ☑ ticks in /match)."""
+    client, token = _state["client"], telegram_token()
+    if not (client and token and message_id):
+        return
+    try:
+        await client.post(API.format(token=token, method="editMessageReplyMarkup"),
+                          json={"chat_id": chat_id, "message_id": message_id, "reply_markup": {"inline_keyboard": _rows(buttons)}})
+    except httpx.HTTPError:
+        pass
 
 
 # ------------------------------------------------------------------ message handling
@@ -182,8 +224,11 @@ async def _answer_question(chat_id: str, text: str, lang: str) -> list:
     cloud = get_consent("telegram", chat_id) is True  # not asked yet, or said no: nothing is sent out
     result = await asyncio.to_thread(core_client.ask, text, lang, "telegram", False, cloud)
     log_question(text, lang, "telegram", result["matched"])  # no chat id is passed
+    _last_source.pop(str(chat_id), None)
     if not result["matched"]:
         return [t(lang, "dont_know") + "\n" + t(lang, "tg_offer_human")]
+    if result["citations"]:
+        _last_source[str(chat_id)] = result["citations"][0]  # for "📖 Show in lesson" under the answer
     reply = result["answer"]
     sources = format_citations(result["citations"], lang)
     return [reply + ("\n\n" + sources if sources else "")]
@@ -291,14 +336,41 @@ def _remember_answer(text: str, lang: str) -> str:
     return key
 
 
+_last_source = {}  # chat_id -> the first source of the latest answer; in memory only
+
+
+def _lesson_link(citation: dict | None) -> str:
+    """The lesson page of a source, opened with the section ringed (?mimi_source=, read by the web
+    widget). Only for a public https site: Telegram refuses link buttons to a local address."""
+    base = public_base_url().rstrip("/")
+    page = ((citation or {}).get("page") or "").strip()
+    path, _, anchor = page.partition("#")
+    if not base.startswith("https://") or not path.endswith((".html", ".htm")):
+        return ""
+    path = path.lstrip("/") if "/" in path else "pages/" + path
+    link = f"{base}/{path}?mimi_source={quote((citation or {}).get('heading') or '')}"
+    return link + (f"#{anchor}" if anchor else "")
+
+
+def _answer_buttons(chat_id, reply: str, lang: str) -> list:
+    """Under an answer: 🔊 Listen and 📖 Show in lesson, then 🙋 Ask a person. Tapping is enough:
+    nothing has to be typed."""
+    first = [(t(lang, "tg_listen_button"), "listen:" + _remember_answer(reply, lang))]
+    link = _lesson_link(_last_source.pop(str(chat_id), None))
+    if link:
+        first.append((t(lang, "tg_btn_lesson"), link))
+    return [first, [(t(lang, "tg_btn_person"), "human:")]]
+
+
 async def _deliver(chat_id, replies: list, question: bool, spoken_input: bool) -> None:
-    """Send the replies. For an answer to a question: a "🔊 Listen" button under it, and the
-    answer in voice straight away when the learner spoke, or turned voice answers on (/voice on)."""
+    """Send the replies. For an answer to a question: buttons under it (Listen, Show in lesson, Ask a
+    person), and the answer in voice straight away when the learner spoke, or turned voice answers on
+    (/voice on). A reply that carries its own buttons (jobs) gets those."""
     lang = get_lang("telegram", str(chat_id))  # after the reply: "/lang am" said aloud changes it
     for i, reply in enumerate(replies):
-        buttons = None
+        buttons = getattr(reply, "buttons", None)
         if question and i == 0:
-            buttons = [(t(lang, "tg_listen_button"), "listen:" + _remember_answer(reply, lang))]
+            buttons = _answer_buttons(chat_id, reply, lang)
         await send_message(chat_id, reply, buttons)
     allowed = get_consent("telegram", str(chat_id)) is True
     if question and replies and allowed and (spoken_input or get_voice("telegram", str(chat_id))):
@@ -336,6 +408,17 @@ async def _handle_callback(query: dict) -> None:
         note = _pending_voice.pop(str(chat_id), None)
         if note and allowed:
             await _handle_voice(chat_id, note)  # the voice message they sent before choosing
+        return
+    prefix, _, payload = data.partition(":")
+    if prefix in CALLBACKS:  # human:, area:, apply:, support:
+        lang = get_lang("telegram", str(chat_id))
+        try:
+            replies = await CALLBACKS[prefix](str(chat_id), payload, lang, query)
+        except Exception as exc:
+            log.error("button error: %s", type(exc).__name__)
+            return
+        for reply in replies or []:
+            await send_message(chat_id, reply, getattr(reply, "buttons", None))
         return
     if not data.startswith("listen:"):
         return
@@ -561,13 +644,93 @@ async def status():
 
 
 # ------------------------------------------------------------------ jobs commands
+def job_buttons(job_id: str, lang: str) -> list:
+    """Under a job: apply step by step with Mimi, or ask privately for interview support."""
+    return [(t(lang, "tg_btn_apply"), "apply:" + job_id), (t(lang, "tg_btn_support"), "support:" + job_id)]
+
+
 async def _cmd_jobs(chat_id, arg, lang):
     from server.jobs.store import format_job, load_jobs, matches
 
     jobs = [j for j in load_jobs() if matches(j, arg)][:5]
     if not jobs:
         return [t(lang, "jobs_none")]
-    return [t(lang, "jobs_header")] + [format_job(j, lang) for j in jobs]
+    header = Reply(t(lang, "jobs_header"), [(t(lang, "tg_btn_match"), "area:start")])
+    return [header] + [Reply(format_job(j, lang), job_buttons(j["id"], lang)) for j in jobs]
+
+
+# ---- /match: jobs that fit the learner's kinds of work, with alerts for new ones
+_picks = {}  # chat_id -> the kinds of work ticked so far; in memory only
+
+
+def _picker(chosen: set, lang: str) -> list:
+    from server.jobs.matching import AREA_IDS, area_label
+
+    rows = [[(("☑ " if aid in chosen else "☐ ") + area_label(aid, lang), "area:" + aid)] for aid in AREA_IDS]
+    return rows + [[(t(lang, "tg_btn_done"), "area:done")]]
+
+
+async def _cmd_match(chat_id, arg, lang):
+    _picks[str(chat_id)] = set()
+    return [Reply(t(lang, "match_ask"), _picker(set(), lang))]
+
+
+async def _on_area(chat_id, payload, lang, query):
+    from server.jobs import alerts
+    from server.jobs.matching import AREA_IDS, best_jobs, keyword_for
+    from server.jobs.store import format_job, load_jobs
+
+    if payload == "start":
+        return await _cmd_match(chat_id, "", lang)
+    chosen = _picks.setdefault(chat_id, set())
+    if payload in AREA_IDS:  # tick or untick, in place
+        chosen.symmetric_difference_update({payload})
+        await _edit_buttons(chat_id, (query.get("message") or {}).get("message_id"), _picker(chosen, lang))
+        return []
+    if payload != "done":
+        return []
+    if not chosen:
+        return [t(lang, "match_pick_one")]
+    _picks.pop(chat_id, None)
+    alerts.subscribe_areas("telegram", chat_id, keyword_for(chosen), lang)
+    best = best_jobs(load_jobs(), chosen)
+    if not best:
+        return [t(lang, "match_empty")]
+    return [t(lang, "match_header")] + [
+        Reply(format_job(job, lang) + "\n\n" + t(lang, "match_why", skills=", ".join(why)), job_buttons(job["id"], lang))
+        for job, why in best]
+
+
+async def _on_apply(chat_id, payload, lang, query):
+    """"Apply with Mimi": the steps for this job, in the learner's language, to read or hear."""
+    from server.channels.ethiopian import format_date
+    from server.jobs.store import get_job
+
+    job = get_job(payload)
+    if not job:
+        return [t(lang, "apply_gone")]
+    text = t(lang, "apply_steps", title=job["title"], company=job["company"],
+             skills=", ".join(job.get("skills") or []), deadline=format_date(job["deadline"], lang), link=job["link"])
+    return [Reply(text, [[(t(lang, "tg_listen_button"), "listen:" + _remember_answer(text, lang))],
+                         [(t(lang, "tg_btn_support"), "support:" + job["id"])]])]
+
+
+async def _on_support(chat_id, payload, lang, query):
+    """Interview support for this job: the private request starts at "what support?", the job filled in."""
+    from server.jobs.store import get_job
+
+    job = get_job(payload)
+    name = f"{job['title']} - {job['company']}" if job else payload
+    _flows[chat_id] = {"name": "accommodation", "step": 2, "data": {"job": name}}
+    return [t(lang, "acc_tg_step2_for", job=name)]
+
+
+async def _on_human(chat_id, payload, lang, query):
+    return await _cmd_human(chat_id, "", lang)
+
+
+CALLBACKS.update({"area": _on_area, "apply": _on_apply, "support": _on_support, "human": _on_human})
+COMMANDS["/match"] = _cmd_match
 
 
 async def _cmd_subscribe(chat_id, arg, lang):

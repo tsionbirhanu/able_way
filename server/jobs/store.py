@@ -27,6 +27,10 @@ def matches(job: dict, keyword: str) -> bool:
     keyword = (keyword or "").strip().lower()
     if keyword in ("", "*", "all"):
         return True
+    from .matching import PREFIX, areas_of, fitting_skills
+
+    if keyword.startswith(PREFIX):  # kinds of work chosen in Telegram (/match): any fitting skill
+        return bool(fitting_skills(job, areas_of(keyword)))
     desc = job.get("description") or {}
     haystack = " ".join(
         [job.get("title", ""), job.get("company", ""), job.get("location", ""),

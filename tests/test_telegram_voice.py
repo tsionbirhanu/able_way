@@ -93,10 +93,10 @@ def test_typed_answer_has_listen_button_that_speaks_it(bot_allowed):
     telegram_bot, voice, sent = bot_allowed
     run(telegram_bot._handle_update(text_message(50, "What is the late policy?")))
     buttons = [b for k, b in sent if k == "buttons"]
-    assert buttons and buttons[0][0][0] == "🔊 Listen"
+    assert buttons and buttons[0][0][0][0] == "🔊 Listen"  # first row, first button
     assert "voice" not in [k for k, _ in sent]  # typed question, voice answers off: text only
     sent.clear()
-    run(telegram_bot._handle_update({"callback_query": {"id": "q1", "data": buttons[0][0][1], "message": {"chat": {"id": 50}}}}))
+    run(telegram_bot._handle_update({"callback_query": {"id": "q1", "data": buttons[0][0][0][1], "message": {"chat": {"id": 50}}}}))
     assert sent == [("voice", "audio/mpeg")]
 
 
@@ -260,7 +260,7 @@ def test_menu_question_is_answered_from_the_course_with_listen(bot_allowed, monk
     texts = [x for k, x in sent if k == "text"]
     assert texts[0].startswith("❓ When is the assignment deadline?")
     assert "pages/" in texts[0]  # with its source
-    assert [b for k, b in sent if k == "buttons"][0][0][0] == "🔊 Listen"
+    assert [b for k, b in sent if k == "buttons"][0][0][0][0] == "🔊 Listen"
 
 
 def test_menu_question_follows_the_chat_language(bot_allowed):

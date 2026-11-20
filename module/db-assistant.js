@@ -3160,7 +3160,15 @@
     }
     revealWidget();
     sendHostContent();
-    const pending = session.get('show-source');
+    // A link from outside (Telegram's "Show in lesson") names the section in ?mimi_source=: ring it once.
+    const params = new URLSearchParams(location.search);
+    const linked = params.get('mimi_source');
+    if (linked) {
+      params.delete('mimi_source');
+      history.replaceState(history.state, '', location.pathname + (params.toString() ? `?${params}` : '') + location.hash);
+    }
+    const pending = session.get('show-source') ||
+      (linked ? { id: location.hash ? decodeURIComponent(location.hash.slice(1)) : '', title: linked.slice(0, 200), snippet: '' } : null);
     if (pending) {
       session.set('show-source', null);
       setTimeout(() => showInLesson(pending.id, pending.title, pending.snippet, false, true), 600); // after the page has laid out

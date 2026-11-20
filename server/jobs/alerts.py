@@ -2,6 +2,7 @@
 from server.channels.db import connect
 from server.channels.strings import norm_lang, t
 
+from .matching import PREFIX, areas_of, fitting_skills
 from .store import format_job, format_job_sms, load_jobs, matches
 
 MAX_PER_RUN = 3  # per subscription, so nobody gets a flood
@@ -9,7 +10,8 @@ MAX_PER_RUN = 3  # per subscription, so nobody gets a flood
 
 def subscribe(channel: str, address: str, keyword: str, language: str) -> str:
     """Add (or refresh) a subscription. Returns the stored keyword ('*' means every job)."""
-    keyword = " ".join((keyword or "").lower().split())[:40] or "*"
+    keyword = " ".join((keyword or "").lower().split())
+    keyword = keyword[:80] if keyword.startswith(PREFIX) else keyword[:40] or "*"
     with connect() as c:
         c.execute(
             "INSERT INTO subscriptions (channel, address, keyword, language) VALUES (?,?,?,?) "
@@ -17,6 +19,18 @@ def subscribe(channel: str, address: str, keyword: str, language: str) -> str:
             (channel, str(address), keyword, norm_lang(language)),
         )
     return keyword
+
+
+def subscribe_areas(channel: str, address: str, keyword: str, language: str) -> str:
+    """The learner's kinds of work (Telegram /match): replaces their earlier choice, keeps keyword alerts."""
+    with connect() as c:
+        ids = [r["id"] for r in c.execute(
+            "SELECT id FROM subscriptions WHERE channel=? AND address=? AND keyword LIKE ?",
+            (channel, str(address), PREFIX + "%"))]
+        for sub_id in ids:
+            c.execute("DELETE FROM sent_alerts WHERE subscription_id=?", (sub_id,))
+            c.execute("DELETE FROM subscriptions WHERE id=?", (sub_id,))
+    return subscribe(channel, address, keyword, language)
 
 
 def unsubscribe(channel: str, address: str) -> int:
@@ -44,8 +58,11 @@ async def _deliver(sub, job) -> bool:
     if sub["channel"] == "telegram":
         from server.channels import telegram_bot
 
-        return await telegram_bot.send_message(
-            sub["address"], t(lang, "job_alert_prefix") + ":\n" + format_job(job, lang))
+        text = t(lang, "job_alert_prefix") + ":\n" + format_job(job, lang)
+        why = fitting_skills(job, areas_of(sub["keyword"]))
+        if why:
+            text += "\n\n" + t(lang, "match_why", skills=", ".join(why))
+        return await telegram_bot.send_message(sub["address"], text, telegram_bot.job_buttons(job["id"], lang))
     return False
 
 
