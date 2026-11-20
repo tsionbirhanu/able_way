@@ -193,6 +193,7 @@ async def ticket_ws(ws: WebSocket, ticket_id: str, role: str = "learner"):
 
 # ------------------------------------------------------------------ tutor console
 @router.get("/console")
+@router.get("/console/login")
 async def console(request: Request):
     if not is_tutor(request.cookies):
         return render(request, "handoff_login.html", "en", error=False)
